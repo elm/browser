@@ -1,0 +1,18 @@
+{
+	"type": "package",
+	"name": "elm-lang/browser",
+	"summary": "Run Elm in browsers, with access to browser history for single-page apps (SPAs)",
+	"license": "BSD-3-Clause",
+	"version": "1.0.0",
+	"exposed-modules": [
+		"Browser",
+		"Browser.History"
+	],
+	"elm-version": "0.19.0 <= v < 0.20.0",
+	"dependencies": {
+		"elm-lang/core": "6.0.0 <= v < 7.0.0",
+		"elm-lang/virtual-css": "1.0.0 <= v < 2.0.0",
+		"elm-lang/virtual-dom": "3.0.0 <= v < 4.0.0"
+	},
+	"test-dependencies": {}
+}
