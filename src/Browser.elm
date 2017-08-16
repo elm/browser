@@ -20,7 +20,6 @@ module Browser exposing
 
 import Elm.Kernel.Browser
 import Task
-import VirtualCss
 import VirtualDom
 
 
@@ -36,7 +35,7 @@ type alias Env flags =
 
 program :
   { init : Env flags -> (model, Cmd msg)
-  , view : model -> { title : String, css : VirtualCss.Css, html : VirtualDom.Node msg }
+  , view : model -> { title : String, html : VirtualDom.Node msg }
   , update : msg -> model -> ( model, Cmd msg )
   , onNavigation : Url -> msg
   , subscriptions : model -> Sub msg
