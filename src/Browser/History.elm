@@ -66,8 +66,8 @@ scenario will clear out any future pages. It is like going back in time and
 making a different choice.
 -}
 push : String -> Cmd msg
-push url =
-  Task.perform never (Elm.Kernel.Browser.push url)
+push =
+  Elm.Kernel.Browser.push
 
 
 {-| Change the URL, but do not trigger a page load.
@@ -80,8 +80,8 @@ Imagine how annoying it would be to click `back` thirty times and still be on
 the same page!
 -}
 replace : String -> Cmd msg
-replace url =
-  Task.perform never (Elm.Kernel.Browser.replace url)
+replace =
+  Elm.Kernel.Browser.replace
 
 
 
@@ -98,7 +98,7 @@ other website!
 -}
 back : Int -> Cmd msg
 back n =
-  Task.perform never (Elm.Kernel.Browser.jump -n)
+  Elm.Kernel.Browser.go -n
 
 
 {-| Go forward some number of pages. So `forward 1` goes forward one page, and
@@ -111,17 +111,5 @@ if you go forward farther than the history you own, the user will end up on
 whatever website they visited next!
 -}
 forward : Int -> Cmd msg
-forward n =
-  Task.perform never (Elm.Kernel.Browser.jump n)
-
-
-
--- NEVER
-
-
-type Never = JustOneMore Never
-
-
-never : Never -> a
-never (JustOneMore nvr) =
-  never nvr
+forward =
+  Elm.Kernel.Browser.go
