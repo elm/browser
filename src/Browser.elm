@@ -35,7 +35,7 @@ import VirtualDom
 -- PROGRAMS
 
 
-{-| Just show some static HTML.
+{-| Show some static HTML.
 
     import Browser exposing (staticPage)
     import Html exposing (text)
