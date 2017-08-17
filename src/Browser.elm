@@ -152,7 +152,18 @@ fullscreen =
   Elm.Kernel.Browser.fullscreen
 
 
-{-|
+{-| Control the entire user interface when in `fullscreen` mode.
+
+  - `title` &mdash; set the title appropriately. If you are making a
+  single-page app, you can change the title on page transitions.
+
+  - `css` &mdash; declare some CSS. If you want to use this, use a library
+  like [`rtfeldman/elm-css`](https://github.com/rtfeldman/elm-css) or
+  [`mdgriffith/style-elements`](https://github.com/mdgriffith/style-elements).
+  **Do not use `elm-lang/virtual-css` directly!**
+
+  - `body` &mdash` take over the `<body>` of the page! You can provide a list
+  of HTML nodes that you want to show on screen.
 -}
 type alias UI msg =
   { title : String
