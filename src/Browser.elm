@@ -4,7 +4,6 @@ module Browser exposing
   , embed
   , fullscreen
   , Env
-  , UI
   , Url
   , load
   , reload
@@ -17,7 +16,7 @@ module Browser exposing
 @docs staticPage
 
 # Dynamic Pages
-@docs sandbox, embed, fullscreen, UI, Env, Url
+@docs sandbox, embed, fullscreen, Env, Url
 
 # Page Loads
 @docs load, reload, reloadAndSkipCache
@@ -27,7 +26,6 @@ module Browser exposing
 
 import Elm.Kernel.Browser
 import Task exposing (Task)
-import VirtualCss
 import VirtualDom
 
 
@@ -119,9 +117,7 @@ embed =
 {-| Create a fullscreen Elm program. This expands the functionality of
 [`embed`](#embed) in two important ways:
 
-  1. The `view` now specifies the whole [`UI`](#UI), not just a single
-  HTML node. Now you have control over things like the `<title>` and
-  `<body>`.
+  1. The `view` gives you control over the `<title>` and `<body>`.
 
   2. The `onNavigation` field lets you capture URL changes. This
   allows you to create single-page apps (SPAs) with the help of the
@@ -142,7 +138,7 @@ seem confusing. Same here!
 -}
 fullscreen :
   { init : Env flags -> (model, Cmd msg)
-  , view : model -> UI msg
+  , view : model -> { title : String, body : List (VirtualDom.Node msg) }
   , update : msg -> model -> ( model, Cmd msg )
   , onNavigation : Maybe (Url -> msg)
   , subscriptions : model -> Sub msg
@@ -150,26 +146,6 @@ fullscreen :
   -> Program flags model msg
 fullscreen =
   Elm.Kernel.Browser.fullscreen
-
-
-{-| Control the entire user interface when in `fullscreen` mode.
-
-  - `title` &mdash; set the title appropriately. If you are making a
-  single-page app, you can change the title on page transitions.
-
-  - `css` &mdash; declare some CSS. If you want to use this, use a library
-  like [`rtfeldman/elm-css`](https://github.com/rtfeldman/elm-css) or
-  [`mdgriffith/style-elements`](https://github.com/mdgriffith/style-elements).
-  **Do not use `elm-lang/virtual-css` directly!**
-
-  - `body` &mdash` take over the `<body>` of the page! You can provide a list
-  of HTML nodes that you want to show on screen.
--}
-type alias UI msg =
-  { title : String
-  , css : VirtualCss.StyleSheet
-  , body : List (VirtualDom.Node msg)
-  }
 
 
 

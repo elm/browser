@@ -6,7 +6,6 @@ import Elm.Kernel.List exposing (Nil)
 import Elm.Kernel.Platform exposing (initialize)
 import Elm.Kernel.Scheduler exposing (binding, succeed)
 import Elm.Kernel.Utils exposing (Tuple0)
-import Elm.Kernel.VirtualCss exposing (none, diff)
 import Elm.Kernel.VirtualDom exposing (appendChild, applyPatches, diff, doc, node, render)
 
 */
@@ -150,13 +149,6 @@ var _Browser_fullscreen = F5(function(impl, flagDecoder, object, moduleName, deb
 {
 	object['fullscreen'] = function fullscreen(flags)
 	{
-		var title = _VirtualDom_doc.title;
-		var virtualCss = __VirtualCss_none;
-
-		var style = _VirtualDom_doc.createElement('style');
-		_VirtualDom_appendChild(style, _VirtualDom_doc.createTextNode(''));
-		_VirtualDom_appendChild(_VirtualDom_doc.head, style);
-
 		__Platform_initialize(
 			moduleName,
 			A2(__Json_map, __Browser_Env(_Browser_getUrl()), flagDecoder),
@@ -166,11 +158,10 @@ var _Browser_fullscreen = F5(function(impl, flagDecoder, object, moduleName, deb
 			impl.__$subscriptions,
 			_Browser_makeStepperBuilder(_VirtualDom_doc.body, function(model) {
 				var ui = impl.__$view(model);
-				if (title !== ui.__$title)
+				if (_VirtualDom_doc.title !== ui.__$title)
 				{
-					_VirtualDom_doc.title = title = ui.title;
+					_VirtualDom_doc.title = ui.__$title;
 				}
-				__VirtualCss_diff(style.sheet, virtualCss, virtualCss = ui.__$css);
 				return F3(__VirtualDom_node, 'body', __List_Nil, ui.__$body);
 			}
 		);

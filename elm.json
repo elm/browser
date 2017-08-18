@@ -12,7 +12,6 @@
     "dependencies": {
         "elm-lang/core": "6.0.0 <= v < 7.0.0",
         "elm-lang/dom": "2.0.0 <= v < 3.0.0",
-        "elm-lang/virtual-css": "1.0.0 <= v < 2.0.0",
         "elm-lang/virtual-dom": "3.0.0 <= v < 4.0.0"
     },
     "test-dependencies": {},
