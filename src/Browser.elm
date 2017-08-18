@@ -26,7 +26,7 @@ module Browser exposing
 
 
 import Elm.Kernel.Browser
-import Task
+import Task exposing (Task)
 import VirtualCss
 import VirtualDom
 
@@ -239,7 +239,7 @@ page transitions that are faster and prettier, like in a “single-page app”.
 [rel]: http://package.elm-lang.org/packages/elm-lang/url/latest/Url#relative
 
 -}
-load : String -> Cmd msg
+load : String -> Task Never Never
 load =
   Elm.Kernel.Browser.load
 
@@ -249,7 +249,7 @@ This may grab resources from the browser cache, so use
 [`reloadAndSkipCache`](#reloadAndSkipCache)
 if you want to be sure that you are not loading any cached resources.
 -}
-reload : Cmd msg
+reload : Task Never Never
 reload =
   Elm.Kernel.Browser.reload False
 
@@ -257,6 +257,6 @@ reload =
 {-| Reload the current page without using the browser cache. **This always
 results in a page load!** It is more common to want [`reload`](#reload).
 -}
-reloadAndSkipCache : Cmd msg
+reloadAndSkipCache : Task Never Never
 reloadAndSkipCache =
   Elm.Kernel.Browser.reload True

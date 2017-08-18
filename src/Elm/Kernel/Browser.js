@@ -12,6 +12,7 @@ import Elm.Kernel.VirtualDom exposing (appendChild, applyPatches, diff, doc, nod
 */
 
 
+
 // FAKE NAVIGATION
 
 
@@ -48,18 +49,19 @@ function _Browser_replaceState(url)
 }
 
 
+
 // REAL NAVIGATION
 
-function _Browser_reloadPage(skipCache)
+
+function _Browser_reload(skipCache)
 {
 	return __Scheduler_binding(function(callback)
 	{
 		_VirtualDom_doc.location.reload(skipCache);
-		callback(__Scheduler_succeed(__Utils_Tuple0));
 	});
 }
 
-function _Browser_setLocation(url)
+function _Browser_load(url)
 {
 	return __Scheduler_binding(function(callback)
 	{
@@ -73,7 +75,6 @@ function _Browser_setLocation(url)
 			// Other browsers reload the page, so let's be consistent about that.
 			_VirtualDom_doc.location.reload(false);
 		}
-		callback(__Scheduler_succeed(__Utils_Tuple0));
 	});
 }
 
