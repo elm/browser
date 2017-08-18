@@ -3,10 +3,11 @@
 import Browser exposing (Env)
 import Json.Decode as Json exposing (map)
 import Elm.Kernel.List exposing (Nil)
+import Elm.Kernel.Platform exposing (initialize)
 import Elm.Kernel.Scheduler exposing (binding, succeed)
 import Elm.Kernel.Utils exposing (Tuple0)
 import Elm.Kernel.VirtualCss exposing (none, diff)
-import Elm.Kernel.VirtualDom exposing (appendChild, applyFacts, diff, doc, render)
+import Elm.Kernel.VirtualDom exposing (appendChild, applyPatches, diff, doc, node, render)
 
 */
 
@@ -27,7 +28,7 @@ function _Browser_go(n)
 }
 
 
-function _Browser_push(url)
+function _Browser_pushState(url)
 {
 	return __Scheduler_binding(function(callback)
 	{
@@ -37,7 +38,7 @@ function _Browser_push(url)
 }
 
 
-function _Browser_replace(url)
+function _Browser_replaceState(url)
 {
 	return __Scheduler_binding(function(callback)
 	{
