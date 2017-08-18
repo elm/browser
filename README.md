@@ -15,7 +15,7 @@ The `Browser` module lets you create Elm programs with the following functions:
   - [`embed`](Browser#embed)
   - [`fullscreen`](Browser#fullscreen)
 
-These form a smooth learning path, introducing concepts gradually. Start with showing things on screen with `staticPage`, then working with buttons, text input, etc. with `sandbox`, then HTTP and JavaScript interop in `embed`, and finally single-page apps with `fullscreen`. People who use Elm at work also follow a similar path, embedding Elm in JS before writing *everything* in Elm.
+These form a smooth learning path, introducing concepts gradually. Start with showing things on screen with `staticPage`, then working with buttons, text input, etc. with `sandbox`, then HTTP and JavaScript interop in `embed`, and finally single-page apps with `fullscreen`. People who use Elm at work usually follow a similar path, embedding Elm in JS before writing everything in Elm from scratch.
 
 To learn more, I highly recommend working through [guide.elm-lang.org][guide] which is built around this learning path!
 
