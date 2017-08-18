@@ -3,6 +3,7 @@ module Browser exposing
   , sandbox
   , embed
   , fullscreen
+  , View
   , Env
   , Url
   , load
@@ -16,7 +17,7 @@ module Browser exposing
 @docs staticPage
 
 # Dynamic Pages
-@docs sandbox, embed, fullscreen, Env, Url
+@docs sandbox, embed, fullscreen, View, Env, Url
 
 # Page Loads
 @docs load, reload, reloadAndSkipCache
@@ -138,7 +139,7 @@ seem confusing. Same here!
 -}
 fullscreen :
   { init : Env flags -> (model, Cmd msg)
-  , view : model -> { title : String, body : List (VirtualDom.Node msg) }
+  , view : model -> View msg
   , update : msg -> model -> ( model, Cmd msg )
   , onNavigation : Maybe (Url -> msg)
   , subscriptions : model -> Sub msg
@@ -146,6 +147,16 @@ fullscreen :
   -> Program flags model msg
 fullscreen =
   Elm.Kernel.Browser.fullscreen
+
+
+{-| This data specifies the `<title>` and all of the nodes that should go in
+the `<body>`. This means you can update the title as people navigate through
+your single-page app.
+-}
+type alias View msg =
+  { title : String
+  , body : List (VirtualDom.Node msg)
+  }
 
 
 
@@ -159,8 +170,7 @@ environment. Right now this contains:
   a single-page app (SPA) you need this information to figure out what to show
   on screen! If you are not making an SPA, you can ignore this.
 
-  - `flags` &mdash; This holds data that is passed in from JavaScript. If you
-  are just using `Elm.fullscreen
+  - `flags` &mdash; This holds data that is passed in from JavaScript.
 -}
 type alias Env flags =
   { url : Url
@@ -175,6 +185,9 @@ type alias Env flags =
 {-| A bunch of information about the URL in the address bar. You should always
 be using the [`elm-lang/url`][url] package to turn these URLs into nice Elm
 data. Check out the [`Url.Parser`][parser] module in particular.
+
+[url]: http://package.elm-lang.org/packages/elm-lang/url/latest
+[parser]: http://package.elm-lang.org/packages/elm-lang/url/latest/Url-Parser
 
 **Note:** The fields correspond with the fields in `document.location` as
 described [here](https://developer.mozilla.org/en-US/docs/Web/API/Url).
