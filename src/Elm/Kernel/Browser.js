@@ -1,6 +1,5 @@
 /*
 
-import Browser exposing (Env)
 import Json.Decode as Json exposing (map)
 import Elm.Kernel.List exposing (Nil)
 import Elm.Kernel.Platform exposing (initialize)
@@ -151,7 +150,7 @@ var _Browser_fullscreen = F5(function(impl, flagDecoder, object, moduleName, deb
 	{
 		__Platform_initialize(
 			moduleName,
-			A2(__Json_map, __Browser_Env(_Browser_getUrl()), flagDecoder),
+			A2(__Json_map, _Browser_toEnv, flagDecoder),
 			flags,
 			impl.__$init,
 			impl.__$update,
@@ -167,6 +166,15 @@ var _Browser_fullscreen = F5(function(impl, flagDecoder, object, moduleName, deb
 		);
 	};
 });
+
+
+function _Browser_toEnv(flags)
+{
+	return {
+		__$url: _Browser_getUrl(),
+		__$flags: flags
+	};
+}
 
 
 
