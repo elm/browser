@@ -227,7 +227,7 @@ function _Browser_makeAnimator(model, draw)
 
 		isSync
 			? ( draw(model),
-				state === __4_PENDING_REQUEST && state = __4_EXTRA_REQUEST
+				state === __4_PENDING_REQUEST && (state = __4_EXTRA_REQUEST)
 				)
 			: ( state === __4_NO_REQUEST && _Browser_requestAnimationFrame(updateIfNeeded),
 				state = __4_PENDING_REQUEST
