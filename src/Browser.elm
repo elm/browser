@@ -145,8 +145,17 @@ fullscreen :
   , subscriptions : model -> Sub msg
   }
   -> Program flags model msg
-fullscreen =
-  Elm.Kernel.Browser.fullscreen
+fullscreen impl =
+  Elm.Kernel.Browser.fullscreen <|
+    case impl.onNavigation of
+      Nothing ->
+        impl
+
+      Just toMsg ->
+        { impl
+            | subscriptions =
+                \model -> Sub.batch [ History.Monitor toMsg, impl.subscriptions model ]
+        }
 
 
 {-| This data specifies the `<title>` and all of the nodes that should go in
