@@ -25,6 +25,7 @@ module Browser exposing
 -}
 
 
+import Browser.History.Manager as History
 import Elm.Kernel.Browser
 import Task exposing (Task)
 import VirtualDom
@@ -152,10 +153,7 @@ fullscreen impl =
         impl
 
       Just toMsg ->
-        { impl
-            | subscriptions =
-                \model -> Sub.batch [ History.Monitor toMsg, impl.subscriptions model ]
-        }
+        { impl | subscriptions = History.addListen toMsg impl.subscriptions }
 
 
 {-| This data specifies the `<title>` and all of the nodes that should go in

@@ -1,6 +1,8 @@
 effect module Browser.History.Manager where { command = MyCmd, subscription = MySub } exposing
-  ( MyCmd(..), command
-  , MySub(..), subscription
+  ( forward
+  , push
+  , replace
+  , addListen
   )
 
 
@@ -34,17 +36,37 @@ cmdMap _ myCmd =
       Replace url
 
 
+forward : Int -> Cmd msg
+forward n =
+  command (Go n)
+
+
+push : String -> Cmd msg
+push url =
+  command (Push url)
+
+
+replace : String -> Cmd msg
+replace url =
+  command (Replace url)
+
+
 
 -- SUBSCRIPTIONS
 
 
 type MySub msg =
-  Monitor (Url -> msg)
+  Listen (Url -> msg)
 
 
 subMap : (a -> b) -> MySub a -> MySub b
-subMap func (Monitor tagger) =
-  Monitor (tagger >> func)
+subMap func (Listen tagger) =
+  Listen (tagger >> func)
+
+
+addListen : (Url -> msg) -> (model -> Sub msg) -> model -> Sub msg
+addListen toMsg toSubs model =
+  Sub.batch [ subscription (Listen toMsg), toSubs model ]
 
 
 type alias Url =
@@ -143,7 +165,7 @@ cmdHelp router subs cmd =
 notify : Platform.Router msg Url -> List (MySub msg) -> Url -> Task x ()
 notify router subs location =
   let
-    send (Monitor tagger) =
+    send (Listen tagger) =
       Platform.sendToApp router (tagger location)
   in
     Task.sequence (List.map send subs)
