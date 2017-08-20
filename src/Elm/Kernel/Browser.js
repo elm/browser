@@ -161,7 +161,7 @@ var _Browser_fullscreen = F5(function(impl, flagDecoder, object, moduleName, deb
 				{
 					_VirtualDom_doc.title = ui.__$title;
 				}
-				return F3(__VirtualDom_node, 'body', __List_Nil, ui.__$body);
+				return __VirtualDom_node('body')(__List_Nil)(ui.__$body);
 			})
 		);
 	};
