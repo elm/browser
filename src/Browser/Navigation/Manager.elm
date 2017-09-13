@@ -1,7 +1,7 @@
-effect module Browser.History.Manager where { command = MyCmd, subscription = MySub } exposing
+effect module Browser.Navigation.Manager where { command = MyCmd, subscription = MySub } exposing
   ( forward
-  , push
-  , replace
+  , pushUrl
+  , replaceUrl
   , addListen
   )
 
@@ -41,13 +41,13 @@ forward n =
   command (Go n)
 
 
-push : String -> Cmd msg
-push url =
+pushUrl : String -> Cmd msg
+pushUrl url =
   command (Push url)
 
 
-replace : String -> Cmd msg
-replace url =
+replaceUrl : String -> Cmd msg
+replaceUrl url =
   command (Replace url)
 
 
