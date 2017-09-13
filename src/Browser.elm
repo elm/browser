@@ -1,4 +1,4 @@
-module Browser exposing
+effect module Browser where { subscriptions = MySub } exposing
   ( staticPage
   , sandbox
   , embed
@@ -6,12 +6,19 @@ module Browser exposing
   , View
   , Env
   , Url
-  , load
-  , reload
-  , reloadAndSkipCache
+  , focus, blur, DomError(..)
+  , scrollIntoView
+  , getScroll
+  , setScrollTop, setScrollBottom
+  , setScrollLeft, setScrollRight
   )
 
-{-|
+{-| This module helps you set up an Elm `Program` with functions like
+[`sandbox`](#sandbox) and [`fullscreen`](#fullscreen).
+
+It also has a bunch of miscellaneous helpers for focusing and scrolling DOM
+nodes.
+
 
 # Static Pages
 @docs staticPage
@@ -19,14 +26,23 @@ module Browser exposing
 # Dynamic Pages
 @docs sandbox, embed, fullscreen, View, Env, Url
 
-# Page Loads
-@docs load, reload, reloadAndSkipCache
+# DOM Stuff
+
+## Focus
+@docs focus, blur, DomError
+
+## Scroll
+@docs scrollIntoView, getScroll, setScrollTop, setScrollBottom, setScrollLeft, setScrollRight
 
 -}
 
 
+
+import Dict
 import Browser.History.Manager as History
 import Elm.Kernel.Browser
+import Json.Decode as Decode
+import Process
 import Task exposing (Task)
 import VirtualDom
 
@@ -215,44 +231,57 @@ type alias Url =
 
 
 
--- PAGE LOADS
+-- DOM STUFF
 
 
-{-| Leave the current page and load the given URL. **This always results in a
-page load**, even if the provided URL is the same as the current one.
-
-    load "http://elm-lang.org"
-
-Check out the [`elm-lang/url`][url] package for help building URLs. The
-[`Url.absolute`][abs] and [`Url.relative`][rel] functions can be particularly
-handy!
-
-Check out the [`Browser.History`](Browser-History) module if you want
-page transitions that are faster and prettier, like in a “single-page app”.
-
-[url]: http://package.elm-lang.org/packages/elm-lang/url/latest
-[abs]: http://package.elm-lang.org/packages/elm-lang/url/latest/Url#absolute
-[rel]: http://package.elm-lang.org/packages/elm-lang/url/latest/Url#relative
-
--}
-load : String -> Task Never Never
-load =
-  Elm.Kernel.Browser.load
+type DomError = NotFound String
 
 
-{-| Reload the current page. **This always results in a page load!**
-This may grab resources from the browser cache, so use
-[`reloadAndSkipCache`](#reloadAndSkipCache)
-if you want to be sure that you are not loading any cached resources.
--}
-reload : Task Never Never
-reload =
-  Elm.Kernel.Browser.reload False
+
+-- FOCUS
 
 
-{-| Reload the current page without using the browser cache. **This always
-results in a page load!** It is more common to want [`reload`](#reload).
--}
-reloadAndSkipCache : Task Never Never
-reloadAndSkipCache =
-  Elm.Kernel.Browser.reload True
+focus : String -> Task DomError ()
+focus =
+  Elm.Kernel.Browser.call "focus"
+
+
+blur : String -> Task DomError ()
+blur =
+  Elm.Kernel.Browser.call "blur"
+
+
+
+
+-- SCROLL
+
+
+scrollIntoView : String -> Task DomError ()
+scrollIntoView =
+  Elm.Kernel.Browser.call "scrollIntoView"
+
+
+getScroll : String -> Task DomError ( Float, Float )
+getScroll =
+  Elm.Kernel.Browser.getScroll
+
+
+setScrollTop : String -> Float -> Task DomError ()
+setScrollTop =
+  Elm.Kernel.Browser.setPositiveScroll "scrollTop"
+
+
+setScrollBottom : String -> Float -> Task DomError ()
+setScrollBottom =
+  Elm.Kernel.Browser.setNegativeScroll "scrollTop" "scrollHeight"
+
+
+setScrollLeft : String -> Float -> Task DomError ()
+setScrollLeft =
+  Elm.Kernel.Browser.setPositiveScroll "scrollLeft"
+
+
+setScrollRight : String -> Float -> Task DomError ()
+setScrollRight =
+  Elm.Kernel.Browser.setNegativeScroll "scrollLeft" "scrollWidth"
+

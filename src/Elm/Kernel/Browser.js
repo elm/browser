@@ -3,8 +3,8 @@
 import Json.Decode as Json exposing (map)
 import Elm.Kernel.List exposing (Nil)
 import Elm.Kernel.Platform exposing (initialize)
-import Elm.Kernel.Scheduler exposing (binding, succeed)
-import Elm.Kernel.Utils exposing (Tuple0)
+import Elm.Kernel.Scheduler exposing (binding, fail, succeed)
+import Elm.Kernel.Utils exposing (Tuple0, Tuple2)
 import Elm.Kernel.VirtualDom exposing (appendChild, applyPatches, diff, doc, node, render)
 
 */
@@ -233,4 +233,58 @@ function _Browser_makeAnimator(model, draw)
 				state = __4_PENDING_REQUEST
 				);
 	};
+}
+
+
+
+// DOM STUFF
+
+
+function _Browser_withNode(id, doStuff)
+{
+	return __Scheduler_binding(function(callback)
+	{
+		var node = document.getElementById(id);
+		callback(node
+			? __Scheduler_succeed(doStuff(node))
+			: __Scheduler_fail({ $: 'NotFound', a: id })
+		);
+	});
+}
+
+
+var _Browser_call = F2(function(functionName, id)
+{
+	return _Browser_withNode(id, function(node) {
+		node[functionName]();
+		return __Utils_Tuple0;
+	});
+});
+
+
+
+// SCROLLING
+
+
+function _Browser_getScroll(id)
+{
+	return _Browser_withNode(id, function(node) {
+		return __Utils_Tuple2(node.scrollLeft, node.scrollTop);
+	});
+}
+
+var _Browser_setPositiveScroll = F3(function(scroll, id, offset)
+{
+	return _Browser_withNode(id, function(node) {
+		node[scroll] = offset;
+		return __Utils_Tuple0;
+	});
+});
+
+var _Browser_setNegativeScroll = F4(function(scroll, scrollMax, id, offset)
+{
+	return _Browser_withNode(id, function(node) {
+		node[scroll] = node[scrollMax] - offset;
+		return __Utils_Tuple0;
+	});
 }
