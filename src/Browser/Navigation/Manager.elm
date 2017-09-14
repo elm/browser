@@ -1,16 +1,31 @@
 effect module Browser.Navigation.Manager where { command = MyCmd, subscription = MySub } exposing
-  ( forward
+  ( document
+  , window
+  , forward
   , pushUrl
   , replaceUrl
   , addListen
   )
 
 
-import Dom.LowLevel as Dom
 import Elm.Kernel.Browser
 import Json.Decode as Decode
 import Process
 import Task exposing (Task)
+
+
+
+-- GLOBAL EVENTS
+
+
+document : String -> (Decode.Value -> Task Never ()) -> Task Never Never
+document =
+  Elm.Kernel.Browser.document
+
+
+window : String -> (Decode.Value -> Task Never ()) -> Task Never Never
+window =
+  Elm.Kernel.Browser.window
 
 
 
@@ -199,17 +214,12 @@ spawnPopWatcher router =
   in
     if Elm.Kernel.Browser.isInternetExplorer11 () then
       Task.map2 InternetExplorer
-        (Process.spawn (onWindow "popstate" reportUrl))
-        (Process.spawn (onWindow "hashchange" reportUrl))
+        (Process.spawn (window "popstate" reportUrl))
+        (Process.spawn (window "hashchange" reportUrl))
 
     else
       Task.map Normal <|
-        Process.spawn (onWindow "popstate" reportUrl)
-
-
-onWindow : String -> (Decode.Value -> Task Never ()) -> Task Never Never
-onWindow event onChange =
-  Dom.windowBubble event (Dom.Normal Decode.value) onChange
+        Process.spawn (window "popstate" reportUrl)
 
 
 killPopWatcher : PopWatcher -> Task x ()

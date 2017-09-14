@@ -48,10 +48,8 @@ want!
 
 
 import Browser.Navigation.Manager as Navigation
-import Dom.LowLevel as Dom
 import Elm.Kernel.Browser
 import Json.Decode as Decode
-import Process
 import Task exposing (Task)
 
 
