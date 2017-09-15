@@ -1,11 +1,13 @@
 /*
 
 import Json.Decode as Json exposing (map)
+import Maybe exposing (Maybe(Just,Nothing))
+import Elm.Kernel.Json exposing (runHelp)
 import Elm.Kernel.List exposing (Nil)
 import Elm.Kernel.Platform exposing (initialize)
-import Elm.Kernel.Scheduler exposing (binding, fail, succeed)
+import Elm.Kernel.Scheduler exposing (binding, fail, rawSpawn, succeed, spawn)
 import Elm.Kernel.Utils exposing (Tuple0, Tuple2)
-import Elm.Kernel.VirtualDom exposing (appendChild, applyPatches, diff, doc, node, render)
+import Elm.Kernel.VirtualDom exposing (appendChild, applyPatches, diff, doc, node, passiveSupported, render)
 
 */
 
@@ -288,3 +290,30 @@ var _Browser_setNegativeScroll = F4(function(scroll, scrollMax, id, offset)
 		return __Utils_Tuple0;
 	});
 }
+
+
+
+// GLOBAL EVENTS
+
+
+var _Browser_fakeNode = { addEventListener: function() {}, removeEventListener: function() {} };
+var _Browser_document = typeof document !== 'undefined' ? document : _Browser_fakeNode;
+var _Browser_window = typeof window !== 'undefined' ? window : _Browser_fakeNode;
+
+var _Browser_on = F4(function(node, passive, eventName, sendToSelf)
+{
+	return __Scheduler_spawn(__Scheduler_binding(function(callback)
+	{
+		function handler(event)	{ __Scheduler_rawSpawn(sendToSelf(event)); }
+		node.addEventListener(eventName, handler, __VirtualDom_passiveSupported && { passive: passive });
+		return function() { node.removeEventListener(eventName, handler); };
+	}));
+});
+
+var _Browser_decodeEvent = F2(function(decoder, event)
+{
+	var result = __Json_runHelp(decoder, event);
+	return result.$ !== 'Ok'
+		? __Maybe_Nothing
+		: (result.a.b && event.preventDefault(), __Maybe_Just(result.a.a));
+});

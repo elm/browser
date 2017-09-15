@@ -1,7 +1,5 @@
 effect module Browser.Navigation.Manager where { command = MyCmd, subscription = MySub } exposing
-  ( document
-  , window
-  , forward
+  ( forward
   , pushUrl
   , replaceUrl
   , addListen
@@ -12,20 +10,6 @@ import Elm.Kernel.Browser
 import Json.Decode as Decode
 import Process
 import Task exposing (Task)
-
-
-
--- GLOBAL EVENTS
-
-
-document : String -> (Decode.Value -> Task Never ()) -> Task Never Never
-document =
-  Elm.Kernel.Browser.document
-
-
-window : String -> (Decode.Value -> Task Never ()) -> Task Never Never
-window =
-  Elm.Kernel.Browser.window
 
 
 
@@ -208,18 +192,19 @@ replaceState =
 
 spawnPopWatcher : Platform.Router msg Url -> Task x PopWatcher
 spawnPopWatcher router =
-  let
-    reportUrl _ =
-      Platform.sendToSelf router (Elm.Kernel.Browser.getUrl ())
-  in
-    if Elm.Kernel.Browser.isInternetExplorer11 () then
-      Task.map2 InternetExplorer
-        (Process.spawn (window "popstate" reportUrl))
-        (Process.spawn (window "hashchange" reportUrl))
+  if Elm.Kernel.Browser.isInternetExplorer11 () then
+    Task.map2 InternetExplorer
+      (reportUrl "popstate" router)
+      (reportUrl "hashchange" router)
 
-    else
-      Task.map Normal <|
-        Process.spawn (window "popstate" reportUrl)
+  else
+    Task.map Normal (reportUrl "popstate" router)
+
+
+reportUrl : String -> Platform.Router msg Url -> Task x Process.Id
+reportUrl name router =
+  Elm.Kernel.Browser.on Elm.Kernel.Browser.window True name <|
+    \_ -> Platform.sendToSelf router (Elm.Kernel.Browser.getUrl ())
 
 
 killPopWatcher : PopWatcher -> Task x ()

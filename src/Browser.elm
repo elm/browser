@@ -11,20 +11,26 @@ module Browser exposing
   , getScroll
   , setScrollTop, setScrollBottom
   , setScrollLeft, setScrollRight
+  , onDocument
+  , onWindow
+  , preventDefaultOnDocument
+  , preventDefaultOnWindow
   )
 
 {-| This module helps you set up an Elm `Program` with functions like
 [`sandbox`](#sandbox) and [`fullscreen`](#fullscreen).
 
-It also has a bunch of miscellaneous helpers for focusing and scrolling DOM
-nodes.
+It also has a bunch of miscellaneous helpers for global event listeners and
+for focusing and scrolling DOM nodes.
 
 
 # Static Pages
 @docs staticPage
 
+
 # Dynamic Pages
 @docs sandbox, embed, fullscreen, View, Env, Url
+
 
 # DOM Stuff
 
@@ -34,11 +40,17 @@ nodes.
 ## Scroll
 @docs scrollIntoView, getScroll, setScrollTop, setScrollBottom, setScrollLeft, setScrollRight
 
+
+# Global Events
+@docs onDocument, onWindow, preventDefaultOnDocument, preventDefaultOnWindow
+
+
 -}
 
 
 
 import Dict
+import Browser.Events as E
 import Browser.Navigation.Manager as Navigation
 import Elm.Kernel.Browser
 import Json.Decode as Decode
@@ -228,6 +240,72 @@ type alias Url =
   , username : String
   , password : String
   }
+
+
+
+-- GLOBAL EVENTS
+
+
+{-| Subscribe to events on `document`. Here are some examples:
+
+  - [Keyboard](https://github.com/elm-lang/browser/blob/master/hints/keyboard.md)
+  - [Mouse]()
+
+**Note:** This uses [passive][] event handlers, enabling optimizations for events
+like `touchstart` and `touchmove`.
+
+[passive]: https://github.com/WICG/EventListenerOptions/blob/gh-pages/explainer.md
+-}
+onDocument : String -> Decode.Decoder msg -> Sub msg
+onDocument name decoder =
+  E.on E.Document True name (Decode.map addFalse decoder)
+
+
+{-| Subscribe to events on `window`. Here are some examples:
+
+  - [Scroll]()
+  - [Resize]()
+
+**Note:** This uses [passive][] event handlers, enabling optimizations for events
+like `scroll` and `wheel`.
+
+[passive]: https://github.com/WICG/EventListenerOptions/blob/gh-pages/explainer.md
+-}
+onWindow : String -> Decode.Decoder msg -> Sub msg
+onWindow name decoder =
+  E.on E.Window True name (Decode.map addFalse decoder)
+
+
+{-| Subscribe to events on `document` and conditionally prevent the default
+behavior. For example, pressing `Enter` causes a “page down” normally, and
+maybe you want it to do something different.
+
+**Note:** This disables the [passive][] optimization, causing a performance
+degredation for events like `touchstart` and `touchmove`.
+
+[passive]: https://github.com/WICG/EventListenerOptions/blob/gh-pages/explainer.md
+-}
+preventDefaultOnDocument : String -> Decode.Decoder (msg, Bool) -> Sub msg
+preventDefaultOnDocument =
+  E.on E.Document False
+
+
+{-| Subscribe to events on `window` and conditionally prevent the default
+behavior.
+
+**Note:** This disables the [passive][] optimization, causing a performance
+degredation for events like `scroll` and `wheel`.
+
+[passive]: https://github.com/WICG/EventListenerOptions/blob/gh-pages/explainer.md
+-}
+preventDefaultOnWindow : String -> Decode.Decoder (msg, Bool) -> Sub msg
+preventDefaultOnWindow =
+  E.on E.Window False
+
+
+addFalse : msg -> (msg, Bool)
+addFalse msg =
+  (msg, False)
 
 
 
