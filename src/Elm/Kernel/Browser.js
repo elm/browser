@@ -289,7 +289,7 @@ var _Browser_setNegativeScroll = F4(function(scroll, scrollMax, id, offset)
 		node[scroll] = node[scrollMax] - offset;
 		return __Utils_Tuple0;
 	});
-}
+});
 
 
 
