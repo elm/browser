@@ -246,11 +246,14 @@ function _Browser_withNode(id, doStuff)
 {
 	return __Scheduler_binding(function(callback)
 	{
-		var node = document.getElementById(id);
-		callback(node
-			? __Scheduler_succeed(doStuff(node))
-			: __Scheduler_fail({ $: 'NotFound', a: id })
-		);
+		_Browser_requestAnimationFrame(function()
+		{
+			var node = document.getElementById(id);
+			callback(node
+				? __Scheduler_succeed(doStuff(node))
+				: __Scheduler_fail({ $: 'NotFound', a: id })
+			);
+		});
 	});
 }
 
