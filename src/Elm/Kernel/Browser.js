@@ -34,7 +34,7 @@ function _Browser_pushState(url)
 	return __Scheduler_binding(function(callback)
 	{
 		history.pushState({}, '', url);
-		callback(__Scheduler_succeed(_Browser_getUrl()));
+		callback(__Scheduler_succeed(_Browser_getLocationHref()));
 	});
 }
 
@@ -44,7 +44,7 @@ function _Browser_replaceState(url)
 	return __Scheduler_binding(function(callback)
 	{
 		history.replaceState({}, '', url);
-		callback(__Scheduler_succeed(_Browser_getUrl()));
+		callback(__Scheduler_succeed(_Browser_getLocationHref()));
 	});
 }
 
@@ -83,23 +83,9 @@ function _Browser_load(url)
 // GET URL
 
 
-function _Browser_getUrl()
+function _Browser_getLocationHref()
 {
-	var loc = _VirtualDom_doc.location;
-
-	return {
-		__$href: loc.href,
-		__$host: loc.host,
-		__$hostname: loc.hostname,
-		__$protocol: loc.protocol,
-		__$origin: loc.origin,
-		__$port_: loc.port,
-		__$pathname: loc.pathname,
-		__$search: loc.search,
-		__$hash: loc.hash,
-		__$username: loc.username,
-		__$password: loc.password
-	};
+	return _VirtualDom_doc.location.href;
 }
 
 
@@ -117,9 +103,9 @@ function _Browser_isInternetExplorer11()
 // PROGRAMS
 
 
-var _Browser_staticPage = F5(function(virtualNode, flagDecoder, object, moduleName, debugMetadata)
+var _Browser_staticPage = F4(function(virtualNode, flagDecoder, object, debugMetadata)
 {
-	object['staticPage'] = function staticPage(node)
+	object['staticPage'] = function(node)
 	{
 		node.parentNode.replaceChild(
 			__VirtualDom_render(virtualNode, function() {}),
@@ -129,12 +115,11 @@ var _Browser_staticPage = F5(function(virtualNode, flagDecoder, object, moduleNa
 });
 
 
-var _Browser_embed = F5(function(impl, flagDecoder, object, moduleName, debugMetadata)
+var _Browser_embed = F4(function(impl, flagDecoder, object, debugMetadata)
 {
-	object['embed'] = function embed(node, flags)
+	object['embed'] = function(node, flags)
 	{
 		__Platform_initialize(
-			moduleName,
 			flagDecoder,
 			flags,
 			impl.__$init,
@@ -146,12 +131,11 @@ var _Browser_embed = F5(function(impl, flagDecoder, object, moduleName, debugMet
 });
 
 
-var _Browser_fullscreen = F5(function(impl, flagDecoder, object, moduleName, debugMetadata)
+var _Browser_fullscreen = F4(function(impl, flagDecoder, object, debugMetadata)
 {
-	object['fullscreen'] = function fullscreen(flags)
+	object['fullscreen'] = function(flags)
 	{
 		__Platform_initialize(
-			moduleName,
 			A2(__Json_map, _Browser_toEnv, flagDecoder),
 			flags,
 			impl.__$init,
@@ -173,7 +157,7 @@ var _Browser_fullscreen = F5(function(impl, flagDecoder, object, moduleName, deb
 function _Browser_toEnv(flags)
 {
 	return {
-		__$url: _Browser_getUrl(),
+		__$url: _Browser_getLocationHref(),
 		__$flags: flags
 	};
 }

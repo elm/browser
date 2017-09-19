@@ -5,7 +5,6 @@ module Browser exposing
   , fullscreen
   , View
   , Env
-  , Url
   , focus, blur, DomError(..)
   , scrollIntoView
   , getScroll
@@ -29,7 +28,7 @@ for focusing and scrolling DOM nodes.
 
 
 # Dynamic Pages
-@docs sandbox, embed, fullscreen, View, Env, Url
+@docs sandbox, embed, fullscreen, View, Env
 
 
 # DOM Stuff
@@ -170,7 +169,7 @@ fullscreen :
   { init : Env flags -> (model, Cmd msg)
   , view : model -> View msg
   , update : msg -> model -> ( model, Cmd msg )
-  , onNavigation : Maybe (Url -> msg)
+  , onNavigation : Maybe (String -> msg)
   , subscriptions : model -> Sub msg
   }
   -> Program flags model msg
@@ -201,44 +200,17 @@ type alias View msg =
 {-| When you initialize an Elm program, you get some information about the
 environment. Right now this contains:
 
-  - `url` &mdash; The initial [`Url`](#Url) of the page. If you are creating
-  a single-page app (SPA) you need this information to figure out what to show
-  on screen! If you are not making an SPA, you can ignore this.
-
   - `flags` &mdash; This holds data that is passed in from JavaScript.
+
+  - `url` &mdash; The initial URL of the page. If you are creating a
+  single-page app (SPA) you can use [`elm-lang/url`][url] to parse it into
+  useful data and figure out what to show on screen. If you are not making a
+  single-page app, you can ignore this!
+
 -}
 type alias Env flags =
-  { url : Url
-  , flags : flags
-  }
-
-
-
--- URL
-
-
-{-| A bunch of information about the URL in the address bar. You should always
-be using the [`elm-lang/url`][url] package to turn these URLs into nice Elm
-data. Check out the [`Url.Parser`][parser] module in particular.
-
-[url]: http://package.elm-lang.org/packages/elm-lang/url/latest
-[parser]: http://package.elm-lang.org/packages/elm-lang/url/latest/Url-Parser
-
-**Note:** The fields correspond with the fields in `document.location` as
-described [here](https://developer.mozilla.org/en-US/docs/Web/API/Url).
--}
-type alias Url =
-  { href : String
-  , host : String
-  , hostname : String
-  , protocol : String
-  , origin : String
-  , port_ : String
-  , pathname : String
-  , search : String
-  , hash : String
-  , username : String
-  , password : String
+  { flags : flags
+  , url : String
   }
 
 
