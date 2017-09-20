@@ -6,7 +6,7 @@ import Elm.Kernel.Error exposing (throw)
 import Elm.Kernel.Json exposing (run, wrap)
 import Elm.Kernel.Platform exposing (preload)
 import Elm.Kernel.Scheduler exposing (binding, succeed, spawn)
-import Elm.Kernel.Utils exposing (Tuple0, Tuple2)
+import Elm.Kernel.Utils exposing (Tuple0)
 
 */
 
@@ -15,17 +15,19 @@ import Elm.Kernel.Utils exposing (Tuple0, Tuple2)
 // DUMMY STUFF
 
 
+function _Browser_invalidUrl(url) { __Error_throw(1, url);
 function _Browser_makeUnitTask() { return _Browser_unitTask; }
-function _Browser_getScroll() { return __Scheduler_succeed(__Utils_Tuple2(0,0)); }
+function _Browser_makeNeverResolve() { return __Scheduler_binding(function(){}); }
 var _Browser_unitTask = __Scheduler_succeed(__Utils_Tuple0);
 var _Browser_go = _Browser_makeUnitTask;
-var _Browser_pushState = function() { return __Scheduler_binding(function(){}); }
-var _Browser_replaceState = _Browser_pushState;
+var _Browser_pushState = _Browser_makeNeverResolve
+var _Browser_replaceState = _Browser_makeNeverResolve;
 var _Browser_reload = _Browser_makeUnitTask;
 var _Browser_load = _Browser_makeUnitTask;
 var _Browser_call = F2(_Browser_makeUnitTask);
 var _Browser_setPositiveScroll = F3(_Browser_makeUnitTask);
 var _Browser_setNegativeScroll = F4(_Browser_makeUnitTask);
+var _Browser_getScroll = _Browser_makeNeverResolve;
 var _Browser_on = F4(function() { return __Scheduler_spawn(_Browser_unitTask); });
 
 
