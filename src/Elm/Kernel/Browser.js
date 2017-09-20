@@ -2,6 +2,7 @@
 
 import Json.Decode as Json exposing (map)
 import Maybe exposing (Maybe(Just,Nothing))
+import Elm.Kernel.Error exposing (throw)
 import Elm.Kernel.Json exposing (runHelp)
 import Elm.Kernel.List exposing (Nil)
 import Elm.Kernel.Platform exposing (initialize)
@@ -34,7 +35,7 @@ function _Browser_pushState(url)
 	return __Scheduler_binding(function(callback)
 	{
 		history.pushState({}, '', url);
-		callback(__Scheduler_succeed(_Browser_getLocationHref()));
+		callback(__Scheduler_succeed(_Browser_getUrl()));
 	});
 }
 
@@ -44,7 +45,7 @@ function _Browser_replaceState(url)
 	return __Scheduler_binding(function(callback)
 	{
 		history.replaceState({}, '', url);
-		callback(__Scheduler_succeed(_Browser_getLocationHref()));
+		callback(__Scheduler_succeed(_Browser_getUrl()));
 	});
 }
 
@@ -83,7 +84,7 @@ function _Browser_load(url)
 // GET URL
 
 
-function _Browser_getLocationHref()
+function _Browser_getUrl()
 {
 	return _VirtualDom_doc.location.href;
 }
@@ -98,6 +99,15 @@ function _Browser_isInternetExplorer11()
 	return window.navigator.userAgent.indexOf('Trident') !== -1;
 }
 
+
+
+// INVALID URL
+
+
+function _Browser_invalidUrl(url)
+{
+	__Error_throw(1, url);
+}
 
 
 // PROGRAMS
@@ -157,7 +167,7 @@ var _Browser_fullscreen = F4(function(impl, flagDecoder, object, debugMetadata)
 function _Browser_toEnv(flags)
 {
 	return {
-		__$url: _Browser_getLocationHref(),
+		__$url: _Browser_getUrl(),
 		__$flags: flags
 	};
 }

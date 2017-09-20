@@ -55,7 +55,7 @@ replaceUrl url =
 
 
 type MySub msg =
-  Listen (Url -> msg)
+  Listen (String -> msg)
 
 
 subMap : (a -> b) -> MySub a -> MySub b
@@ -63,24 +63,9 @@ subMap func (Listen tagger) =
   Listen (tagger >> func)
 
 
-addListen : (Url -> msg) -> (model -> Sub msg) -> model -> Sub msg
+addListen : (String -> msg) -> (model -> Sub msg) -> model -> Sub msg
 addListen toMsg toSubs model =
   Sub.batch [ subscription (Listen toMsg), toSubs model ]
-
-
-type alias Url =
-  { href : String
-  , host : String
-  , hostname : String
-  , protocol : String
-  , origin : String
-  , port_ : String
-  , pathname : String
-  , search : String
-  , hash : String
-  , username : String
-  , password : String
-  }
 
 
 
@@ -111,9 +96,9 @@ init =
 -- SELF MESSAGES
 
 
-onSelfMsg : Platform.Router msg Url -> Url -> State msg -> Task Never (State msg)
-onSelfMsg router location state =
-  notify router state.subs location
+onSelfMsg : Platform.Router msg String -> String -> State msg -> Task Never (State msg)
+onSelfMsg router url state =
+  notify router state.subs url
     &> Task.succeed state
 
 
@@ -125,7 +110,7 @@ onSelfMsg router location state =
 -- APP MESSAGES
 
 
-onEffects : Platform.Router msg Url -> List (MyCmd msg) -> List (MySub msg) -> State msg -> Task Never (State msg)
+onEffects : Platform.Router msg String -> List (MyCmd msg) -> List (MySub msg) -> State msg -> Task Never (State msg)
 onEffects router cmds subs {popWatcher} =
   let
     stepState =
@@ -145,7 +130,7 @@ onEffects router cmds subs {popWatcher} =
       &> stepState
 
 
-cmdHelp : Platform.Router msg Url -> List (MySub msg) -> MyCmd msg -> Task Never ()
+cmdHelp : Platform.Router msg String -> List (MySub msg) -> MyCmd msg -> Task Never ()
 cmdHelp router subs cmd =
   case cmd of
     Go n ->
@@ -161,11 +146,11 @@ cmdHelp router subs cmd =
 
 
 
-notify : Platform.Router msg Url -> List (MySub msg) -> Url -> Task x ()
-notify router subs location =
+notify : Platform.Router msg String -> List (MySub msg) -> String -> Task x ()
+notify router subs url =
   let
     send (Listen tagger) =
-      Platform.sendToApp router (tagger location)
+      Platform.sendToApp router (tagger url)
   in
     Task.sequence (List.map send subs)
       &> Task.succeed ()
@@ -176,12 +161,12 @@ go =
   Elm.Kernel.Browser.go
 
 
-pushState : String -> Task x Url
+pushState : String -> Task x String
 pushState =
   Elm.Kernel.Browser.pushState
 
 
-replaceState : String -> Task x Url
+replaceState : String -> Task x String
 replaceState =
   Elm.Kernel.Browser.replaceState
 
@@ -190,7 +175,7 @@ replaceState =
 -- POP WATCHER STUFF
 
 
-spawnPopWatcher : Platform.Router msg Url -> Task x PopWatcher
+spawnPopWatcher : Platform.Router msg String -> Task x PopWatcher
 spawnPopWatcher router =
   if Elm.Kernel.Browser.isInternetExplorer11 () then
     Task.map2 InternetExplorer
@@ -201,7 +186,7 @@ spawnPopWatcher router =
     Task.map Normal (reportUrl "popstate" router)
 
 
-reportUrl : String -> Platform.Router msg Url -> Task x Process.Id
+reportUrl : String -> Platform.Router msg String -> Task x Process.Id
 reportUrl name router =
   Elm.Kernel.Browser.on Elm.Kernel.Browser.window True name <|
     \_ -> Platform.sendToSelf router (Elm.Kernel.Browser.getUrl ())

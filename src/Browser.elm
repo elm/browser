@@ -55,6 +55,7 @@ import Elm.Kernel.Browser
 import Json.Decode as Decode
 import Process
 import Task exposing (Task)
+import Url.Parser as Url
 import VirtualDom
 
 
@@ -148,9 +149,11 @@ embed =
 
   1. The `view` gives you control over the `<title>` and `<body>`.
 
-  2. The `onNavigation` field lets you capture URL changes. This
+  2. The `onNavigation` field lets you capture [`Url`][url] changes. This
   allows you to create single-page apps (SPAs) with the help of the
   [`Browser.Navigation`](Browser-Navigation) module.
+
+[url]: http://package.elm-lang.org/packages/elm-lang/url/latest/Url-Parser#Url
 
 You also get an [`Env`](#Env) value on `init` which gives a bit more
 information about the host browser.
@@ -169,18 +172,23 @@ fullscreen :
   { init : Env flags -> (model, Cmd msg)
   , view : model -> View msg
   , update : msg -> model -> ( model, Cmd msg )
-  , onNavigation : Maybe (String -> msg)
+  , onNavigation : Maybe (Url.Url -> msg)
   , subscriptions : model -> Sub msg
   }
   -> Program flags model msg
 fullscreen impl =
-  Elm.Kernel.Browser.fullscreen <|
-    case impl.onNavigation of
-      Nothing ->
-        impl
+  Elm.Kernel.Browser.fullscreen
+    { init = \{ flags, url } -> impl.init (Env flags (unsafeToUrl url))
+    , view = impl.view
+    , update = impl.update
+    , subscriptions =
+        case impl.onNavigation of
+          Nothing ->
+            impl.subscriptions
 
-      Just toMsg ->
-        { impl | subscriptions = Navigation.addListen toMsg impl.subscriptions }
+          Just toMsg ->
+            Navigation.addListen (toMsg << unsafeToUrl) impl.subscriptions
+    }
 
 
 {-| This data specifies the `<title>` and all of the nodes that should go in
@@ -202,16 +210,28 @@ environment. Right now this contains:
 
   - `flags` &mdash; This holds data that is passed in from JavaScript.
 
-  - `url` &mdash; The initial URL of the page. If you are creating a
-  single-page app (SPA) you can use [`elm-lang/url`][url] to parse it into
-  useful data and figure out what to show on screen. If you are not making a
-  single-page app, you can ignore this!
+  - `url` &mdash; The initial [`Url`][url] of the page. If you are creating a
+  single-page app (SPA) you can use the [`Url.Parser`][parser] module to parse
+  a URL into useful data and figure out what to show on screen. If you are not
+  making a single-page app, you can ignore this!
 
+[url]: http://package.elm-lang.org/packages/elm-lang/url/latest/Url-Parser#Url
+[parser]: http://package.elm-lang.org/packages/elm-lang/url/latest/Url-Parser
 -}
 type alias Env flags =
   { flags : flags
-  , url : String
+  , url : Url.Url
   }
+
+
+unsafeToUrl : String -> Url.Url
+unsafeToUrl string =
+  case Url.toUrl string of
+    Nothing ->
+      Elm.Kernel.Browser.invalidUrl string
+
+    Just url ->
+      url
 
 
 
