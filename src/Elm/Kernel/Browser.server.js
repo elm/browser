@@ -7,6 +7,7 @@ import Elm.Kernel.Json exposing (run, wrap)
 import Elm.Kernel.Platform exposing (preload)
 import Elm.Kernel.Scheduler exposing (binding, succeed, spawn)
 import Elm.Kernel.Utils exposing (Tuple0)
+import Elm.Kernel.VirtualDom exposing (body)
 
 */
 
@@ -73,7 +74,7 @@ var _Browser_fullscreen = F4(function(impl, flagDecoder, object, debugMetadata)
 		return _Browser_render(_Browser_addEnv(url, flagDecoder), flags, impl, function(ui, preload) {
 			return {
 				title: ui.__$title,
-				body: ui.__$body,
+				body: __VirtualDom_body(ui.__$body),
 				preload: preload
 			};
 		});
