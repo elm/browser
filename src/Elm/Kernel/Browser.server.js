@@ -15,7 +15,7 @@ import Elm.Kernel.Utils exposing (Tuple0)
 // DUMMY STUFF
 
 
-function _Browser_invalidUrl(url) { __Error_throw(1, url);
+function _Browser_invalidUrl(url) { __Error_throw(1, url); }
 function _Browser_makeUnitTask() { return _Browser_unitTask; }
 function _Browser_makeNeverResolve() { return __Scheduler_binding(function(){}); }
 var _Browser_unitTask = __Scheduler_succeed(__Utils_Tuple0);
