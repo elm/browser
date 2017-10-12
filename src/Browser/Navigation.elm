@@ -34,7 +34,7 @@ The `pushUrl` function changes the URL, but lets you keep the current HTML.
 This means the page *never* goes blank. Instead of making two round-trips to
 the server, you load whatever assets you want from within Elm. Maybe you do
 not need any round-trips! Meanwhile, you retain full control over the UI, so
-you an show a loading bar, show information as it loads, etc. Whatever you
+you can show a loading bar, show information as it loads, etc. Whatever you
 want!
 
 
