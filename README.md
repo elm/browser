@@ -16,10 +16,10 @@ This library has two main modules:
 
 You can see the outline of that learning path in the `Browser` module. It lets you create Elm programs with the following functions:
 
-  1. [`staticPage`](Browser#staticPage) &mdash; learn how to show things with `elm-lang/html`
-  2. [`sandbox`](Browser#sandbox) &mdash; react to user input, like buttons and checkboxes
-  3. [`embed`](Browser#embed) &mdash; talk to the outside world, like HTTP and JS interop
-  4. [`fullscreen`](Browser#fullscreen) &mdash; create single-page apps
+  1. [`staticPage`](https://github.com/elm-lang/browser/blob/master/src/Browser.elm#L66) &mdash; learn how to show things with `elm-lang/html`
+  2. [`sandbox`](https://github.com/elm-lang/browser/blob/master/src/Browser.elm#L84) &mdash; react to user input, like buttons and checkboxes
+  3. [`embed`](https://github.com/elm-lang/browser/blob/master/src/Browser.elm#L116) &mdash; talk to the outside world, like HTTP and JS interop
+  4. [`fullscreen`](https://github.com/elm-lang/browser/blob/master/src/Browser.elm#L147) &mdash; create single-page apps
 
 This order works well because important concepts and techniques are introduced at each stage. If you jump ahead, it is like building a house by starting with the roof! So again, **work through [guide.elm-lang.org][guide] to see examples and really *understand* how Elm works!**
 
