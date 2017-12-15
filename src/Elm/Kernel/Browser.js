@@ -113,7 +113,7 @@ function _Browser_invalidUrl(url)
 // PROGRAMS
 
 
-var _Browser_staticPage = F4(function(virtualNode, flagDecoder, object, debugMetadata)
+var _Browser_staticPage = F4(function(virtualNode, flagDecoder, debugMetadata, object)
 {
 	object['staticPage'] = function(node)
 	{
@@ -125,7 +125,7 @@ var _Browser_staticPage = F4(function(virtualNode, flagDecoder, object, debugMet
 });
 
 
-var _Browser_embed = F4(function(impl, flagDecoder, object, debugMetadata)
+var _Browser_embed = F4(function(impl, flagDecoder, debugMetadata, object)
 {
 	object['embed'] = function(node, flags)
 	{
@@ -141,7 +141,7 @@ var _Browser_embed = F4(function(impl, flagDecoder, object, debugMetadata)
 });
 
 
-var _Browser_fullscreen = F4(function(impl, flagDecoder, object, debugMetadata)
+var _Browser_fullscreen = F4(function(impl, flagDecoder, debugMetadata, object)
 {
 	object['fullscreen'] = function(flags)
 	{
