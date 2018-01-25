@@ -77,14 +77,14 @@ onEffects router subs state =
     newSubs =
       List.map addKey subs
 
-    stepLeft _ pid (deadPids, livePids, makeNewPids) =
-      ( pid :: deadPids, livePids, makeNewPids )
+    stepLeft _ pid (deads, lives, news) =
+      ( pid :: deads, lives, news )
 
-    stepBoth key pid _ (deadPids, livePids, makeNewPids) =
-      ( deadPids, Dict.insert key pid livePids, makeNewPids )
+    stepBoth key pid _ (deads, lives, news) =
+      ( deads, Dict.insert key pid lives, news )
 
-    stepRight key sub (deadPids, livePids, makeNewPids) =
-      ( deadPids, livePids, spawn router key sub :: makeNewPids )
+    stepRight key sub (deads, lives, news) =
+      ( deads, lives, spawn router key sub :: news )
 
     (deadPids, livePids, makeNewPids) =
       Dict.merge stepLeft stepBoth stepRight state.pids (Dict.fromList newSubs) ([], Dict.empty, [])
@@ -133,6 +133,6 @@ spawn router key (MySub node passive name _) =
         Window ->
           Elm.Kernel.Browser.window
   in
-  Task.map ((,) key) <|
+  Task.map (\value -> (key,value)) <|
     Elm.Kernel.Browser.on actualNode passive name <|
       \event -> Platform.sendToSelf router (Event key event)

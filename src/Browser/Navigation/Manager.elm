@@ -98,12 +98,13 @@ init =
 
 onSelfMsg : Platform.Router msg String -> String -> State msg -> Task Never (State msg)
 onSelfMsg router url state =
-  notify router state.subs url
-    &> Task.succeed state
+  ignore (notify router state.subs url) state
 
 
-(&>) task1 task2 =
-  Task.andThen (\_ -> task2) task1
+
+ignore : Task x a -> b -> Task x b
+ignore task b =
+  Task.andThen (\_ -> Task.succeed b) task
 
 
 
@@ -116,8 +117,7 @@ onEffects router cmds subs {popWatcher} =
     stepState =
       case (subs, popWatcher) of
         ([], Just watcher) ->
-          killPopWatcher watcher
-            &> Task.succeed (State subs Nothing)
+          ignore (killPopWatcher watcher) (State subs Nothing)
 
         (_ :: _, Nothing) ->
           Task.map (State subs << Just) (spawnPopWatcher router)
@@ -127,7 +127,7 @@ onEffects router cmds subs {popWatcher} =
 
   in
     Task.sequence (List.map (cmdHelp router subs) cmds)
-      &> stepState
+      |> Task.andThen (\_ -> stepState)
 
 
 cmdHelp : Platform.Router msg String -> List (MySub msg) -> MyCmd msg -> Task Never ()
@@ -152,8 +152,7 @@ notify router subs url =
     send (Listen tagger) =
       Platform.sendToApp router (tagger url)
   in
-    Task.sequence (List.map send subs)
-      &> Task.succeed ()
+    ignore (Task.sequence (List.map send subs)) ()
 
 
 go : Int -> Task x ()
@@ -200,4 +199,4 @@ killPopWatcher popWatcher =
 
     InternetExplorer pid1 pid2 ->
       Process.kill pid1
-        &> Process.kill pid2
+        |> Task.andThen (\_ -> Process.kill pid2)
