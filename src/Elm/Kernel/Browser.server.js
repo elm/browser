@@ -1,13 +1,14 @@
 /*
 
-import Json.Decode as Json exposing (map)
-import Platform.Sub as Sub exposing (none)
 import Elm.Kernel.Error exposing (throw)
 import Elm.Kernel.Json exposing (run, wrap)
 import Elm.Kernel.Platform exposing (preload)
 import Elm.Kernel.Scheduler exposing (binding, succeed, spawn)
 import Elm.Kernel.Utils exposing (Tuple0)
 import Elm.Kernel.VirtualDom exposing (body)
+import Json.Decode as Json exposing (map)
+import Platform.Sub as Sub exposing (none)
+import Result exposing (isOk)
 
 */
 
@@ -111,7 +112,7 @@ function _Browser_render(flagDecoder, flags, impl, toOutput)
 function _Browser_init(flagDecoder, flags, init)
 {
 	var result = A2(__Json_run, flagDecoder, __Json_wrap(flags));
-	return result.$ === 'Ok' ? init(result.a) : __Error_throw(2, result.a);
+	return __Result_isOk(result) ? init(result.a) : __Error_throw(2, result.a);
 }
 
 

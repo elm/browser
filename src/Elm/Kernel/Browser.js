@@ -1,7 +1,6 @@
 /*
 
-import Json.Decode as Json exposing (map)
-import Maybe exposing (Maybe(Just,Nothing))
+import Browser exposing (NotFound)
 import Elm.Kernel.Error exposing (throw)
 import Elm.Kernel.Json exposing (runHelp)
 import Elm.Kernel.List exposing (Nil)
@@ -9,6 +8,9 @@ import Elm.Kernel.Platform exposing (initialize)
 import Elm.Kernel.Scheduler exposing (binding, fail, rawSpawn, succeed, spawn)
 import Elm.Kernel.Utils exposing (Tuple0, Tuple2)
 import Elm.Kernel.VirtualDom exposing (appendChild, applyPatches, diff, doc, node, passiveSupported, render)
+import Json.Decode as Json exposing (map)
+import Maybe exposing (Just,Nothing)
+import Result exposing (isOk)
 
 */
 
@@ -245,7 +247,7 @@ function _Browser_withNode(id, doStuff)
 			var node = document.getElementById(id);
 			callback(node
 				? __Scheduler_succeed(doStuff(node))
-				: __Scheduler_fail({ $: 'NotFound', a: id })
+				: __Scheduler_fail(__Browser_NotFound(id))
 			);
 		});
 	});
@@ -310,7 +312,7 @@ var _Browser_on = F4(function(node, passive, eventName, sendToSelf)
 var _Browser_decodeEvent = F2(function(decoder, event)
 {
 	var result = __Json_runHelp(decoder, event);
-	return result.$ !== 'Ok'
-		? __Maybe_Nothing
-		: (result.a.b && event.preventDefault(), __Maybe_Just(result.a.a));
+	return __Result_isOk(result)
+		? (result.a.b && event.preventDefault(), __Maybe_Just(result.a.a));
+		: __Maybe_Nothing
 });
