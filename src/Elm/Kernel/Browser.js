@@ -313,6 +313,6 @@ var _Browser_decodeEvent = F2(function(decoder, event)
 {
 	var result = __Json_runHelp(decoder, event);
 	return __Result_isOk(result)
-		? (result.a.b && event.preventDefault(), __Maybe_Just(result.a.a));
+		? (result.a.b && event.preventDefault(), __Maybe_Just(result.a.a))
 		: __Maybe_Nothing
 });
