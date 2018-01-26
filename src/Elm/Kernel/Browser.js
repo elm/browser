@@ -124,6 +124,7 @@ var _Browser_staticPage = F4(function(virtualNode, flagDecoder, debugMetadata, o
 			node
 		);
 	};
+	return object;
 });
 
 
@@ -140,6 +141,7 @@ var _Browser_embed = F4(function(impl, flagDecoder, debugMetadata, object)
 			_Browser_makeStepperBuilder(node, impl.__$view)
 		);
 	};
+	return object;
 });
 
 
@@ -163,6 +165,7 @@ var _Browser_fullscreen = F4(function(impl, flagDecoder, debugMetadata, object)
 			})
 		);
 	};
+	return object;
 });
 
 
