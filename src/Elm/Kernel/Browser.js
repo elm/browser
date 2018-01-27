@@ -132,7 +132,7 @@ var _Browser_embed = F4(function(impl, flagDecoder, debugMetadata, object)
 {
 	object['embed'] = function(node, flags)
 	{
-		__Platform_initialize(
+		return __Platform_initialize(
 			flagDecoder,
 			flags,
 			impl.__$init,
@@ -149,7 +149,7 @@ var _Browser_fullscreen = F4(function(impl, flagDecoder, debugMetadata, object)
 {
 	object['fullscreen'] = function(flags)
 	{
-		__Platform_initialize(
+		return __Platform_initialize(
 			A2(__Json_map, _Browser_toEnv, flagDecoder),
 			flags,
 			impl.__$init,
