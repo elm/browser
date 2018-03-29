@@ -117,7 +117,7 @@ function _Browser_invalidUrl(url)
 
 var _Browser_staticPage = F4(function(virtualNode, flagDecoder, debugMetadata, object)
 {
-	object['staticPage'] = function(node)
+	object['init'] = function(node)
 	{
 		node.parentNode.replaceChild(
 			__VirtualDom_render(virtualNode, function() {}),
@@ -130,7 +130,7 @@ var _Browser_staticPage = F4(function(virtualNode, flagDecoder, debugMetadata, o
 
 var _Browser_embed = F4(function(impl, flagDecoder, debugMetadata, object)
 {
-	object['embed'] = function(node, flags)
+	object['init'] = function(node, flags)
 	{
 		return __Platform_initialize(
 			flagDecoder,
@@ -147,7 +147,7 @@ var _Browser_embed = F4(function(impl, flagDecoder, debugMetadata, object)
 
 var _Browser_fullscreen = F4(function(impl, flagDecoder, debugMetadata, object)
 {
-	object['fullscreen'] = function(flags)
+	object['init'] = function(flags)
 	{
 		return __Platform_initialize(
 			A2(__Json_map, _Browser_toEnv, flagDecoder),
