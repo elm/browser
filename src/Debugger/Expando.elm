@@ -10,7 +10,9 @@ module Debugger.Expando exposing
 import Dict exposing (Dict)
 import Elm.Kernel.Debugger
 import Json.Decode as Json
-import Debugger.Html as Html exposing (Html, text, div, span, style, class, onClick)
+import Html exposing (Html, text, div, span)
+import Html.Attributes exposing (style, class)
+import Html.Events exposing (onClick)
 
 
 

@@ -10,7 +10,9 @@ module Debugger.Overlay exposing
 
 import Json.Decode as Decode
 import Json.Encode as Encode
-import Debugger.Html as Html exposing (..)
+import Html exposing (..)
+import Html.Attributes exposing (..)
+import Html.Events exposing (onClick)
 import Debugger.Metadata as Metadata exposing (Metadata)
 import Debugger.Report as Report exposing (Report)
 
@@ -181,7 +183,7 @@ viewMessage config title details buttons =
   , [ div [ class "elm-overlay-message" ]
         [ div [ class "elm-overlay-message-title" ] [ text title ]
         , div [ class "elm-overlay-message-details" ] details
-        , map config.wrap (viewButtons buttons)
+        , Html.map config.wrap (viewButtons buttons)
         ]
     ]
   )
@@ -428,7 +430,7 @@ button msg label =
 
 styles : Html msg
 styles =
-  inlineStyle """
+  Html.node "style" [] [ text """
 
 .elm-overlay {
   position: fixed;
@@ -539,4 +541,4 @@ styles =
   margin-right: 20px;
 }
 
-"""
+""" ]

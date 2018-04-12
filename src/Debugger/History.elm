@@ -15,7 +15,10 @@ import Array exposing (Array)
 import Elm.Kernel.Debugger
 import Json.Decode as Decode
 import Json.Encode as Encode
-import Debugger.Html as Html exposing (Html)
+import Html exposing (..)
+import Html.Attributes exposing (..)
+import Html.Events exposing (onClick)
+import Html.Lazy exposing (..)
 import Debugger.Metadata as Metadata
 
 
@@ -211,12 +214,12 @@ view maybeIndex { snapshots, recent, numMessages } =
           ( i, "debugger-sidebar-messages-paused" )
 
     oldStuff =
-      Html.lazy2 viewSnapshots index snapshots
+      lazy2 viewSnapshots index snapshots
 
     newStuff =
       Tuple.second <| List.foldl (consMsg index) (numMessages - 1, []) recent.messages
   in
-    Html.div [ Html.class className ] (oldStuff :: newStuff)
+    div [ class className ] (oldStuff :: newStuff)
 
 
 
@@ -229,7 +232,7 @@ viewSnapshots currentIndex snapshots =
     highIndex =
       maxSnapshotSize * Array.length snapshots
   in
-    Html.div [] <| Tuple.second <|
+    div [] <| Tuple.second <|
       Array.foldr (consSnapshot currentIndex) (highIndex, []) snapshots
 
 
@@ -243,13 +246,13 @@ consSnapshot currentIndex snapshot (index, rest) =
       if nextIndex <= currentIndex && currentIndex < index then currentIndex else -1
   in
     ( index - maxSnapshotSize
-    , Html.lazy3 viewSnapshot currentIndexHelp index snapshot :: rest
+    , lazy3 viewSnapshot currentIndexHelp index snapshot :: rest
     )
 
 
 viewSnapshot : Int -> Int -> Snapshot model msg -> Html Int
 viewSnapshot currentIndex index { messages } =
-  Html.div [] <| Tuple.second <|
+  div [] <| Tuple.second <|
     Array.foldl (consMsg currentIndex) (index - 1, []) messages
 
 
@@ -260,7 +263,7 @@ viewSnapshot currentIndex index { messages } =
 consMsg : Int -> msg -> ( Int, List (Html Int) ) -> ( Int, List (Html Int) )
 consMsg currentIndex msg (index, rest) =
   ( index - 1
-  , Html.lazy3 viewMessage currentIndex index msg :: rest
+  , lazy3 viewMessage currentIndex index msg :: rest
   )
 
 
@@ -277,10 +280,10 @@ viewMessage currentIndex index msg =
     messageName =
       Elm.Kernel.Debugger.messageToString msg
   in
-    Html.div
-      [ Html.class className
-      , Html.onClick index
+    div
+      [ class className
+      , onClick index
       ]
-      [ Html.span [Html.class "messages-entry-content", Html.title messageName ] [ Html.text messageName ]
-      , Html.span [Html.class "messages-entry-index"] [ Html.text (String.fromInt index) ]
+      [ span [class "messages-entry-content", title messageName ] [ text messageName ]
+      , span [class "messages-entry-index"] [ text (String.fromInt index) ]
       ]
