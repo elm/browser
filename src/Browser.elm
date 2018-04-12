@@ -51,6 +51,7 @@ for focusing and scrolling DOM nodes.
 import Dict
 import Browser.Events as E
 import Browser.Navigation.Manager as Navigation
+import Debugger.Main
 import Elm.Kernel.Browser
 import Json.Decode as Decode
 import Process
