@@ -1,8 +1,8 @@
 module Debugger.Main exposing
-  ( init
-  , update
-  , subs
-  , view
+  ( wrapInit
+  , wrapUpdate
+  , wrapSubs
+  , wrapView
   , cornerView
   , popoutView
   )
@@ -11,13 +11,33 @@ module Debugger.Main exposing
 import Elm.Kernel.Debugger
 import Json.Decode as Decode
 import Json.Encode as Encode
+import Html exposing (..)
+import Html.Attributes exposing (..)
+import Html.Events exposing (onClick)
 import Task exposing (Task)
 import Debugger.Expando as Expando exposing (Expando)
-import Debugger.Html as Html exposing (Html)
 import Debugger.History as History exposing (History)
 import Debugger.Metadata as Metadata exposing (Metadata)
 import Debugger.Overlay as Overlay
 import Debugger.Report as Report
+
+
+
+-- VIEW
+
+
+wrapView : (model -> Html msg) -> Model model msg -> Html (Msg msg)
+wrapView view model =
+  Html.map UserMsg (view (getCurrentModel model.state))
+
+
+
+-- SUBSCRIPTIONS
+
+
+wrapSubs : (model -> Sub msg) -> Model model msg -> Sub (Msg msg)
+wrapSubs subscriptions model =
+  Sub.map UserMsg (subscriptions (getLatestModel model.state))
 
 
 
@@ -30,12 +50,11 @@ type alias Model model msg =
   , expando : Expando
   , metadata : Result Metadata.Error Metadata
   , overlay : Overlay.State
-  , token : Token
-  , isDebuggerOpen : Bool
+  , popout : Popout
   }
 
 
-type Token = Token Token
+type Popout = Popout Popout
 
 
 type State model
@@ -43,19 +62,22 @@ type State model
   | Paused Int model model
 
 
-init : Encode.Value -> Token -> (flags -> (model, Cmd msg)) -> flags -> (Model model msg, Cmd (Msg msg))
-init metadata token userInit flags =
+
+-- INIT
+
+
+wrapInit : Encode.Value -> Popout -> (flags -> (model, Cmd msg)) -> flags -> (Model model msg, Cmd (Msg msg))
+wrapInit metadata popout init flags =
   let
     (userModel, userCommands) =
-      userInit flags
+      init flags
   in
   ( { history = History.empty userModel
     , state = Running userModel
     , expando = Expando.init userModel
     , metadata = Metadata.decode metadata
     , overlay = Overlay.none
-    , token = token
-    , isDebuggerOpen = False
+    , popout = popout
     }
   , Cmd.map UserMsg userCommands
   )
@@ -72,7 +94,6 @@ type Msg msg
   | Resume
   | Jump Int
   | Open
-  | Close
   | Up
   | Down
   | Import
@@ -85,14 +106,36 @@ type alias UserUpdate model msg =
   msg -> model -> ( model, Cmd msg )
 
 
-update : UserUpdate model msg -> Msg msg -> Model model msg -> (Model model msg, Cmd (Msg msg))
-update userUpdate msg model =
+wrapUpdate : UserUpdate model msg -> Msg msg -> Model model msg -> (Model model msg, Cmd (Msg msg))
+wrapUpdate update msg model =
   case msg of
     NoOp ->
       ( model, Cmd.none )
 
     UserMsg userMsg ->
-      updateUserMsg userUpdate userMsg model
+      let
+        userModel = getLatestModel model.state
+        newHistory = History.add userMsg userModel model.history
+        (newUserModel, userCmds) = update userMsg userModel
+        commands = Cmd.map UserMsg userCmds
+      in
+      case model.state of
+        Running _ ->
+          ( { model
+              | history = newHistory
+              , state = Running newUserModel
+              , expando = Expando.merge newUserModel model.expando
+            }
+          , Cmd.batch [ commands, scroll model.popout ]
+          )
+
+        Paused index indexModel _ ->
+          ( { model
+              | history = newHistory
+              , state = Paused index indexModel newUserModel
+            }
+          , commands
+          )
 
     ExpandoMsg eMsg ->
       ( { model | expando = Expando.update eMsg model.expando }
@@ -109,26 +152,25 @@ update userUpdate msg model =
               | state = Running userModel
               , expando = Expando.merge userModel model.expando
             }
-          , runIf model.isDebuggerOpen (scroll model.token)
+          , scroll model.popout
           )
 
     Jump index ->
       let
         (indexModel, indexMsg) =
-          History.get userUpdate index model.history
+          History.get update index model.history
       in
-        ( { model
-            | state = Paused index indexModel (getLatestModel model.state)
-            , expando = Expando.merge indexModel model.expando
-          }
-        , Cmd.none
-        )
+      ( { model
+          | state = Paused index indexModel (getLatestModel model.state)
+          , expando = Expando.merge indexModel model.expando
+        }
+      , Cmd.none
+      )
 
     Open ->
-      ( { model | isDebuggerOpen = True }, Cmd.none )
-
-    Close ->
-      ( { model | isDebuggerOpen = False }, Cmd.none )
+      ( { model | popout = Elm.Kernel.Debugger.open model.popout }
+      , Cmd.none
+      )
 
     Up ->
       let
@@ -140,10 +182,10 @@ update userUpdate msg model =
             Running _ ->
               History.size model.history
       in
-        if index > 0 then
-          update userUpdate (Jump (index - 1)) model
-        else
-          ( model, Cmd.none )
+      if index > 0 then
+        wrapUpdate update (Jump (index - 1)) model
+      else
+        ( model, Cmd.none )
 
     Down ->
       case model.state of
@@ -152,9 +194,9 @@ update userUpdate msg model =
 
         Paused index _ userModel ->
           if index == History.size model.history - 1 then
-            update userUpdate Resume model
+            wrapUpdate update Resume model
           else
-            update userUpdate (Jump (index + 1)) model
+            wrapUpdate update (Jump (index + 1)) model
 
     Import ->
       withGoodMetadata model <| \_ ->
@@ -171,7 +213,7 @@ update userUpdate msg model =
             ( { model | overlay = newOverlay }, Cmd.none )
 
           Ok rawHistory ->
-            loadNewHistory rawHistory userUpdate model
+            loadNewHistory rawHistory update model
 
     OverlayMsg overlayMsg ->
       case Overlay.close overlayMsg model.overlay of
@@ -179,16 +221,16 @@ update userUpdate msg model =
           ( { model | overlay = Overlay.none }, Cmd.none )
 
         Just rawHistory ->
-          loadNewHistory rawHistory userUpdate model
+          loadNewHistory rawHistory update model
 
 
 
 -- COMMANDS
 
 
-scroll : Token -> Task x ()
-scroll =
-  Elm.Kernel.Debugger.scroll
+scroll : Popout -> Cmd msg
+scroll popout =
+  Task.perform never (Elm.Kernel.Debugger.scroll popout)
 
 
 upload : Cmd (Msg msg)
@@ -225,7 +267,9 @@ withGoodMetadata model func =
       func metadata
 
     Err error ->
-      ( { model | overlay = Overlay.badMetadata error }, Cmd.none )
+      ( { model | overlay = Overlay.badMetadata error }
+      , Cmd.none
+      )
 
 
 loadNewHistory
@@ -233,68 +277,32 @@ loadNewHistory
   -> UserUpdate model msg
   -> Model model msg
   -> ( Model model msg, Cmd (Msg msg) )
-loadNewHistory rawHistory userUpdate model =
+loadNewHistory rawHistory update model =
   let
     initialUserModel =
       History.getInitialModel model.history
 
     pureUserUpdate msg userModel =
-      Tuple.first (userUpdate msg userModel)
+      Tuple.first (update msg userModel)
 
     decoder =
       History.decoder initialUserModel pureUserUpdate
   in
-    case Decode.decodeValue decoder rawHistory of
-      Err _ ->
-        ( { model | overlay = Overlay.corruptImport }, Cmd.none )
+  case Decode.decodeValue decoder rawHistory of
+    Err _ ->
+      ( { model | overlay = Overlay.corruptImport }
+      , Cmd.none
+      )
 
-      Ok (latestUserModel, newHistory) ->
-        ( { model
-            | history = newHistory
-            , state = Running latestUserModel
-            , expando = Expando.init latestUserModel
-            , overlay = Overlay.none
-          }
-        , Cmd.none
-        )
-
-
-
--- UPDATE - USER MESSAGES
-
-
-updateUserMsg : UserUpdate model msg -> msg -> Model model msg -> (Model model msg, Cmd (Msg msg))
-updateUserMsg userUpdate userMsg model =
-  let
-    userModel =
-      getLatestModel model.state
-
-    newHistory =
-      History.add userMsg userModel model.history
-
-    (newUserModel, userCmds) =
-      userUpdate userMsg userModel
-
-    commands =
-      Cmd.map UserMsg userCmds
-  in
-    case model.state of
-      Running _ ->
-        ( { model
-            | history = newHistory
-            , state = Running newUserModel
-            , expando = Expando.merge newUserModel model.expando
-          }
-        , Cmd.batch [ commands, runIf model.isDebuggerOpen (scroll model.token) ]
-        )
-
-      Paused index indexModel _ ->
-        ( { model
-            | history = newHistory
-            , state = Paused index indexModel newUserModel
-          }
-        , commands
-        )
+    Ok (latestUserModel, newHistory) ->
+      ( { model
+          | history = newHistory
+          , state = Running latestUserModel
+          , expando = Expando.init latestUserModel
+          , overlay = Overlay.none
+        }
+      , Cmd.none
+      )
 
 
 runIf : Bool -> Task Never () -> Cmd (Msg msg)
@@ -315,31 +323,14 @@ getLatestModel state =
       model
 
 
+getCurrentModel : State model -> model
+getCurrentModel state =
+  case state of
+    Running model ->
+      model
 
--- SUBSCRIPTIONS
-
-
-subs : (model -> Sub msg) -> Model model msg -> Sub (Msg msg)
-subs userSubscriptions model =
-  Sub.map UserMsg (userSubscriptions (getLatestModel model.state))
-
-
-
--- VIEW
-
-
-view : (model -> Html msg) -> Model model msg -> Html (Msg msg)
-view userView model =
-  let
-    currentModel =
-      case model.state of
-        Running userModel ->
-          userModel
-
-        Paused _ oldModel _ ->
-          oldModel
-  in
-    Html.map UserMsg (userView currentModel)
+    Paused _ model _ ->
+      model
 
 
 
@@ -347,7 +338,7 @@ view userView model =
 
 
 cornerView : Model model msg -> ( Overlay.Block, Html (Msg msg) )
-cornerView { history, state, overlay, isDebuggerOpen } =
+cornerView { history, state, overlay, popout } =
   let
     isPaused =
       case state of
@@ -356,8 +347,11 @@ cornerView { history, state, overlay, isDebuggerOpen } =
 
         Paused _ _ _ ->
           True
+
+    isDebuggerOpen =
+      Elm.Kernel.Debugger.isOpen popout
   in
-    Overlay.view overlayConfig isPaused isDebuggerOpen (History.size history) overlay
+  Overlay.view overlayConfig isPaused isDebuggerOpen (History.size history) overlay
 
 
 overlayConfig : Overlay.Config (Msg msg)
@@ -376,12 +370,12 @@ overlayConfig =
 
 popoutView : Model model msg -> Html (Msg msg)
 popoutView { history, state, expando } =
-  Html.div
-    [ Html.id "debugger" ]
+  div
+    [ id "debugger" ]
     [ styles
     , viewSidebar state history
     , Html.map ExpandoMsg <|
-        Html.div [ Html.id "values" ] [ Expando.view Nothing expando ]
+        div [ id "values" ] [ Expando.view Nothing expando ]
     ]
 
 
@@ -396,7 +390,7 @@ viewSidebar state history =
         Paused index _ _ ->
           Just index
   in
-    Html.div [ Html.class "debugger-sidebar" ]
+    div [ class "debugger-sidebar" ]
       [ Html.map Jump (History.view maybeIndex history)
       , playButton maybeIndex
       ]
@@ -404,39 +398,39 @@ viewSidebar state history =
 
 playButton : Maybe Int -> Html (Msg msg)
 playButton maybeIndex =
-  Html.div [ Html.class "debugger-sidebar-controls" ]
+  div [ class "debugger-sidebar-controls" ]
     [ viewResumeButton maybeIndex
-    , Html.div [ Html.class "debugger-sidebar-controls-import-export" ]
+    , div [ class "debugger-sidebar-controls-import-export" ]
         [ button Import "Import"
-        , Html.text " / "
+        , text " / "
         , button Export "Export"
         ]
     ]
 
 
 button msg label =
-  Html.span
-    [ Html.onClick msg
-    , Html.style "cursor" "pointer"
+  span
+    [ onClick msg
+    , style "cursor" "pointer"
     ]
-    [ Html.text label ]
+    [ text label ]
 
 
 viewResumeButton maybeIndex =
   case maybeIndex of
     Nothing ->
-      Html.text ""
+      text ""
 
     Just _ ->
       resumeButton
 
 
 resumeButton =
-  Html.div
-    [ Html.onClick Resume
-    , Html.class "debugger-sidebar-controls-resume"
+  div
+    [ onClick Resume
+    , class "debugger-sidebar-controls-resume"
     ]
-    [ Html.text "Resume"
+    [ text "Resume"
     ]
 
 
@@ -446,7 +440,7 @@ resumeButton =
 
 styles : Html msg
 styles =
-  Html.inlineStyle """
+  Html.node "style" [] [ text """
 
 html {
     overflow: hidden;
@@ -554,4 +548,4 @@ body {
   float: right;
 }
 
-"""
+""" ]

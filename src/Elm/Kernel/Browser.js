@@ -1,6 +1,7 @@
 /*
 
 import Browser exposing (NotFound)
+import Elm.Kernel.Debugger exposing (embed, fullscreen)
 import Elm.Kernel.Error exposing (throw)
 import Elm.Kernel.Json exposing (runHelp)
 import Elm.Kernel.List exposing (Nil)
@@ -9,7 +10,7 @@ import Elm.Kernel.Scheduler exposing (binding, fail, rawSpawn, succeed, spawn)
 import Elm.Kernel.Utils exposing (Tuple0, Tuple2)
 import Elm.Kernel.VirtualDom exposing (appendChild, applyPatches, diff, doc, node, passiveSupported, render)
 import Json.Decode as Json exposing (map)
-import Maybe exposing (Just,Nothing)
+import Maybe exposing (Just, Nothing)
 import Result exposing (isOk)
 
 */
@@ -128,7 +129,9 @@ var _Browser_staticPage = F4(function(virtualNode, flagDecoder, debugMetadata, o
 });
 
 
-var _Browser_embed = F4(function(impl, flagDecoder, debugMetadata, object)
+var __Debugger_embed;
+
+var _Browser_embed = __Debugger_embed || F4(function(impl, flagDecoder, debugMetadata, object)
 {
 	object['embed'] = function(node, flags)
 	{
@@ -144,8 +147,9 @@ var _Browser_embed = F4(function(impl, flagDecoder, debugMetadata, object)
 	return object;
 });
 
+var __Debugger_fullscreen;
 
-var _Browser_fullscreen = F4(function(impl, flagDecoder, debugMetadata, object)
+var _Browser_fullscreen = __Debugger_fullscreen || F4(function(impl, flagDecoder, debugMetadata, object)
 {
 	object['fullscreen'] = function(flags)
 	{

@@ -1,12 +1,12 @@
 /*
 
-import Debugger.Main as Main exposing (view, init, update, subs, cornerView, popoutView, Up, Down, Close)
+import Debugger.Main as Main exposing (wrapView, wrapInit, wrapUpdate, wrapSubs, cornerView, popoutView, Up, Down)
 import Elm.Kernel.Browser exposing (toEnv, makeAnimator)
 import Elm.Kernel.List exposing (Cons, Nil)
 import Elm.Kernel.Platform exposing (initialize)
 import Elm.Kernel.Scheduler exposing (nativeBinding, succeed)
 import Elm.Kernel.Utils exposing (Tuple0, Tuple2)
-import Elm.Kernel.VirtualDom exposing (node, applyPatches, diff, doc, makeStepper, render)
+import Elm.Kernel.VirtualDom exposing (node, applyPatches, diff, doc, makeStepper, render, virtualize)
 import Json.Decode as Json exposing (map)
 import List exposing (map, reverse)
 import Maybe exposing (Just, Nothing)
@@ -28,88 +28,164 @@ function _Debugger_unsafeCoerce(value)
 
 
 
-// DEBUG PROGRAMS
+// PROGRAMS
 
 
-var _Browser_fullscreen = F4(function(impl, flagDecoder, debugMetadata, object)
+var _Debugger_embed = F4(function(impl, flagDecoder, debugMetadata, object)
 {
-	object['fullscreen'] = function(flags)
+	object['embed'] = function(node, flags)
 	{
- 		var token = { __doc: undefined };
 		return __Platform_initialize(
-			A2(__Json_map, __Browser_toEnv, flagDecoder),
+			flagDecoder,
 			flags,
-			A3(__Main_init, debugMetadata, token, impl.__$init),
-			__Main_update(impl.__$update),
-			__Main_subs(impl.__$subscriptions),
-			_Debugger_fullscreenRenderer(impl.__$view)
+			A3(__Main_wrapInit, debugMetadata, _Debugger_popout(), impl.__$init),
+			__Main_wrapUpdate(impl.__$update),
+			__Main_wrapSubs(impl.__$subscriptions),
+			_Debugger_makeStepperBuilder(node, impl.__$view)
 		);
 	};
 	return object;
 });
 
 
-function _Debugger_fullscreenRenderer(view)
+var _Debugger_fullscreen = F4(function(impl, flagDecoder, debugMetadata, object)
+{
+	object['fullscreen'] = function(flags)
+	{
+		return __Platform_initialize(
+			A2(__Json_map, __Browser_toEnv, flagDecoder),
+			flags,
+			A3(__Main_wrapInit, debugMetadata, _Debugger_popout(), impl.__$init),
+			__Main_wrapUpdate(impl.__$update),
+			__Main_wrapSubs(impl.__$subscriptions),
+			_Debugger_makeStepperBuilder(__VirtualDom_doc.body, function(model) {
+				var ui = impl.__$view(model);
+				if (__VirtualDom_doc.title !== ui.__$title)
+				{
+					__VirtualDom_doc.title = ui.__$title;
+				}
+				return __VirtualDom_node('body')(__List_Nil)(ui.__$body);
+			})
+		);
+	};
+	return object;
+});
+
+
+function _Debugger_popout()
+{
+	return { __doc: undefined, __isClosed: true };
+}
+
+function _Debugger_isOpen(popout)
+{
+	return !popout.__isClosed;
+}
+
+function _Debugger_open(popout)
+{
+	popout.__isClosed = false;
+	return popout
+}
+
+
+function _Debugger_makeStepperBuilder(appNode, view)
 {
 	return function(sendToApp, initialModel)
 	{
-		var popoutCurrVNode;
-		var popoutRootNode;
+		var currApp = __VirtualDom_virtualize(appNode);
+		var currCorner = __Main_cornerView(initialModel);
+		var currPopout;
 
-		var bodyNode = __VirtualDom_doc.body;
-		var currVNode = _VirtualDom_virtualize(bodyNode);
+		var cornerNode = __VirtualDom_render(currCorner, sendToApp);
 
 		return __Browser_makeAnimator(initialModel, function(model)
 		{
-			// user view function
-			var ui = A2(__Main_view, view, model);
-			(__VirtualDom_doc.title !== ui.__$title) && __VirtualDom_doc.title = ui.__$title;
+			var nextApp = view(model);
+			var appPatches = __VirtualDom_diff(currApp, nextApp);
+			appNode = __VirtualDom_applyPatches(appNode, currApp, appPatches, sendToApp);
+			currApp = nextApp;
 
-			// corner view function
-			var cornerVNode = __Main_cornerView(model).b;
+			// view corner
 
-			// update <body>
-			var nextVNode = __VirtualDom_node('body')(__List_Nil)(__List_Cons(cornerVNode, ui.__$body));
-			var patches = __VirtualDom_diff(currVNode, nextVNode);
-			bodyNode = __VirtualDom_applyPatches(bodyNode, currVNode, patches, sendToApp);
-			currVNode = nextVNode;
-
-			// update popout
-			if (!model.isDebuggerOpen) return;
-			if (!model.__$token.__doc)
+			if (model.__$popout.__isClosed)
 			{
-				popoutCurrVNode = __Main_popoutView(model);
-				popoutRootNode = _Debugger_openWindow(model.__$token, popoutCurrVNode, sendToApp);
+				var nextCorner = __cornerView(model);
+				var cornerPatches = __VirtualDom_diff(currCorner, nextCorner);
+				cornerNode = __VirtualDom_applyPatches(cornerNode, currCorner, cornerPatches, sendToApp);
+				currCorner = nextCorner;
+				cornerNode.parentNode === appNode || appNode.appendChild(cornerNode);
 				return;
 			}
 
-			// switch to document of popout
-			__VirtualDom_doc = model.__$token.__doc;
+			cornerNode.parentNode && cornerNode.parentNode.removeChild(cornerNode);
 
-			var popoutNextVNode = __Main_popoutView(model);
-			var patches = __VirtualDom_diff(popoutCurrVNode, popoutNextVNode);
-			popoutRootNode = __VirtualDom_applyPatches(popoutRootNode, popoutCurrVNode, patches, sendToApp);
-			popoutCurrVNode = popoutNextVNode;
+			// view popout
 
-			// switch back to normal document
-			__VirtualDom_doc = document;
+			model.__$popout.__doc || (currPopout = _Debugger_openWindow(model.__$popout, sendToApp));
+
+			__VirtualDom_doc = model.__$token.__doc; // SWITCH TO POPOUT DOC
+			var nextPopout = __Main_popoutView(model);
+			var popoutPatches = __VirtualDom_diff(currPopout, nextPopout);
+			__VirtualDom_applyPatches(model.__$popout.__doc.body, currPopout, popoutPatches, sendToApp);
+			currPopout = nextPopout;
+			__VirtualDom_doc = document; // SWITCH BACK TO NORMAL DOC
 		});
 	};
 }
 
 
 
-// EFFECTS
+// POPOUT
 
 
-function _Debugger_scroll(token)
+function _Debugger_openWindow(popout, sendToApp)
+{
+	var w = 900, h = 360, x = screen.width - w, y = screen.height - h;
+	var debuggerWindow = window.open('', '', 'width=' + w + ',height=' + h + ',left=' + x + ',top=' + y);
+	var doc = debuggerWindow.document;
+	doc.title = 'Elm Debugger';
+	doc.body.style.margin = '0';
+	doc.body.style.padding = '0';
+
+	// handle arrow keys
+	doc.addEventListener('keydown', function(event) {
+		event.metaKey && event.which === 82 && window.location.reload();
+		event.which === 38 && (sendToApp(__Main_Up), event.preventDefault());
+		event.which === 40 && (sendToApp(__Main_Down), event.preventDefault());
+	});
+
+	// handle window close
+	window.addEventListener('unload', close);
+	debuggerWindow.addEventListener('unload', function() {
+		popout.__doc = undefined;
+		popout.__isClosed = true;
+		window.removeEventListener('unload', close);
+	});
+	function close() {
+		popout.__doc = undefined;
+		popout.__isClosed = true;
+		debuggerWindow.close();
+	}
+
+	// register new window
+	popout.__doc = doc;
+	popout.__isClosed = false;
+	return __VirtualDom_virtualize(doc.body);
+}
+
+
+
+// SCROLL
+
+
+function _Debugger_scroll(popout)
 {
 	return __Scheduler_nativeBinding(function(callback)
 	{
-		var doc = token.__doc;
-		if (doc)
+		if (popout.__doc)
 		{
-			var msgs = doc.getElementsByClassName('debugger-sidebar-messages')[0];
+			var msgs = popout.__doc.getElementsByClassName('debugger-sidebar-messages')[0];
 			if (msgs)
 			{
 				msgs.scrollTop = msgs.scrollHeight;
@@ -118,6 +194,11 @@ function _Debugger_scroll(token)
 		callback(__Scheduler_succeed(__Utils_Tuple0));
 	});
 }
+
+
+
+// UPLOAD
+
 
 function _Debugger_upload()
 {
@@ -141,6 +222,11 @@ function _Debugger_upload()
 		element.click();
 	});
 }
+
+
+
+// DOWNLOAD
+
 
 var _Debugger_download = F2(function(historyLength, json)
 {
@@ -383,53 +469,8 @@ function _Debugger_addSlashes(str, isChar)
 
 
 
-// POPOUT WINDOW
-
-
-function _Debugger_openWindow(token, virtualNode, sendToApp)
-{
-	var w = 900;
-	var h = 360;
-	var x = screen.width - w;
-	var y = screen.height - h;
-	var debugWindow = window.open('', '', 'width=' + w + ',height=' + h + ',left=' + x + ',top=' + y);
-
-	// switch to window document
-	var doc = debugWindow.document;
-	token.__doc = __VirtualDom_doc = doc;
-
-	doc.title = 'Elm Debugger';
-	doc.body.style.margin = '0';
-	doc.body.style.padding = '0';
-	var domNode = __VirtualDom_render(virtualNode, sendToApp);
-	doc.body.appendChild(domNode);
-
-	doc.addEventListener('keydown', function(event) {
-		event.metaKey && event.which === 82 && window.location.reload();
-		event.which === 38 && (sendToApp(__Main_Up), event.preventDefault());
-		event.which === 40 && (sendToApp(__Main_Down), event.preventDefault());
-	});
-
-	function close()
-	{
-		token.__doc = undefined;
-		debugWindow.close();
-	}
-	window.addEventListener('unload', close);
-	debugWindow.addEventListener('unload', function() {
-		token.__doc = undefined;
-		window.removeEventListener('unload', close);
-		sendToApp(__Main_Close);
-	});
-
-	// switch back to the normal document
-	__VirtualDom_doc = document;
-
-	return domNode;
-}
-
-
 // BLOCK EVENTS
+
 
 function _Debugger_wrapViewIn(appEventNode, overlayNode, viewIn)
 {
