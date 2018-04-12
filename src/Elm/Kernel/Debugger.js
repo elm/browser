@@ -4,7 +4,7 @@ import Debugger.Main as Main exposing (wrapView, wrapInit, wrapUpdate, wrapSubs,
 import Elm.Kernel.Browser exposing (toEnv, makeAnimator)
 import Elm.Kernel.List exposing (Cons, Nil)
 import Elm.Kernel.Platform exposing (initialize)
-import Elm.Kernel.Scheduler exposing (nativeBinding, succeed)
+import Elm.Kernel.Scheduler exposing (binding, succeed)
 import Elm.Kernel.Utils exposing (Tuple0, Tuple2)
 import Elm.Kernel.VirtualDom exposing (node, applyPatches, diff, doc, makeStepper, render, virtualize)
 import Json.Decode as Json exposing (map)
@@ -181,7 +181,7 @@ function _Debugger_openWindow(popout, sendToApp)
 
 function _Debugger_scroll(popout)
 {
-	return __Scheduler_nativeBinding(function(callback)
+	return __Scheduler_binding(function(callback)
 	{
 		if (popout.__doc)
 		{
@@ -202,7 +202,7 @@ function _Debugger_scroll(popout)
 
 function _Debugger_upload()
 {
-	return __Scheduler_nativeBinding(function(callback)
+	return __Scheduler_binding(function(callback)
 	{
 		var element = document.createElement('input');
 		element.setAttribute('type', 'file');
@@ -230,7 +230,7 @@ function _Debugger_upload()
 
 var _Debugger_download = F2(function(historyLength, json)
 {
-	return __Scheduler_nativeBinding(function(callback)
+	return __Scheduler_binding(function(callback)
 	{
 		var fileName = 'history-' + historyLength + '.txt';
 		var jsonString = JSON.stringify(json);
