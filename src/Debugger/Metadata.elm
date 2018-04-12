@@ -228,7 +228,7 @@ decode : Encode.Value -> Result Error Metadata
 decode value =
   case Decode.decodeValue decoder value of
     Err _ ->
-      Debug.todo "Compiler is generating bad metadata. Report this at <https://github.com/elm-lang/virtual-dom/issues>."
+      decode value -- Debug.crash "compiler is generating bad metadata."
 
     Ok metadata ->
       case isPortable metadata of

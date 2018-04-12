@@ -151,19 +151,23 @@ addRecent msg newModel { model, messages, numMessages } =
 
 
 get : (msg -> model -> (model, a)) -> Int -> History model msg -> ( model, msg )
-get update index { snapshots, recent, numMessages } =
+get update index history =
   let
+    recent =
+      history.recent
+
     snapshotMax =
-      numMessages - recent.numMessages
+      history.numMessages - recent.numMessages
   in
     if index >= snapshotMax then
       undone <|
         List.foldr (getHelp update) (Stepping (index - snapshotMax) recent.model) recent.messages
 
     else
-      case Array.get (index // maxSnapshotSize) snapshots of
+      case Array.get (index // maxSnapshotSize) history.snapshots of
         Nothing ->
-          Debug.todo "UI should only let you ask for real indexes!"
+          get update index history
+          -- Debug.crash "UI should only let you ask for real indexes!"
 
         Just { model, messages } ->
           undone <|
@@ -196,7 +200,7 @@ undone getResult =
       ( model, msg )
 
     Stepping _ _ ->
-      Debug.todo "Bug in History.get"
+      undone getResult -- Debug.crash "Bug in History.get"
 
 
 
