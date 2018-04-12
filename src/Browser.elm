@@ -193,8 +193,28 @@ fullscreen impl =
 
 {-| This data specifies the `<title>` and all of the nodes that should go in
 the `<body>`. This means you can update the title as your application changes.
-Maybe your "single-page app" navigates to a "new page", maybe a calendar app
-shows an accurate date in the title, etc.
+Maybe your "single-page app" navigates to a "different page", maybe a calendar
+app shows an accurate date in the title, etc.
+
+> **Note about CSS:** This looks similar to an `<html>` document, but this is
+> not the place to manage CSS assets. If you want to work with CSS, there are
+> a couple ways:
+>
+> 1. Use the [`rtfeldman/elm-css`][elm-css] package to get all of the features
+> of CSS without any CSS files. You can add all the styles you need in your
+> `view` function, and there is no need to worry about class names matching.
+>
+> 2. Compile your Elm code to JavaScript with `elm make --output=elm.js` and
+> then make your own HTML file that loads `elm.js` and the CSS file you want.
+> With this approach, it does not matter where the CSS comes from. Write it
+> by hand. Generate it. Whatever you want to do.
+>
+> 3. If you need to change `<link>` tags dynamically, you can send messages
+> out a port to do it in JavaScript.
+>
+> The bigger point here is that loading assets involves touching the `<head>`
+> as an implementation detail of browsers, but that does not mean it should be
+> the responsibility of the `view` function in Elm. So we do it differently!
 -}
 type alias Page msg =
   { title : String
