@@ -3,7 +3,7 @@ module Browser exposing
   , sandbox
   , embed
   , fullscreen
-  , View
+  , Page
   , Env
   , focus, blur, DomError(..)
   , scrollIntoView
@@ -28,7 +28,7 @@ for focusing and scrolling DOM nodes.
 
 
 # Dynamic Pages
-@docs sandbox, embed, fullscreen, View, Env
+@docs sandbox, embed, fullscreen, Page, Env
 
 
 # DOM Stuff
@@ -170,7 +170,7 @@ seem confusing. Same here!
 -}
 fullscreen :
   { init : Env flags -> (model, Cmd msg)
-  , view : model -> View msg
+  , view : model -> Page msg
   , update : msg -> model -> ( model, Cmd msg )
   , onNavigation : Maybe (Url.Url -> msg)
   , subscriptions : model -> Sub msg
@@ -192,10 +192,11 @@ fullscreen impl =
 
 
 {-| This data specifies the `<title>` and all of the nodes that should go in
-the `<body>`. This means you can update the title as people navigate through
-your single-page app.
+the `<body>`. This means you can update the title as your application changes.
+Maybe your "single-page app" navigates to a "new page", maybe a calendar app
+shows an accurate date in the title, etc.
 -}
-type alias View msg =
+type alias Page msg =
   { title : String
   , body : List (VirtualDom.Node msg)
   }
