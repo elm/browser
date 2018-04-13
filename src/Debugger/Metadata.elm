@@ -228,7 +228,7 @@ decode : Encode.Value -> Result Error Metadata
 decode value =
   case Decode.decodeValue decoder value of
     Err _ ->
-      decode value -- Debug.crash "compiler is generating bad metadata."
+      Err (Error "The compiler is generating bad metadata. This is a compiler bug!" [])
 
     Ok metadata ->
       case isPortable metadata of
