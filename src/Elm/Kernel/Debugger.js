@@ -95,7 +95,7 @@ function _Debugger_makeStepperBuilder(appNode, view)
 	return function(sendToApp, initialModel)
 	{
 		var currApp = __VirtualDom_virtualize(appNode);
-		var currCorner = __Main_cornerView(initialModel);
+		var currCorner = __Main_cornerView(initialModel).b;
 		var currPopout;
 
 		var cornerNode = __VirtualDom_render(currCorner, sendToApp);
@@ -111,7 +111,7 @@ function _Debugger_makeStepperBuilder(appNode, view)
 
 			if (model.__$popout.__isClosed)
 			{
-				var nextCorner = __cornerView(model);
+				var nextCorner = __Main_cornerView(model).b;
 				var cornerPatches = __VirtualDom_diff(currCorner, nextCorner);
 				cornerNode = __VirtualDom_applyPatches(cornerNode, currCorner, cornerPatches, sendToApp);
 				currCorner = nextCorner;
