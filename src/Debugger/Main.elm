@@ -228,9 +228,9 @@ wrapUpdate update msg model =
 -- COMMANDS
 
 
-scroll : Popout -> Cmd msg
+scroll : Popout -> Cmd (Msg msg)
 scroll popout =
-  Task.perform never (Elm.Kernel.Debugger.scroll popout)
+  Task.perform (always NoOp) (Elm.Kernel.Debugger.scroll popout)
 
 
 upload : Cmd (Msg msg)
