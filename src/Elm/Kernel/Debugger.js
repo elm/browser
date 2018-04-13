@@ -1,5 +1,6 @@
 /*
 
+import Debugger.Expando as Expando exposing (S, Primitive, Sequence, Dictionary, Record, Constructor, ListSeq, SetSeq, ArraySeq)
 import Debugger.Main as Main exposing (wrapView, wrapInit, wrapUpdate, wrapSubs, cornerView, popoutView, Up, Down)
 import Elm.Kernel.Browser exposing (toEnv, makeAnimator)
 import Elm.Kernel.List exposing (Cons, Nil)
@@ -263,30 +264,43 @@ var _Debugger_download = F2(function(historyLength, json)
 
 function _Debugger_messageToString(value)
 {
-	switch (typeof value)
+	if (typeof value === 'boolean')
 	{
-		case 'boolean':
-			return value ? 'True' : 'False';
-		case 'number':
-			return value + '';
-		case 'string':
-			return '"' + _Debugger_addSlashes(value, false) + '"';
+		return value ? 'True' : 'False';
 	}
+
+	if (typeof value === 'number')
+	{
+		return value + '';
+	}
+
+	if (typeof value === 'string')
+	{
+		return '"' + _Debugger_addSlashes(value, false) + '"';
+	}
+
 	if (value instanceof String)
 	{
-		return '\'' + _Debugger_addSlashes(value, true) + '\'';
+		return "'" + _Debugger_addSlashes(value, true) + "'";
 	}
-	if (typeof value !== 'object' || value === null || !('ctor' in value))
+
+	if (typeof value !== 'object' || value === null || !('$' in value))
 	{
 		return '…';
 	}
 
-	var ctorStarter = value.ctor.substring(0, 5);
-	if (ctorStarter === '_Tupl' || ctorStarter === '_Task')
+	if (typeof value.$ === 'number')
 	{
-		return '…'
+		return '…';
 	}
-	if (['_Array', '<decoder>', '_Process', '::', '[]', 'Set_elm_builtin', 'RBNode_elm_builtin', 'RBEmpty_elm_builtin'].indexOf(value.ctor) >= 0)
+
+	var char = value.$.charCodeAt(0);
+	if (char === 35 || 65 <= char && char <= 90)
+	{
+		return '…';
+	}
+
+	if (['Array_elm_builtin', 'Set_elm_builtin', 'RBNode_elm_builtin', 'RBEmpty_elm_builtin'].indexOf(value.$) >= 0)
 	{
 		return '…';
 	}
@@ -295,144 +309,100 @@ function _Debugger_messageToString(value)
 	switch (keys.length)
 	{
 		case 1:
-			return value.ctor;
+			return value.$;
 		case 2:
-			return value.ctor + ' ' + _Debugger_messageToString(value._0);
+			return value.$ + ' ' + _Debugger_messageToString(value.a);
 		default:
-			return value.ctor + ' … ' + _Debugger_messageToString(value[keys[keys.length - 1]]);
+			return value.$ + ' … ' + _Debugger_messageToString(value[keys[keys.length - 1]]);
 	}
-}
-
-
-function _Debugger_primitive(str)
-{
-	return { ctor: 'Primitive', _0: str };
 }
 
 
 function _Debugger_init(value)
 {
-	var type = typeof value;
-
-	if (type === 'boolean')
+	if (typeof value === 'boolean')
 	{
-		return {
-			ctor: 'Constructor',
-			_0: __Maybe_Just(value ? 'True' : 'False'),
-			_1: true,
-			_2: __List_Nil
-		};
+		return A3(__Expando_Constructor, __Maybe_Just(value ? 'True' : 'False'), true, __List_Nil);
 	}
 
-	if (type === 'number')
+	if (typeof value === 'number')
 	{
-		return _Debugger_primitive(value + '');
+		return __Expando_Primitive(value + '');
 	}
 
-	if (type === 'string')
+	if (typeof value === 'string')
 	{
-		return { ctor: 'S', _0: '"' + _Debugger_addSlashes(value, false) + '"' };
+		return __Expando_S('"' + _Debugger_addSlashes(value, false) + '"');
 	}
 
 	if (value instanceof String)
 	{
-		return { ctor: 'S', _0: "'" + _Debugger_addSlashes(value, true) + "'" };
+		return __Expando_S("'" + _Debugger_addSlashes(value, true) + "'");
 	}
 
-	if (value instanceof Date)
+	if (typeof value === 'object' && '$' in value)
 	{
-		return _Debugger_primitive('<' + value.toString() + '>');
+		var tag = value.$;
+
+		if (tag === '::' || tag === '[]')
+		{
+			return A3(__Expando_Sequence, __Expando_ListSeq, true,
+				A2(__List_map, _Debugger_init, value)
+			);
+		}
+
+		if (tag === 'Set_elm_builtin')
+		{
+			return A3(__Expando_Sequence, __Expando_SetSeq, true,
+				A3(__Set_foldr, _Debugger_initCons, __List_Nil, value)
+			);
+		}
+
+		if (tag === 'RBNode_elm_builtin' || tag == 'RBEmpty_elm_builtin')
+		{
+			return A2(__Expando_Dictionary, true,
+				A3(__Dict_foldr, _Debugger_initKeyValueCons, __List_Nil, value)
+			);
+		}
+
+		if (tag === 'Array_elm_builtin')
+		{
+			return A3(__Expando_Sequence, __Expando_ArraySeq, true,
+				A3(__Array_foldr, _Debugger_initCons, __List_Nil, value)
+			);
+		}
+
+		if (typeof tag === 'number')
+		{
+			return __Expando_Primitive('<internals>');
+		}
+
+		var char = tag.charCodeAt(0);
+		if (char === 35 || 65 <= char && char <= 90)
+		{
+			var list = __List_Nil;
+			for (var i in value)
+			{
+				if (i === '$') continue;
+				list = __List_Cons(_Debugger_init(value[i]), list);
+			}
+			return A3(__Expando_Constructor, char === 35 ? __Maybe_Nothing : __Maybe_Just(tag), true, __List_reverse(list));
+		}
+
+		return __Expando_Primitive('<internals>');
 	}
 
-	if (value === null)
-	{
-		return _Debugger_primitive('XXX');
-	}
-
-	if (type === 'object' && 'ctor' in value)
-	{
-		var ctor = value.ctor;
-
-		if (ctor === '::' || ctor === '[]')
-		{
-			return {
-				ctor: 'Sequence',
-				_0: {ctor: 'ListSeq'},
-				_1: true,
-				_2: A2(__List_map, _Debugger_init, value)
-			};
-		}
-
-		if (ctor === 'Set_elm_builtin')
-		{
-			return {
-				ctor: 'Sequence',
-				_0: {ctor: 'SetSeq'},
-				_1: true,
-				_2: A3(__Set_foldr, _Debugger_initCons, __List_Nil, value)
-			};
-		}
-
-		if (ctor === 'RBNode_elm_builtin' || ctor == 'RBEmpty_elm_builtin')
-		{
-			return {
-				ctor: 'Dictionary',
-				_0: true,
-				_1: A3(__Dict_foldr, _Debugger_initKeyValueCons, __List_Nil, value)
-			};
-		}
-
-		if (ctor === '_Array')
-		{
-			return {
-				ctor: 'Sequence',
-				_0: {ctor: 'ArraySeq'},
-				_1: true,
-				_2: A3(__Array_foldr, _Debugger_initCons, __List_Nil, value)
-			};
-		}
-
-		var ctorStarter = value.ctor.substring(0, 5);
-		if (ctorStarter === '_Task')
-		{
-			return _Debugger_primitive('<task>');
-		}
-
-		if (ctor === '<decoder>')
-		{
-			return _Debugger_primitive(ctor);
-		}
-
-		if (ctor === '_Process')
-		{
-			return _Debugger_primitive('<process>');
-		}
-
-		var list = __List_Nil;
-		for (var i in value)
-		{
-			if (i === 'ctor') continue;
-			list = __List_Cons(_Debugger_init(value[i]), list);
-		}
-		return {
-			ctor: 'Constructor',
-			_0: ctorStarter === '_Tupl' ? __Maybe_Nothing : __Maybe_Just(ctor),
-			_1: true,
-			_2: __List_reverse(list)
-		};
-	}
-
-	if (type === 'object')
+	if (typeof value === 'object')
 	{
 		var dict = __Dict_empty;
 		for (var i in value)
 		{
 			dict = A3(__Dict_insert, i, _Debugger_init(value[i]), dict);
 		}
-		return { ctor: 'Record', _0: true, _1: dict };
+		return A2(__Expando_Record, true, dict);
 	}
 
-	return _Debugger_primitive('XXX');
+	return __Expando_Primitive('<internals>');
 }
 
 var _Debugger_initCons = F2(function initConsHelp(value, list)
@@ -484,7 +454,7 @@ function _Debugger_wrapViewIn(appEventNode, overlayNode, viewIn)
 	return function(model)
 	{
 		var tuple = viewIn(model);
-		var newBlocking = tuple._0.ctor;
+		var newBlocking = tuple.a.$;
 		appEventNode.tagger = newBlocking === 'Normal' ? normalTagger : blockTagger;
 		if (blocking !== newBlocking)
 		{
@@ -504,7 +474,7 @@ function _Debugger_wrapViewIn(appEventNode, overlayNode, viewIn)
 
 			blocking = newBlocking;
 		}
-		return tuple._1;
+		return tuple.b;
 	}
 }
 
