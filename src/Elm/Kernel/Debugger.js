@@ -125,7 +125,7 @@ function _Debugger_makeStepperBuilder(appNode, view)
 
 			model.__$popout.__doc || (currPopout = _Debugger_openWindow(model.__$popout, sendToApp));
 
-			__VirtualDom_doc = model.__$token.__doc; // SWITCH TO POPOUT DOC
+			__VirtualDom_doc = model.__$popout.__doc; // SWITCH TO POPOUT DOC
 			var nextPopout = __Main_popoutView(model);
 			var popoutPatches = __VirtualDom_diff(currPopout, nextPopout);
 			__VirtualDom_applyPatches(model.__$popout.__doc.body, currPopout, popoutPatches, sendToApp);
@@ -146,8 +146,6 @@ function _Debugger_openWindow(popout, sendToApp)
 	var debuggerWindow = window.open('', '', 'width=' + w + ',height=' + h + ',left=' + x + ',top=' + y);
 	var doc = debuggerWindow.document;
 	doc.title = 'Elm Debugger';
-	doc.body.style.margin = '0';
-	doc.body.style.padding = '0';
 
 	// handle arrow keys
 	doc.addEventListener('keydown', function(event) {

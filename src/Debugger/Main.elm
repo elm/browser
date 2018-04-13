@@ -370,8 +370,11 @@ overlayConfig =
 
 popoutView : Model model msg -> Html (Msg msg)
 popoutView { history, state, expando } =
-  div
-    [ id "debugger" ]
+  node "body"
+    [ id "debugger"
+    , style "margin" "0"
+    , style "padding" "0"
+    ]
     [ styles
     , viewSidebar state history
     , Html.map ExpandoMsg <|
