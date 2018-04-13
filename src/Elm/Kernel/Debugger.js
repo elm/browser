@@ -42,7 +42,7 @@ var _Debugger_embed = F4(function(impl, flagDecoder, debugMetadata, object)
 			A3(__Main_wrapInit, debugMetadata, _Debugger_popout(), impl.__$init),
 			__Main_wrapUpdate(impl.__$update),
 			__Main_wrapSubs(impl.__$subscriptions),
-			_Debugger_makeStepperBuilder(node, impl.__$view)
+			_Debugger_makeStepperBuilder(node, __Main_wrapView(impl.__$view))
 		);
 	};
 	return object;
@@ -60,7 +60,7 @@ var _Debugger_fullscreen = F4(function(impl, flagDecoder, debugMetadata, object)
 			__Main_wrapUpdate(impl.__$update),
 			__Main_wrapSubs(impl.__$subscriptions),
 			_Debugger_makeStepperBuilder(__VirtualDom_doc.body, function(model) {
-				var ui = impl.__$view(model);
+				var ui = A2(__Main_wrapView, impl.__$view, model);
 				if (__VirtualDom_doc.title !== ui.__$title)
 				{
 					__VirtualDom_doc.title = ui.__$title;
