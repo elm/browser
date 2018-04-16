@@ -122,7 +122,7 @@ type alias Config msg =
 view : Config msg -> Bool -> Bool -> Int -> State -> Html msg
 view config isPaused isOpen numMsgs state =
   div
-    [ id "::elm::overlay"
+    [ id "elm-debugger-overlay"
     , style "position" "fixed"
     , style "top" "0"
     , style "left" "0"
@@ -217,7 +217,8 @@ viewMessage config title details buttons =
           ]
           [ text title ]
       , div
-          [ style "padding" " 8px 20px"
+          [ id "elm-debugger-details"
+          , style "padding" " 8px 20px"
           , style "overflow-y" "auto"
           , style "max-height" "calc(100% - 156px)"
           , style "background-color" "rgb(61, 61, 61)"

@@ -210,12 +210,12 @@ undone getResult =
 view : Maybe Int -> History model msg -> Html Int
 view maybeIndex { snapshots, recent, numMessages } =
   let
-    (index, className) =
+    (index, height) =
       case maybeIndex of
         Nothing ->
-          ( -1, "debugger-sidebar-messages" )
+          ( -1, "calc(100% - 24px)" )
         Just i ->
-          ( i, "debugger-sidebar-messages-paused" )
+          ( i, "calc(100% - 54px)" )
 
     oldStuff =
       lazy2 viewSnapshots index snapshots
@@ -223,7 +223,13 @@ view maybeIndex { snapshots, recent, numMessages } =
     newStuff =
       Tuple.second <| List.foldl (consMsg index) (numMessages - 1, []) recent.messages
   in
-    div [ class className ] (oldStuff :: newStuff)
+    div
+      [ id "elm-debugger-sidebar"
+      , style "width" "100%"
+      , style "overflow-y" "auto"
+      , style "height" height
+      ]
+      (styles :: oldStuff :: newStuff)
 
 
 
@@ -276,18 +282,72 @@ viewMessage currentIndex index msg =
   let
     className =
       if currentIndex == index then
-        "messages-entry messages-entry-selected"
-
+        "elm-debugger-entry elm-debugger-entry-selected"
       else
-        "messages-entry"
+        "elm-debugger-entry"
 
     messageName =
       Elm.Kernel.Debugger.messageToString msg
   in
-    div
-      [ class className
-      , onClick index
-      ]
-      [ span [class "messages-entry-content", title messageName ] [ text messageName ]
-      , span [class "messages-entry-index"] [ text (String.fromInt index) ]
-      ]
+  div
+    [ class className
+    , onClick index
+    ]
+    [ span
+        [ title messageName
+        , class "elm-debugger-entry-content"
+        ]
+        [ text messageName
+        ]
+    , span
+        [ class "elm-debugger-entry-index"
+        ]
+        [ text (String.fromInt index)
+        ]
+    ]
+
+
+
+-- STYLES
+
+
+styles : Html msg
+styles =
+  Html.node "style" [] [ text """
+
+.elm-debugger-entry {
+  cursor: pointer;
+  width: 100%;
+}
+
+.elm-debugger-entry:hover {
+  background-color: rgb(41, 41, 41);
+}
+
+.elm-debugger-entry-selected, .elm-debugger-entry-selected:hover {
+  background-color: rgb(10, 10, 10);
+}
+
+.elm-debugger-entry-content {
+  width: calc(100% - 7ch);
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 1ch;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+  display: inline-block;
+}
+
+.elm-debugger-entry-index {
+  color: #666;
+  width: 5ch;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-right: 1ch;
+  text-align: right;
+  display: block;
+  float: right;
+}
+
+""" ]

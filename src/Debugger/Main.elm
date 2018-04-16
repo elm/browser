@@ -371,14 +371,26 @@ overlayConfig =
 popoutView : Model model msg -> Html (Msg msg)
 popoutView { history, state, expando } =
   node "body"
-    [ id "debugger"
-    , style "margin" "0"
+    [ style "margin" "0"
     , style "padding" "0"
+    , style "width" "100%"
+    , style "height" "100%"
+    , style "font-family" "monospace"
+    , style "overflow" "auto"
     ]
-    [ styles
-    , viewSidebar state history
+    [ viewSidebar state history
     , Html.map ExpandoMsg <|
-        div [ id "values" ] [ Expando.view Nothing expando ]
+        div
+          [ style "display" "block"
+          , style "float" "left"
+          , style "height" "100%"
+          , style "width" "calc(100% - 30ch)"
+          , style "margin" "0"
+          , style "overflow" "auto"
+          , style "cursor" "default"
+          ]
+          [ Expando.view Nothing expando
+          ]
     ]
 
 
@@ -393,7 +405,14 @@ viewSidebar state history =
         Paused index _ _ ->
           Just index
   in
-    div [ class "debugger-sidebar" ]
+    div
+      [ style "display" "block"
+      , style "float" "left"
+      , style "width" "30ch"
+      , style "height" "100%"
+      , style "color" "white"
+      , style "background-color" "rgb(61, 61, 61)"
+      ]
       [ Html.map Jump (History.view maybeIndex history)
       , playButton maybeIndex
       ]
@@ -401,17 +420,27 @@ viewSidebar state history =
 
 playButton : Maybe Int -> Html (Msg msg)
 playButton maybeIndex =
-  div [ class "debugger-sidebar-controls" ]
+  div
+    [ style "width" "100%"
+    , style "text-align" "center"
+    , style "background-color" "rgb(50, 50, 50)"
+    ]
     [ viewResumeButton maybeIndex
-    , div [ class "debugger-sidebar-controls-import-export" ]
-        [ button Import "Import"
+    , div
+        [ style "width" "100%"
+        , style "height" "24px"
+        , style "line-height" "24px"
+        , style "font-size" "12px"
+        ]
+        [ viewTextButton Import "Import"
         , text " / "
-        , button Export "Export"
+        , viewTextButton Export "Export"
         ]
     ]
 
 
-button msg label =
+viewTextButton : msg -> String -> Html msg
+viewTextButton msg label =
   span
     [ onClick msg
     , style "cursor" "pointer"
@@ -419,136 +448,34 @@ button msg label =
     [ text label ]
 
 
+viewResumeButton : Maybe Int -> Html (Msg msg)
 viewResumeButton maybeIndex =
   case maybeIndex of
     Nothing ->
       text ""
 
     Just _ ->
-      resumeButton
+      div
+        [ onClick Resume
+        , class "elm-debugger-resume"
+        ]
+        [ text "Resume"
+        , Html.node "style" [] [ text resumeStyle ]
+        ]
 
 
-resumeButton =
-  div
-    [ onClick Resume
-    , class "debugger-sidebar-controls-resume"
-    ]
-    [ text "Resume"
-    ]
+resumeStyle : String
+resumeStyle = """
 
-
-
--- STYLE
-
-
-styles : Html msg
-styles =
-  Html.node "style" [] [ text """
-
-html {
-    overflow: hidden;
-    height: 100%;
-}
-
-body {
-    height: 100%;
-    overflow: auto;
-}
-
-#debugger {
-  width: 100%
-  height: 100%;
-  font-family: monospace;
-}
-
-#values {
-  display: block;
-  float: left;
-  height: 100%;
-  width: calc(100% - 30ch);
-  margin: 0;
-  overflow: auto;
-  cursor: default;
-}
-
-.debugger-sidebar {
-  display: block;
-  float: left;
-  width: 30ch;
-  height: 100%;
-  color: white;
-  background-color: rgb(61, 61, 61);
-}
-
-.debugger-sidebar-controls {
-  width: 100%;
-  text-align: center;
-  background-color: rgb(50, 50, 50);
-}
-
-.debugger-sidebar-controls-import-export {
-  width: 100%;
-  height: 24px;
-  line-height: 24px;
-  font-size: 12px;
-}
-
-.debugger-sidebar-controls-resume {
+.elm-debugger-resume {
   width: 100%;
   height: 30px;
   line-height: 30px;
   cursor: pointer;
 }
 
-.debugger-sidebar-controls-resume:hover {
+.elm-debugger-resume:hover {
   background-color: rgb(41, 41, 41);
 }
 
-.debugger-sidebar-messages {
-  width: 100%;
-  overflow-y: auto;
-  height: calc(100% - 24px);
-}
-
-.debugger-sidebar-messages-paused {
-  width: 100%;
-  overflow-y: auto;
-  height: calc(100% - 54px);
-}
-
-.messages-entry {
-  cursor: pointer;
-  width: 100%;
-}
-
-.messages-entry:hover {
-  background-color: rgb(41, 41, 41);
-}
-
-.messages-entry-selected, .messages-entry-selected:hover {
-  background-color: rgb(10, 10, 10);
-}
-
-.messages-entry-content {
-  width: calc(100% - 7ch);
-  padding-top: 4px;
-  padding-bottom: 4px;
-  padding-left: 1ch;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  overflow: hidden;
-  display: inline-block;
-}
-
-.messages-entry-index {
-  color: #666;
-  width: 5ch;
-  padding-top: 4px;
-  padding-bottom: 4px;
-  padding-right: 1ch;
-  text-align: right;
-  display: block;
-  float: right;
-}
-
-""" ]
+"""
