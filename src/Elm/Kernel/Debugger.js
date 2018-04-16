@@ -1,7 +1,8 @@
 /*
 
 import Debugger.Expando as Expando exposing (S, Primitive, Sequence, Dictionary, Record, Constructor, ListSeq, SetSeq, ArraySeq)
-import Debugger.Main as Main exposing (wrapView, wrapInit, wrapUpdate, wrapSubs, cornerView, popoutView, NoOp, Up, Down)
+import Debugger.Main as Main exposing (wrapView, wrapInit, wrapUpdate, wrapSubs, cornerView, popoutView, NoOp, Up, Down, toBlockerType)
+import Debugger.Overlay as Overlay exposing (BlockNone, BlockMost)
 import Elm.Kernel.Browser exposing (toEnv, makeAnimator)
 import Elm.Kernel.List exposing (Cons, Nil)
 import Elm.Kernel.Platform exposing (initialize)
@@ -97,6 +98,7 @@ function _Debugger_makeStepperBuilder(appNode, view)
 		var currApp = __VirtualDom_virtualize(appNode);
 		var currCorner = __Main_cornerView(initialModel);
 		var currPopout;
+		var currBlocker = __Main_toBlockerType(initialModel);
 
 		var cornerNode = __VirtualDom_render(currCorner, sendToApp);
 
@@ -108,6 +110,10 @@ function _Debugger_makeStepperBuilder(appNode, view)
 			currApp = nextApp;
 
 			// view corner
+
+			var nextBlocker = __Main_toBlockerType(model);
+			_Debugger_updateBlocker(currBlocker, nextBlocker);
+			currBlocker = nextBlocker;
 
 			if (model.__$popout.__isClosed)
 			{
@@ -442,18 +448,23 @@ function _Debugger_addSlashes(str, isChar)
 // BLOCK EVENTS
 
 
-function _Debugger_swap_blocker(oldEvents, newEvents)
+function _Debugger_updateBlocker(oldBlocker, newBlocker)
 {
+	if (oldBlocker === newBlocker) return;
+
+	var oldEvents = _Debugger_blockerToEvents(oldBlocker);
+	var newEvents = _Debugger_blockerToEvents(newBlocker);
+
 	// remove old blockers
 	for (var i = 0; i < oldEvents.length; i++)
 	{
-		document.body.removeEventListener(oldEvents[i], _Debugger_blocker, true);
+		document.removeEventListener(oldEvents[i], _Debugger_blocker, true);
 	}
 
 	// add new blockers
 	for (var i = 0; i < newEvents.length; i++)
 	{
-		document.body.addEventListener(newEvents[i], _Debugger_blocker, true);
+		document.addEventListener(newEvents[i], _Debugger_blocker, true);
 	}
 }
 
@@ -476,6 +487,15 @@ function _Debugger_blocker(event)
 
 	event.stopPropagation();
 	event.preventDefault();
+}
+
+function _Debugger_blockerToEvents(blocker)
+{
+	return blocker === __Overlay_BlockNone
+		? []
+		: blocker === __Overlay_BlockMost
+			? _Debugger_mostEvents
+			: _Debugger_allEvents;
 }
 
 var _Debugger_mostEvents = [

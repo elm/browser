@@ -1,7 +1,7 @@
 module Debugger.Overlay exposing
   ( State, none, corruptImport, badMetadata
   , Msg, close, assessImport
-  , isBlocking
+  , BlockerType(..), toBlockerType
   , Config
   , view
   , viewImportExport
@@ -37,16 +37,6 @@ corruptImport =
 badMetadata : Metadata.Error -> State
 badMetadata =
   BadMetadata
-
-
-isBlocking : State -> Bool
-isBlocking state =
-  case state of
-    None ->
-      False
-
-    _ ->
-      True
 
 
 
@@ -104,6 +94,22 @@ uploadDecoder =
   Decode.map2 (\x y -> (x,y))
     (Decode.field "metadata" Metadata.decoder)
     (Decode.field "history" Decode.value)
+
+
+
+-- BLOCKERS
+
+
+type BlockerType = BlockNone | BlockMost | BlockAll
+
+
+toBlockerType : Bool -> State -> BlockerType
+toBlockerType isPaused state =
+  case state of
+    None            -> if isPaused then BlockAll else BlockNone
+    BadMetadata _   -> BlockMost
+    BadImport _     -> BlockMost
+    RiskyImport _ _ -> BlockMost
 
 
 

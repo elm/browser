@@ -57,9 +57,43 @@ type alias Model model msg =
 type Popout = Popout Popout
 
 
+
+-- STATE
+
+
 type State model
   = Running model
   | Paused Int model model
+
+
+getLatestModel : State model -> model
+getLatestModel state =
+  case state of
+    Running model ->
+      model
+
+    Paused _ _ model ->
+      model
+
+
+getCurrentModel : State model -> model
+getCurrentModel state =
+  case state of
+    Running model ->
+      model
+
+    Paused _ model _ ->
+      model
+
+
+isPaused : State model -> Bool
+isPaused state =
+  case state of
+    Running _ ->
+      False
+
+    Paused _ _ _ ->
+      True
 
 
 
@@ -305,63 +339,28 @@ loadNewHistory rawHistory update model =
       )
 
 
-runIf : Bool -> Task Never () -> Cmd (Msg msg)
-runIf bool task =
-  if bool then
-    Task.perform (always NoOp) task
-  else
-    Cmd.none
-
-
-getLatestModel : State model -> model
-getLatestModel state =
-  case state of
-    Running model ->
-      model
-
-    Paused _ _ model ->
-      model
-
-
-getCurrentModel : State model -> model
-getCurrentModel state =
-  case state of
-    Running model ->
-      model
-
-    Paused _ model _ ->
-      model
-
-
 
 -- CORNER VIEW
 
 
 cornerView : Model model msg -> Html (Msg msg)
-cornerView { history, state, overlay, popout } =
-  let
-    isPaused =
-      case state of
-        Running _ ->
-          False
-
-        Paused _ _ _ ->
-          True
-
-    isDebuggerOpen =
-      Elm.Kernel.Debugger.isOpen popout
-  in
-  Overlay.view overlayConfig isPaused isDebuggerOpen (History.size history) overlay
+cornerView model =
+  Overlay.view
+    { resume = Resume
+    , open = Open
+    , importHistory = Import
+    , exportHistory = Export
+    , wrap = OverlayMsg
+    }
+    (isPaused model.state)
+    (Elm.Kernel.Debugger.isOpen model.popout)
+    (History.size model.history)
+    model.overlay
 
 
-overlayConfig : Overlay.Config (Msg msg)
-overlayConfig =
-  { resume = Resume
-  , open = Open
-  , importHistory = Import
-  , exportHistory = Export
-  , wrap = OverlayMsg
-  }
+toBlockerType : Model model msg -> Overlay.BlockerType
+toBlockerType model =
+  Overlay.toBlockerType (isPaused model.state) model.overlay
 
 
 
