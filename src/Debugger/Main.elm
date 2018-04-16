@@ -337,7 +337,7 @@ getCurrentModel state =
 -- CORNER VIEW
 
 
-cornerView : Model model msg -> ( Overlay.Block, Html (Msg msg) )
+cornerView : Model model msg -> Html (Msg msg)
 cornerView { history, state, overlay, popout } =
   let
     isPaused =

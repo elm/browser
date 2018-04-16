@@ -3,7 +3,6 @@ module Debugger.Overlay exposing
   , Msg, close, assessImport
   , isBlocking
   , Config
-  , Block
   , view
   , viewImportExport
   )
@@ -120,21 +119,24 @@ type alias Config msg =
   }
 
 
-type Block = Normal | Pause | Message
-
-
-view : Config msg -> Bool -> Bool -> Int -> State -> ( Block, Html msg )
+view : Config msg -> Bool -> Bool -> Int -> State -> Html msg
 view config isPaused isOpen numMsgs state =
-  let
-    (block, nodes) =
-      viewHelp config isPaused isOpen numMsgs state
-  in
-    ( block
-    , div [ class "elm-overlay" ] (styles :: nodes)
-    )
+  div
+    [ id "::elm::overlay"
+    , style "position" "fixed"
+    , style "top" "0"
+    , style "left" "0"
+    , style "width" "100%"
+    , style "height" "100%"
+    , style "color" "white"
+    , style "pointer-events" "none"
+    , style "font-family" "'Trebuchet MS', 'Lucida Grande', 'Bitstream Vera Sans', 'Helvetica Neue', sans-serif"
+    , style "z-index" "2147483647"
+    ]
+    (viewHelp config isPaused isOpen numMsgs state)
 
 
-viewHelp : Config msg -> Bool -> Bool -> Int -> State -> ( Block, List (Html msg) )
+viewHelp : Config msg -> Bool -> Bool -> Int -> State -> List (Html msg)
 viewHelp config isPaused isOpen numMsgs state =
   case state of
     None ->
@@ -142,12 +144,10 @@ viewHelp config isPaused isOpen numMsgs state =
         miniControls =
           if isOpen then [] else [ viewMiniControls config numMsgs ]
       in
-        ( if isPaused then Pause else Normal
-        , if isPaused && not isOpen then
-            viewResume config :: miniControls
-          else
-            miniControls
-        )
+      if isPaused && not isOpen then
+        viewResume config :: miniControls
+      else
+        miniControls
 
     BadMetadata badMetadata_ ->
       viewMessage config
@@ -168,25 +168,64 @@ viewHelp config isPaused isOpen numMsgs state =
         (Choose "Cancel" "Import Anyway")
 
 
+viewResume : Config msg -> Html msg
 viewResume config =
-  div [ class "elm-overlay-resume", onClick config.resume ]
-    [ div [class "elm-overlay-resume-words"] [text "Click to Resume"] ]
+  div
+    [ style "width" "100%"
+    , style "height" "100%"
+    , style "cursor" "pointer"
+    , style "text-align" "center"
+    , style "pointer-events" "auto"
+    , style "background-color" "rgba(200, 200, 200, 0.7)"
+    , onClick config.resume
+    ]
+    [ div
+        [ style "position" "absolute"
+        , style "top" "calc(50% - 40px)"
+        , style "font-size" "80px"
+        , style "line-height" "80px"
+        , style "height" "80px"
+        , style "width" "100%"
+        ]
+        [ text "Click to Resume"
+        ]
+    ]
 
 
 
 -- VIEW MESSAGE
 
 
-viewMessage : Config msg -> String -> List (Html msg) -> Buttons -> ( Block, List (Html msg) )
+viewMessage : Config msg -> String -> List (Html msg) -> Buttons -> List (Html msg)
 viewMessage config title details buttons =
-  ( Message
-  , [ div [ class "elm-overlay-message" ]
-        [ div [ class "elm-overlay-message-title" ] [ text title ]
-        , div [ class "elm-overlay-message-details" ] details
-        , Html.map config.wrap (viewButtons buttons)
-        ]
-    ]
-  )
+  [ div
+      [ style "position" "absolute"
+      , style "width" "600px"
+      , style "height" "100%"
+      , style "padding-left" "calc(50% - 300px)"
+      , style "padding-right" "calc(50% - 300px)"
+      , style "background-color" "rgba(200, 200, 200, 0.7)"
+      , style "pointer-events" "auto"
+      ]
+      [ div
+          [ style "font-size" "36px"
+          , style "height" "80px"
+          , style "background-color" "rgb(50, 50, 50)"
+          , style "padding-left" "22px"
+          , style "vertical-align" "middle"
+          , style "line-height" "80px"
+          ]
+          [ text title ]
+      , div
+          [ style "padding" " 8px 20px"
+          , style "overflow-y" "auto"
+          , style "max-height" "calc(100% - 156px)"
+          , style "background-color" "rgb(61, 61, 61)"
+          ]
+          details
+      , Html.map config.wrap (viewButtons buttons)
+      ]
+  ]
 
 
 viewReport : Bool -> Report -> List (Html msg)
@@ -215,7 +254,11 @@ viewReport isBad report =
 
     Report.SomethingChanged changes ->
       [ p [] [ text (if isBad then explanationBad else explanationRisky) ]
-      , ul [] (List.map viewChange changes)
+      , ul
+          [ style "list-style-type" "none"
+          , style "padding-left" "20px"
+          ]
+          (List.map viewChange changes)
       ]
 
 
@@ -239,15 +282,18 @@ viewCode name =
 
 viewChange : Report.Change -> Html msg
 viewChange change =
-  li [] <|
+  li [ style "margin" "8px 0" ] <|
     case change of
       Report.AliasChange name ->
-        [ span [ class "elm-overlay-message-details-type" ] [ viewCode name ]
+        [ span [ style "font-size" "1.5em" ] [ viewCode name ]
         ]
 
       Report.UnionChange name { removed, changed, added, argsMatch } ->
-        [ span [ class "elm-overlay-message-details-type" ] [ viewCode name ]
-        , ul []
+        [ span [ style "font-size" "1.5em" ] [ viewCode name ]
+        , ul
+            [ style "list-style-type" "disc"
+            , style "padding-left" "2em"
+            ]
             [ viewMention removed "Removed "
             , viewMention changed "Changed "
             , viewMention added "Added "
@@ -375,16 +421,32 @@ type Buttons
 
 viewButtons : Buttons -> Html Msg
 viewButtons buttons =
-  div [ class "elm-overlay-message-buttons" ] <|
-    case buttons of
-      Accept proceed ->
-        [ Html.button [ onClick Proceed ] [ text proceed ]
+  let
+    btn msg string =
+      Html.button
+        [ style "margin-right" "20px"
+        , onClick msg
         ]
+        [ text string ]
 
-      Choose cancel proceed ->
-        [ Html.button [ onClick Cancel ] [ text cancel ]
-        , Html.button [ onClick Proceed ] [ text proceed ]
-        ]
+    buttonNodes =
+      case buttons of
+        Accept proceed ->
+          [ btn Proceed proceed
+          ]
+
+        Choose cancel proceed ->
+          [ btn Cancel cancel
+          , btn Proceed proceed
+          ]
+  in
+  div
+    [ style "height" "60px"
+    , style "line-height" "60px"
+    , style "text-align" "right"
+    , style "background-color" "rgb(50, 50, 50)"
+    ]
+    buttonNodes
 
 
 
@@ -394,16 +456,29 @@ viewButtons buttons =
 viewMiniControls : Config msg -> Int -> Html msg
 viewMiniControls config numMsgs =
   div
-    [ class "elm-mini-controls"
+    [ style "position" "fixed"
+    , style "bottom" "0"
+    , style "right" "6px"
+    , style "border-radius" "4px"
+    , style "background-color" "rgb(61, 61, 61)"
+    , style "font-family" "monospace"
+    , style "pointer-events" "auto"
     ]
     [ div
-        [ onClick config.open
-        , class "elm-mini-controls-button"
+        [ style "padding" "6px"
+        , style "cursor" "pointer"
+        , style "text-align" "center"
+        , style "min-width" "24ch"
+        , onClick config.open
         ]
         [ text ("Explore History (" ++ String.fromInt numMsgs ++ ")")
         ]
     , viewImportExport
-        [class "elm-mini-controls-import-export"]
+        [ style "padding" "4px 0"
+        , style "font-size" "0.8em"
+        , style "text-align" "center"
+        , style "background-color" "rgb(50, 50, 50)"
+        ]
         config.importHistory
         config.exportHistory
     ]
@@ -422,123 +497,3 @@ viewImportExport props importMsg exportMsg =
 button : msg -> String -> Html msg
 button msg label =
   span [ onClick msg, style "cursor" "pointer" ] [ text label ]
-
-
-
--- STYLE
-
-
-styles : Html msg
-styles =
-  Html.node "style" [] [ text """
-
-.elm-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  color: white;
-  pointer-events: none;
-  font-family: 'Trebuchet MS', 'Lucida Grande', 'Bitstream Vera Sans', 'Helvetica Neue', sans-serif;
-  z-index: 2147483647;
-}
-
-.elm-overlay-resume {
-  width: 100%;
-  height: 100%;
-  cursor: pointer;
-  text-align: center;
-  pointer-events: auto;
-  background-color: rgba(200, 200, 200, 0.7);
-}
-
-.elm-overlay-resume-words {
-  position: absolute;
-  top: calc(50% - 40px);
-  font-size: 80px;
-  line-height: 80px;
-  height: 80px;
-  width: 100%;
-}
-
-.elm-mini-controls {
-  position: fixed;
-  bottom: 0;
-  right: 6px;
-  border-radius: 4px;
-  background-color: rgb(61, 61, 61);
-  font-family: monospace;
-  pointer-events: auto;
-}
-
-.elm-mini-controls-button {
-  padding: 6px;
-  cursor: pointer;
-  text-align: center;
-  min-width: 24ch;
-}
-
-.elm-mini-controls-import-export {
-  padding: 4px 0;
-  font-size: 0.8em;
-  text-align: center;
-  background-color: rgb(50, 50, 50);
-}
-
-.elm-overlay-message {
-  position: absolute;
-  width: 600px;
-  height: 100%;
-  padding-left: calc(50% - 300px);
-  padding-right: calc(50% - 300px);
-  background-color: rgba(200, 200, 200, 0.7);
-  pointer-events: auto;
-}
-
-.elm-overlay-message-title {
-  font-size: 36px;
-  height: 80px;
-  background-color: rgb(50, 50, 50);
-  padding-left: 22px;
-  vertical-align: middle;
-  line-height: 80px;
-}
-
-.elm-overlay-message-details {
-  padding: 8px 20px;
-  overflow-y: auto;
-  max-height: calc(100% - 156px);
-  background-color: rgb(61, 61, 61);
-}
-
-.elm-overlay-message-details-type {
-  font-size: 1.5em;
-}
-
-.elm-overlay-message-details ul {
-  list-style-type: none;
-  padding-left: 20px;
-}
-
-.elm-overlay-message-details ul ul {
-  list-style-type: disc;
-  padding-left: 2em;
-}
-
-.elm-overlay-message-details li {
-  margin: 8px 0;
-}
-
-.elm-overlay-message-buttons {
-  height: 60px;
-  line-height: 60px;
-  text-align: right;
-  background-color: rgb(50, 50, 50);
-}
-
-.elm-overlay-message-buttons button {
-  margin-right: 20px;
-}
-
-""" ]
