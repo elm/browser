@@ -1,7 +1,7 @@
 /*
 
 import Debugger.Expando as Expando exposing (S, Primitive, Sequence, Dictionary, Record, Constructor, ListSeq, SetSeq, ArraySeq)
-import Debugger.Main as Main exposing (wrapView, wrapInit, wrapUpdate, wrapSubs, cornerView, popoutView, Up, Down)
+import Debugger.Main as Main exposing (wrapView, wrapInit, wrapUpdate, wrapSubs, cornerView, popoutView, NoOp, Up, Down)
 import Elm.Kernel.Browser exposing (toEnv, makeAnimator)
 import Elm.Kernel.List exposing (Cons, Nil)
 import Elm.Kernel.Platform exposing (initialize)
@@ -95,7 +95,7 @@ function _Debugger_makeStepperBuilder(appNode, view)
 	return function(sendToApp, initialModel)
 	{
 		var currApp = __VirtualDom_virtualize(appNode);
-		var currCorner = __Main_cornerView(initialModel).b;
+		var currCorner = __Main_cornerView(initialModel);
 		var currPopout;
 
 		var cornerNode = __VirtualDom_render(currCorner, sendToApp);
@@ -111,7 +111,7 @@ function _Debugger_makeStepperBuilder(appNode, view)
 
 			if (model.__$popout.__isClosed)
 			{
-				var nextCorner = __Main_cornerView(model).b;
+				var nextCorner = __Main_cornerView(model);
 				var cornerPatches = __VirtualDom_diff(currCorner, nextCorner);
 				cornerNode = __VirtualDom_applyPatches(cornerNode, currCorner, cornerPatches, sendToApp);
 				currCorner = nextCorner;
@@ -159,11 +159,13 @@ function _Debugger_openWindow(popout, sendToApp)
 	debuggerWindow.addEventListener('unload', function() {
 		popout.__doc = undefined;
 		popout.__isClosed = true;
+		sendToApp(__Main_NoOp);
 		window.removeEventListener('unload', close);
 	});
 	function close() {
 		popout.__doc = undefined;
 		popout.__isClosed = true;
+		sendToApp(__Main_NoOp);
 		debuggerWindow.close();
 	}
 
@@ -184,7 +186,7 @@ function _Debugger_scroll(popout)
 	{
 		if (popout.__doc)
 		{
-			var msgs = popout.__doc.getElementsByClassName('debugger-sidebar-messages')[0];
+			var msgs = popout.__doc.getElementById('elm-debugger-sidebar');
 			if (msgs)
 			{
 				msgs.scrollTop = msgs.scrollHeight;
@@ -440,94 +442,40 @@ function _Debugger_addSlashes(str, isChar)
 // BLOCK EVENTS
 
 
-function _Debugger_wrapViewIn(appEventNode, overlayNode, viewIn)
+function _Debugger_swap_blocker(oldEvents, newEvents)
 {
-	var ignorer = _Debugger_makeIgnorer(overlayNode);
-	var blocking = 'Normal';
-	var overflow;
-
-	var normalTagger = appEventNode.tagger;
-	var blockTagger = function() {};
-
-	return function(model)
+	// remove old blockers
+	for (var i = 0; i < oldEvents.length; i++)
 	{
-		var tuple = viewIn(model);
-		var newBlocking = tuple.a.$;
-		appEventNode.tagger = newBlocking === 'Normal' ? normalTagger : blockTagger;
-		if (blocking !== newBlocking)
-		{
-			_Debugger_traverse('removeEventListener', ignorer, blocking);
-			_Debugger_traverse('addEventListener', ignorer, newBlocking);
+		document.body.removeEventListener(oldEvents[i], _Debugger_blocker, true);
+	}
 
-			if (blocking === 'Normal')
-			{
-				overflow = document.body.style.overflow;
-				document.body.style.overflow = 'hidden';
-			}
-
-			if (newBlocking === 'Normal')
-			{
-				document.body.style.overflow = overflow;
-			}
-
-			blocking = newBlocking;
-		}
-		return tuple.b;
+	// add new blockers
+	for (var i = 0; i < newEvents.length; i++)
+	{
+		document.body.addEventListener(newEvents[i], _Debugger_blocker, true);
 	}
 }
 
-function _Debugger_traverse(verbEventListener, ignorer, blocking)
+
+function _Debugger_blocker(event)
 {
-	switch(blocking)
+	if (event.type === 'keydown' && event.metaKey && event.which === 82)
 	{
-		case 'Normal':
-			return;
-
-		case 'Pause':
-			return _Debugger_traverseHelp(verbEventListener, ignorer, _Debugger_mostEvents);
-
-		case 'Message':
-			return _Debugger_traverseHelp(verbEventListener, ignorer, _Debugger_allEvents);
+		return;
 	}
-}
 
-function _Debugger_traverseHelp(verbEventListener, handler, eventNames)
-{
-	for (var i = 0; i < eventNames.length; i++)
+	var isScroll = event.type === 'scroll' || event.type === 'wheel';
+	for (var node = event.target; node; node = node.parentNode)
 	{
-		document.body[verbEventListener](eventNames[i], handler, true);
-	}
-}
-
-function _Debugger_makeIgnorer(overlayNode)
-{
-	return function(event)
-	{
-		if (event.type === 'keydown' && event.metaKey && event.which === 82)
+		if (isScroll ? node.id === 'elm-debugger-details' : node.id === 'elm-debugger-overlay')
 		{
 			return;
 		}
-
-		var isScroll = event.type === 'scroll' || event.type === 'wheel';
-
-		var node = event.target;
-		while (node !== null)
-		{
-			if (node.className === 'elm-overlay-message-details' && isScroll)
-			{
-				return;
-			}
-
-			if (node === overlayNode && !isScroll)
-			{
-				return;
-			}
-			node = node.parentNode;
-		}
-
-		event.stopPropagation();
-		event.preventDefault();
 	}
+
+	event.stopPropagation();
+	event.preventDefault();
 }
 
 var _Debugger_mostEvents = [
