@@ -291,7 +291,7 @@ onWindow name decoder =
 
 
 {-| Subscribe to events on `document` and conditionally prevent the default
-behavior. For example, pressing `Enter` causes a “page down” normally, and
+behavior. For example, pressing `SPACE` causes a “page down” normally, and
 maybe you want it to do something different.
 
 **Note:** This disables the [passive][] optimization, causing a performance
