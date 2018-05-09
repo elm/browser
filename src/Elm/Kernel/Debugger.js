@@ -300,8 +300,8 @@ function _Debugger_messageToString(value)
 		return '…';
 	}
 
-	var char = value.$.charCodeAt(0);
-	if (char === 35 || 65 <= char && char <= 90)
+	var code = value.$.charCodeAt(0);
+	if (code === 0x23 /* # */ || /* a */ 0x61 <= code && code <= 0x7A /* z */)
 	{
 		return '…';
 	}
