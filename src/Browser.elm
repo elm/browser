@@ -216,6 +216,8 @@ app shows an accurate date in the title, etc.
 > The bigger point here is that loading assets involves touching the `<head>`
 > as an implementation detail of browsers, but that does not mean it should be
 > the responsibility of the `view` function in Elm. So we do it differently!
+
+[elm-css]: /rtfeldman/elm-css/latest/
 -}
 type alias Page msg =
   { title : String
