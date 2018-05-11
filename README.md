@@ -3,7 +3,7 @@
 This library has two main modules:
 
   - `Browser` &mdash; for creating Elm programs in the browser
-  - `Browser.History` &mdash; tools for single-page apps (SPAs)
+  - `Browser.Navigation` &mdash; tools for single-page apps (SPAs)
 
 
 <br>

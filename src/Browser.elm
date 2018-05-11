@@ -122,7 +122,7 @@ Unlike a [`sandbox`](#sandbox), an “embedded” program can talk to the outsid
 world in a couple ways:
 
   - `Cmd` &mdash; you can “command” the Elm runtime to do stuff, like HTTP.
-  - `Sub` &mdash` you can “subscribe” to event sources, like clock ticks.
+  - `Sub` &mdash; you can “subscribe” to event sources, like clock ticks.
   - `flags` &mdash; JavaScript can pass in data when starting the Elm program
   - `ports` &mdash; set up a client-server relationship with JavaScript
 
