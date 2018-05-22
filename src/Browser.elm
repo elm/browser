@@ -154,7 +154,7 @@ embed =
   allows you to create single-page apps (SPAs) with the help of the
   [`Browser.Navigation`](Browser-Navigation) module.
 
-[url]: http://package.elm-lang.org/packages/elm-lang/url/latest/Url-Parser#Url
+[url]: /packages/elm-lang/url/latest/Url-Parser#Url
 
 You also get an [`Env`](#Env) value on `init` which gives a bit more
 information about the host browser.
@@ -239,8 +239,8 @@ environment. Right now this contains:
   a URL into useful data and figure out what to show on screen. If you are not
   making a single-page app, you can ignore this!
 
-[url]: http://package.elm-lang.org/packages/elm-lang/url/latest/Url-Parser#Url
-[parser]: http://package.elm-lang.org/packages/elm-lang/url/latest/Url-Parser
+[url]: /packages/elm-lang/url/latest/Url-Parser#Url
+[parser]: /packages/elm-lang/url/latest/Url-Parser
 -}
 type alias Env flags =
   { flags : flags
