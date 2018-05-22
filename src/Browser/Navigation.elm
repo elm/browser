@@ -65,9 +65,9 @@ Check out the [`elm-lang/url`][url] package for help building URLs. The
 [`Url.absolute`][abs] and [`Url.relative`][rel] functions can be particularly
 handy!
 
-[url]: http://package.elm-lang.org/packages/elm-lang/url/latest
-[abs]: http://package.elm-lang.org/packages/elm-lang/url/latest/Url#absolute
-[rel]: http://package.elm-lang.org/packages/elm-lang/url/latest/Url#relative
+[url]: /packages/elm-lang/url/latest
+[abs]: /packages/elm-lang/url/latest/Url#absolute
+[rel]: /packages/elm-lang/url/latest/Url#relative
 
 **Note:** If the user has gone `back` a few pages, there will be &ldquo;future
 pages&rdquo; that the user can go `forward` to. Adding a new URL in that
@@ -137,9 +137,9 @@ Check out the [`elm-lang/url`][url] package for help building URLs. The
 [`Url.absolute`][abs] and [`Url.relative`][rel] functions can be particularly
 handy!
 
-[url]: http://package.elm-lang.org/packages/elm-lang/url/latest
-[abs]: http://package.elm-lang.org/packages/elm-lang/url/latest/Url#absolute
-[rel]: http://package.elm-lang.org/packages/elm-lang/url/latest/Url#relative
+[url]: /packages/elm-lang/url/latest
+[abs]: /packages/elm-lang/url/latest/Url#absolute
+[rel]: /packages/elm-lang/url/latest/Url#relative
 
 -}
 load : String -> Task Never Never
