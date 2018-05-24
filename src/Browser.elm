@@ -250,12 +250,12 @@ type alias Env flags =
 
 unsafeToUrl : String -> Url.Url
 unsafeToUrl string =
-  case Url.toUrl string of
-    Nothing ->
-      Elm.Kernel.Browser.invalidUrl string
-
+  case Url.fromString string of
     Just url ->
       url
+
+    Nothing ->
+      Elm.Kernel.Browser.invalidUrl string
 
 
 
