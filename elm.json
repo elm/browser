@@ -1,6 +1,6 @@
 {
     "type": "package",
-    "name": "elm-lang/browser",
+    "name": "elm/browser",
     "summary": "Run Elm in browsers, with access to browser history for single-page apps (SPAs)",
     "license": "BSD-3-Clause",
     "version": "1.0.0",

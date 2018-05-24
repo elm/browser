@@ -56,7 +56,7 @@ import Elm.Kernel.Browser
 import Json.Decode as Decode
 import Process
 import Task exposing (Task)
-import Url.Parser as Url
+import Url
 import Html exposing (Html)
 
 
@@ -88,9 +88,9 @@ world.
 This is great for learning the basics of [The Elm Architecture][tea]. You can
 see sandboxes in action in tho following examples:
 
-  - [Buttons](http://elm-lang.org/examples/buttons)
-  - [Text Field](http://elm-lang.org/examples/field)
-  - [Checkboxes](http://elm-lang.org/examples/checkboxes)
+  - [Buttons](https://elm-lang.org/examples/buttons)
+  - [Text Field](https://elm-lang.org/examples/field)
+  - [Checkboxes](https://elm-lang.org/examples/checkboxes)
 
 Those are nice, but **I very highly recommend reading [this guide][guide]
 straight through** to really learn how Elm works. Understanding the
@@ -154,7 +154,7 @@ embed =
   allows you to create single-page apps (SPAs) with the help of the
   [`Browser.Navigation`](Browser-Navigation) module.
 
-[url]: /packages/elm-lang/url/latest/Url-Parser#Url
+[url]: /packages/elm/url/latest/Url#Url
 
 You also get an [`Env`](#Env) value on `init` which gives a bit more
 information about the host browser.
@@ -162,7 +162,7 @@ information about the host browser.
 Here are some example usages of `fullscreen` programs:
 
   - [RealWorld example app](https://github.com/rtfeldman/elm-spa-example)
-  - [Elm’s package website](https://github.com/elm-lang/package.elm-lang.org)
+  - [Elm’s package website](https://github.com/elm/package.elm-lang.org)
 
 These are quite advanced Elm programs, so be sure to go through [the
 guide](https://guide.elm-lang.org/) first to get a solid conceptual foundation
@@ -239,8 +239,8 @@ environment. Right now this contains:
   a URL into useful data and figure out what to show on screen. If you are not
   making a single-page app, you can ignore this!
 
-[url]: /packages/elm-lang/url/latest/Url-Parser#Url
-[parser]: /packages/elm-lang/url/latest/Url-Parser
+[url]: /packages/elm/url/latest/Url#Url
+[parser]: /packages/elm/url/latest/Url-Parser
 -}
 type alias Env flags =
   { flags : flags
@@ -264,7 +264,7 @@ unsafeToUrl string =
 
 {-| Subscribe to events on `document`. Here are some examples:
 
-  - [Keyboard](https://github.com/elm-lang/browser/blob/master/hints/keyboard.md)
+  - [Keyboard](https://github.com/elm/browser/blob/master/hints/keyboard.md)
   - [Mouse]()
 
 **Note:** This uses [passive][] event handlers, enabling optimizations for events
