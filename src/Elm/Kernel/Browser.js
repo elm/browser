@@ -1,8 +1,8 @@
 /*
 
 import Browser exposing (NotFound)
+import Elm.Kernel.Debug exposing (crash)
 import Elm.Kernel.Debugger exposing (embed, fullscreen)
-import Elm.Kernel.Error exposing (throw)
 import Elm.Kernel.Json exposing (runHelp)
 import Elm.Kernel.List exposing (Nil)
 import Elm.Kernel.Platform exposing (initialize)
@@ -109,7 +109,7 @@ function _Browser_isInternetExplorer11()
 
 function _Browser_invalidUrl(url)
 {
-	__Error_throw(1, url);
+	__Debug_crash(1, url);
 }
 
 

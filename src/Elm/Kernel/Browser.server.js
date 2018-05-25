@@ -1,6 +1,6 @@
 /*
 
-import Elm.Kernel.Error exposing (throw)
+import Elm.Kernel.Debug exposing (crash)
 import Elm.Kernel.Json exposing (run, wrap)
 import Elm.Kernel.Platform exposing (preload)
 import Elm.Kernel.Scheduler exposing (binding, succeed, spawn)
@@ -17,7 +17,7 @@ import Result exposing (isOk)
 // DUMMY STUFF
 
 
-function _Browser_invalidUrl(url) { __Error_throw(1, url); }
+function _Browser_invalidUrl(url) { __Debug_crash(1, url); }
 function _Browser_makeUnitTask() { return _Browser_unitTask; }
 function _Browser_makeNeverResolve() { return __Scheduler_binding(function(){}); }
 var _Browser_unitTask = __Scheduler_succeed(__Utils_Tuple0);
@@ -112,7 +112,7 @@ function _Browser_render(flagDecoder, flags, impl, toOutput)
 function _Browser_init(flagDecoder, flags, init)
 {
 	var result = A2(__Json_run, flagDecoder, __Json_wrap(flags));
-	return __Result_isOk(result) ? init(result.a) : __Error_throw(2, result.a);
+	return __Result_isOk(result) ? init(result.a) : __Debug_crash(2, result.a);
 }
 
 
