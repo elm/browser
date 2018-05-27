@@ -16,7 +16,7 @@ This library has two main modules:
 
 You can see the outline of that learning path in the `Browser` module. It lets you create Elm programs with the following functions:
 
-  1. [`staticPage`](Browser#staticPage) &mdash; learn how to show things with `elm-lang/html`
+  1. [`staticPage`](Browser#staticPage) &mdash; learn how to show things with `elm/html`
   2. [`sandbox`](Browser#sandbox) &mdash; react to user input, like buttons and checkboxes
   3. [`embed`](Browser#embed) &mdash; talk to the outside world, like HTTP and JS interop
   4. [`fullscreen`](Browser#fullscreen) &mdash; create single-page apps
