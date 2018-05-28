@@ -2,7 +2,7 @@ module Browser exposing
   ( sandbox
   , element
   , document
-  , Page
+  , Document
   )
 
 {-| This module helps you set up an Elm `Program` with functions like
@@ -10,7 +10,7 @@ module Browser exposing
 
 
 # Dynamic Pages
-@docs sandbox, element, document, Page
+@docs sandbox, element, document, Document
 
 
 -}
@@ -120,7 +120,7 @@ seem confusing. Same here!
 -}
 document :
   { init : flags -> (model, Cmd msg)
-  , view : model -> Page msg
+  , view : model -> Document msg
   , update : msg -> model -> ( model, Cmd msg )
   , subscriptions : model -> Sub msg
   }
@@ -134,6 +134,7 @@ document impl =
     }
 
 
+-- TODO update docs below for name change
 {-| This data specifies the `<title>` and all of the nodes that should go in
 the `<body>`. This means you can update the title as your application changes.
 Maybe your "single-page app" navigates to a "different page", maybe a calendar
@@ -161,7 +162,7 @@ app shows an accurate date in the title, etc.
 
 [elm-css]: /rtfeldman/elm-css/latest/
 -}
-type alias Page msg =
+type alias Document msg =
   { title : String
   , body : List (Html msg)
   }
