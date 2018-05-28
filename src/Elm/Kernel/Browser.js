@@ -2,7 +2,7 @@
 
 import Browser exposing (NotFound)
 import Elm.Kernel.Debug exposing (crash)
-import Elm.Kernel.Debugger exposing (embed, fullscreen)
+import Elm.Kernel.Debugger exposing (element, fullscreen)
 import Elm.Kernel.Json exposing (runHelp)
 import Elm.Kernel.List exposing (Nil)
 import Elm.Kernel.Platform exposing (initialize)
@@ -118,7 +118,7 @@ function _Browser_invalidUrl(url)
 
 var _Browser_staticPage = F4(function(virtualNode, flagDecoder, debugMetadata, object)
 {
-	object['embed'] = function(node)
+	object['element'] = function(node)
 	{
 		node.parentNode.replaceChild(
 			__VirtualDom_render(virtualNode, function() {}),
@@ -129,11 +129,11 @@ var _Browser_staticPage = F4(function(virtualNode, flagDecoder, debugMetadata, o
 });
 
 
-var __Debugger_embed;
+var __Debugger_element;
 
-var _Browser_embed = __Debugger_embed || F4(function(impl, flagDecoder, debugMetadata, object)
+var _Browser_element = __Debugger_element || F4(function(impl, flagDecoder, debugMetadata, object)
 {
-	object['embed'] = function(node, flags)
+	object['element'] = function(node, flags)
 	{
 		return __Platform_initialize(
 			flagDecoder,

@@ -33,9 +33,9 @@ function _Debugger_unsafeCoerce(value)
 // PROGRAMS
 
 
-var _Debugger_embed = F4(function(impl, flagDecoder, debugMetadata, object)
+var _Debugger_element = F4(function(impl, flagDecoder, debugMetadata, object)
 {
-	object['embed'] = function(node, flags)
+	object['element'] = function(node, flags)
 	{
 		return __Platform_initialize(
 			flagDecoder,

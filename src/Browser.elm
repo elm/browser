@@ -1,6 +1,6 @@
 module Browser exposing
   ( sandbox
-  , embed
+  , element
   , fullscreen
   , Page
   , Env
@@ -18,7 +18,7 @@ for focusing and scrolling DOM nodes.
 
 
 # Dynamic Pages
-@docs sandbox, embed, fullscreen, Page, Env
+@docs sandbox, element, fullscreen, Page, Env
 
 
 -}
@@ -61,7 +61,7 @@ sandbox :
   }
   -> Program () model msg
 sandbox { init, view, update } =
-  embed
+  element
     { init = \_ -> ( init, Cmd.none )
     , view = view
     , update = \msg model -> ( update msg model, Cmd.none )
@@ -69,6 +69,7 @@ sandbox { init, view, update } =
     }
 
 
+-- TODO update docs below for name change
 {-| Create a program that can be embedded in a larger JavaScript project.
 This is a great low-risk way of introducing Elm into your existing work, and
 lots of companies that use Elm started with this approach!
@@ -81,7 +82,7 @@ world in a couple ways:
   - `flags` &mdash; JavaScript can pass in data when starting the Elm program
   - `ports` &mdash; set up a client-server relationship with JavaScript
 
-As you read [the guide][guide] you will run into a bunch of examples of `embed`
+As you read [the guide][guide] you will run into a bunch of examples of `element`
 in [this section][fx]. You can learn more about flags and ports in [the interop
 section][interop].
 
@@ -89,19 +90,19 @@ section][interop].
 [fx]: https://guide.elm-lang.org/architecture/effects/
 [interop]: https://guide.elm-lang.org/interop/
 -}
-embed :
+element :
   { init : flags -> (model, Cmd msg)
   , view : model -> Html msg
   , update : msg -> model -> ( model, Cmd msg )
   , subscriptions : model -> Sub msg
   }
   -> Program flags model msg
-embed =
-  Elm.Kernel.Browser.embed
+element =
+  Elm.Kernel.Browser.element
 
 
 {-| Create a fullscreen Elm program. This expands the functionality of
-[`embed`](#embed) in two important ways:
+[`element`](#element) in two important ways:
 
   1. The `view` gives you control over the `<title>` and `<body>`.
 

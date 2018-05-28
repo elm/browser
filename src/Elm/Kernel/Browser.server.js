@@ -44,7 +44,7 @@ var _Browser_staticPage = F4(function(virtualNode, flagDecoder, object, debugMet
 });
 
 
-var _Browser_embed = F4(function(impl, flagDecoder, object, debugMetadata)
+var _Browser_element = F4(function(impl, flagDecoder, object, debugMetadata)
 {
 	object['prerender'] = function(flags)
 	{
