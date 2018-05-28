@@ -3,7 +3,6 @@ module Browser exposing
   , element
   , document
   , Page
-  , Env
   )
 
 {-| This module helps you set up an Elm `Program` with functions like
@@ -18,7 +17,7 @@ for focusing and scrolling DOM nodes.
 
 
 # Dynamic Pages
-@docs sandbox, element, document, Page, Env
+@docs sandbox, element, document, Page
 
 
 -}
@@ -101,7 +100,7 @@ element =
   Elm.Kernel.Browser.element
 
 
--- TODO update docs below for name change
+-- TODO update docs below for name change and Env removal
 {-| Create a document Elm program. This expands the functionality of
 [`element`](#element) in two important ways:
 
@@ -127,25 +126,18 @@ before diving in! If you start reading a calculus book from page 314, it might
 seem confusing. Same here!
 -}
 document :
-  { init : Env flags -> (model, Cmd msg)
+  { init : flags -> (model, Cmd msg)
   , view : model -> Page msg
   , update : msg -> model -> ( model, Cmd msg )
-  , onNavigation : Maybe (Url.Url -> msg)
   , subscriptions : model -> Sub msg
   }
   -> Program flags model msg
 document impl =
   Elm.Kernel.Browser.document
-    { init = \{ flags, url } -> impl.init (Env flags (unsafeToUrl url))
+    { init = \{ flags, url } -> impl.init flags
     , view = impl.view
     , update = impl.update
-    , subscriptions =
-        case impl.onNavigation of
-          Nothing ->
-            impl.subscriptions
-
-          Just toMsg ->
-            Navigation.addListen (toMsg << unsafeToUrl) impl.subscriptions
+    , subscriptions = impl.subscriptions
     }
 
 
@@ -183,26 +175,7 @@ type alias Page msg =
 
 
 
--- ENVIRONMENT
-
-
-{-| When you initialize an Elm program, you get some information about the
-environment. Right now this contains:
-
-  - `flags` &mdash; This holds data that is passed in from JavaScript.
-
-  - `url` &mdash; The initial [`Url`][url] of the page. If you are creating a
-  single-page app (SPA) you can use the [`Url.Parser`][parser] module to parse
-  a URL into useful data and figure out what to show on screen. If you are not
-  making a single-page app, you can ignore this!
-
-[url]: /packages/elm/url/latest/Url#Url
-[parser]: /packages/elm/url/latest/Url-Parser
--}
-type alias Env flags =
-  { flags : flags
-  , url : Url.Url
-  }
+-- HELPERS
 
 
 unsafeToUrl : String -> Url.Url
