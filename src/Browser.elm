@@ -30,9 +30,6 @@ import Dict
 import Browser.Navigation.Manager as Navigation
 import Debugger.Main
 import Elm.Kernel.Browser
-import Json.Decode as Decode
-import Process
-import Task exposing (Task)
 import Url
 import Html exposing (Html)
 
