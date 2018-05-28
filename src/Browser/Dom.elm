@@ -6,32 +6,10 @@ module Browser.Dom exposing
   , setScrollLeft, setScrollRight
   )
 
-{-| This module helps you set up an Elm `Program` with functions like
-[`sandbox`](#sandbox) and [`embed`](#embed).
-
-It also has a bunch of miscellaneous helpers for global event listeners and
-for focusing and scrolling DOM nodes.
-
-
-# Static Pages
-@docs staticPage
-
-
-# Dynamic Pages
-@docs sandbox, embed
-
-
-# DOM Stuff
-
-## Focus
-@docs focus, blur, Error
+{-|
 
 ## Scroll
 @docs scrollIntoView, getScroll, setScrollTop, setScrollBottom, setScrollLeft, setScrollRight
-
-
-# Global Events
-@docs onDocument, onWindow, preventDefaultOnDocument, preventDefaultOnWindow
 
 
 -}
