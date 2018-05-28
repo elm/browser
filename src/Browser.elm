@@ -5,10 +5,6 @@ module Browser exposing
   , fullscreen
   , Page
   , Env
-  , onDocument
-  , onWindow
-  , preventDefaultOnDocument
-  , preventDefaultOnWindow
   )
 
 {-| This module helps you set up an Elm `Program` with functions like
@@ -26,16 +22,11 @@ for focusing and scrolling DOM nodes.
 @docs sandbox, embed, fullscreen, Page, Env
 
 
-# Global Events
-@docs onDocument, onWindow, preventDefaultOnDocument, preventDefaultOnWindow
-
-
 -}
 
 
 
 import Dict
-import Browser.Events as E
 import Browser.Navigation.Manager as Navigation
 import Debugger.Main
 import Elm.Kernel.Browser
@@ -242,70 +233,3 @@ unsafeToUrl string =
 
     Nothing ->
       Elm.Kernel.Browser.invalidUrl string
-
-
-
--- GLOBAL EVENTS
-
-
-{-| Subscribe to events on `document`. Here are some examples:
-
-  - [Keyboard](https://github.com/elm/browser/blob/master/hints/keyboard.md)
-  - [Mouse]()
-
-**Note:** This uses [passive][] event handlers, enabling optimizations for events
-like `touchstart` and `touchmove`.
-
-[passive]: https://github.com/WICG/EventListenerOptions/blob/gh-pages/explainer.md
--}
-onDocument : String -> Decode.Decoder msg -> Sub msg
-onDocument name decoder =
-  E.on E.Document True name (Decode.map addFalse decoder)
-
-
-{-| Subscribe to events on `window`. Here are some examples:
-
-  - [Scroll]()
-  - [Resize]()
-
-**Note:** This uses [passive][] event handlers, enabling optimizations for events
-like `scroll` and `wheel`.
-
-[passive]: https://github.com/WICG/EventListenerOptions/blob/gh-pages/explainer.md
--}
-onWindow : String -> Decode.Decoder msg -> Sub msg
-onWindow name decoder =
-  E.on E.Window True name (Decode.map addFalse decoder)
-
-
-{-| Subscribe to events on `document` and conditionally prevent the default
-behavior. For example, pressing `SPACE` causes a “page down” normally, and
-maybe you want it to do something different.
-
-**Note:** This disables the [passive][] optimization, causing a performance
-degredation for events like `touchstart` and `touchmove`.
-
-[passive]: https://github.com/WICG/EventListenerOptions/blob/gh-pages/explainer.md
--}
-preventDefaultOnDocument : String -> Decode.Decoder (msg, Bool) -> Sub msg
-preventDefaultOnDocument =
-  E.on E.Document False
-
-
-{-| Subscribe to events on `window` and conditionally prevent the default
-behavior.
-
-**Note:** This disables the [passive][] optimization, causing a performance
-degredation for events like `scroll` and `wheel`.
-
-[passive]: https://github.com/WICG/EventListenerOptions/blob/gh-pages/explainer.md
--}
-preventDefaultOnWindow : String -> Decode.Decoder (msg, Bool) -> Sub msg
-preventDefaultOnWindow =
-  E.on E.Window False
-
-
-addFalse : msg -> (msg, Bool)
-addFalse msg =
-  (msg, False)
-
