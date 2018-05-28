@@ -63,7 +63,7 @@ var _Browser_element = F4(function(impl, flagDecoder, object, debugMetadata)
 });
 
 
-var _Browser_fullscreen = F4(function(impl, flagDecoder, object, debugMetadata)
+var _Browser_document = F4(function(impl, flagDecoder, object, debugMetadata)
 {
 	object['prerender'] = function(url, flags)
 	{

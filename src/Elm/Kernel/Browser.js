@@ -2,7 +2,7 @@
 
 import Browser exposing (NotFound)
 import Elm.Kernel.Debug exposing (crash)
-import Elm.Kernel.Debugger exposing (element, fullscreen)
+import Elm.Kernel.Debugger exposing (element, document)
 import Elm.Kernel.Json exposing (runHelp)
 import Elm.Kernel.List exposing (Nil)
 import Elm.Kernel.Platform exposing (initialize)
@@ -147,11 +147,11 @@ var _Browser_element = __Debugger_element || F4(function(impl, flagDecoder, debu
 	return object;
 });
 
-var __Debugger_fullscreen;
+var __Debugger_document;
 
-var _Browser_fullscreen = __Debugger_fullscreen || F4(function(impl, flagDecoder, debugMetadata, object)
+var _Browser_document = __Debugger_document || F4(function(impl, flagDecoder, debugMetadata, object)
 {
-	object['fullscreen'] = function(flags)
+	object['document'] = function(flags)
 	{
 		return __Platform_initialize(
 			A2(__Json_map, _Browser_toEnv, flagDecoder),

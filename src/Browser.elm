@@ -1,13 +1,13 @@
 module Browser exposing
   ( sandbox
   , element
-  , fullscreen
+  , document
   , Page
   , Env
   )
 
 {-| This module helps you set up an Elm `Program` with functions like
-[`sandbox`](#sandbox) and [`fullscreen`](#fullscreen).
+[`sandbox`](#sandbox) and [`document`](#document).
 
 It also has a bunch of miscellaneous helpers for global event listeners and
 for focusing and scrolling DOM nodes.
@@ -18,7 +18,7 @@ for focusing and scrolling DOM nodes.
 
 
 # Dynamic Pages
-@docs sandbox, element, fullscreen, Page, Env
+@docs sandbox, element, document, Page, Env
 
 
 -}
@@ -101,7 +101,8 @@ element =
   Elm.Kernel.Browser.element
 
 
-{-| Create a fullscreen Elm program. This expands the functionality of
+-- TODO update docs below for name change
+{-| Create a document Elm program. This expands the functionality of
 [`element`](#element) in two important ways:
 
   1. The `view` gives you control over the `<title>` and `<body>`.
@@ -115,7 +116,7 @@ element =
 You also get an [`Env`](#Env) value on `init` which gives a bit more
 information about the host browser.
 
-Here are some example usages of `fullscreen` programs:
+Here are some example usages of `document` programs:
 
   - [RealWorld example app](https://github.com/rtfeldman/elm-spa-example)
   - [Elm’s package website](https://github.com/elm/package.elm-lang.org)
@@ -125,7 +126,7 @@ guide](https://guide.elm-lang.org/) first to get a solid conceptual foundation
 before diving in! If you start reading a calculus book from page 314, it might
 seem confusing. Same here!
 -}
-fullscreen :
+document :
   { init : Env flags -> (model, Cmd msg)
   , view : model -> Page msg
   , update : msg -> model -> ( model, Cmd msg )
@@ -133,8 +134,8 @@ fullscreen :
   , subscriptions : model -> Sub msg
   }
   -> Program flags model msg
-fullscreen impl =
-  Elm.Kernel.Browser.fullscreen
+document impl =
+  Elm.Kernel.Browser.document
     { init = \{ flags, url } -> impl.init (Env flags (unsafeToUrl url))
     , view = impl.view
     , update = impl.update

@@ -50,9 +50,9 @@ var _Debugger_element = F4(function(impl, flagDecoder, debugMetadata, object)
 });
 
 
-var _Debugger_fullscreen = F4(function(impl, flagDecoder, debugMetadata, object)
+var _Debugger_document = F4(function(impl, flagDecoder, debugMetadata, object)
 {
-	object['fullscreen'] = function(flags)
+	object['document'] = function(flags)
 	{
 		return __Platform_initialize(
 			A2(__Json_map, __Browser_toEnv, flagDecoder),
