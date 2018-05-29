@@ -3,15 +3,24 @@ module Browser exposing
   , element
   , document
   , Document
+  , application
   )
 
 {-| This module helps you set up an Elm `Program` with functions like
 [`sandbox`](#sandbox) and [`document`](#document).
 
 
-# Dynamic Pages
-@docs sandbox, element, document, Document
+# Sandboxes
+@docs sandbox
 
+# Elements
+@docs element
+
+# Documents
+@docs document, Document
+
+# Applications
+@docs application
 
 -}
 
@@ -26,7 +35,7 @@ import Html exposing (Html)
 
 
 
--- PROGRAMS
+-- SANDBOX
 
 
 {-| Create a “sandboxed” program that cannot communicate with the outside
@@ -52,13 +61,12 @@ sandbox :
   , update : msg -> model -> model
   }
   -> Program () model msg
-sandbox { init, view, update } =
-  element
-    { init = \_ -> ( init, Cmd.none )
-    , view = view
-    , update = \msg model -> ( update msg model, Cmd.none )
-    , subscriptions = \_ -> Sub.none
-    }
+sandbox =
+  Elm.Kernel.Browser.sandbox
+
+
+
+-- ELEMENT
 
 
 {-| Create an HTML element managed by Elm. The resulting elements are easy to
@@ -93,6 +101,10 @@ element =
   Elm.Kernel.Browser.element
 
 
+
+-- DOCUMENT
+
+
 {-| Create an HTML document managed by Elm. This expands upon what `element`
 can do in that `view` now gives you control over the `<title>` and `<body>`.
 
@@ -106,11 +118,6 @@ document :
   -> Program flags model msg
 document impl =
   Elm.Kernel.Browser.document
-    { init = \{ flags, url } -> impl.init flags
-    , view = impl.view
-    , update = impl.update
-    , subscriptions = impl.subscriptions
-    }
 
 
 {-| This data specifies the `<title>` and all of the nodes that should go in
@@ -145,3 +152,41 @@ type alias Document msg =
   , body : List (Html msg)
   }
 
+
+
+-- APPLICATION
+
+
+{-| Create an application that manages [`Url`][url] changes. It expands the
+`document` functionality in that:
+
+1. You get the initial `Url` in `init` so you can figure out what to show on
+the first frame.
+2. You provide an `onNavigation` function to turn URLs into messages for your
+`update` function so you can show different things as the URL changes.
+
+This allows you to create &ldquo;single-page apps&rdquo; (SPAs) when paired
+with the [`Browser.Navigation`](Browser-Navigation) module!
+
+Here are some example usages of `application` programs:
+
+  - [RealWorld example app](https://github.com/rtfeldman/elm-spa-example)
+  - [Elm’s package website](https://github.com/elm/package.elm-lang.org)
+
+These are quite advanced Elm programs, so be sure to go through [the
+guide](https://guide.elm-lang.org/) first to get a solid conceptual foundation
+before diving in! If you start reading a calculus book from page 314, it might
+seem confusing. Same here!
+
+[url]: /packages/elm/url/latest/Url#Url
+-}
+application :
+  { init : flags -> Url.Url -> (model, Cmd msg)
+  , view : model -> Document msg
+  , update : msg -> model -> ( model, Cmd msg )
+  , subscriptions : model -> Sub msg
+  , onNavigation : Url.Url -> msg
+  }
+  -> Program flags model msg
+application impl =
+  Elm.Kernel.Browser.application
