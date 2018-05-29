@@ -6,6 +6,8 @@
     "version": "1.0.0",
     "exposed-modules": [
         "Browser",
+        "Browser.Dom",
+        "Browser.Events",
         "Browser.Navigation"
     ],
     "elm-version": "0.19.0 <= v < 0.20.0",
