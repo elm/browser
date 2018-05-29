@@ -20,10 +20,12 @@ import Json.Decode as Decode
 
 
 
-{-| Subscribe to events on `document`. Here are some examples:
+{-| Subscribe to events on `document`.
 
-  - [Keyboard](https://github.com/elm/browser/blob/master/hints/keyboard.md)
-  - [Mouse]()
+If you want to handle keyboard events check out [this document][kbd] all about
+how to get what you need from different browsers.
+
+[kbd]: https://github.com/elm/browser/blob/master/hints/keyboard.md
 
 **Note:** This uses [passive][] event handlers, enabling optimizations for events
 like `touchstart` and `touchmove`.
@@ -35,10 +37,9 @@ onDocument name decoder =
   Events.on Events.Document True name (Decode.map addFalse decoder)
 
 
-{-| Subscribe to events on `window`. Here are some examples:
+{-| Subscribe to events on `window`.
 
-  - [Scroll]()
-  - [Resize]()
+It would make sense to use this with `"scroll"` and `"wheel"` events.
 
 **Note:** This uses [passive][] event handlers, enabling optimizations for events
 like `scroll` and `wheel`.
