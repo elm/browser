@@ -61,13 +61,13 @@ sandbox { init, view, update } =
     }
 
 
--- TODO update docs below for name change
-{-| Create a program that can be embedded in a larger JavaScript project.
-This is a great low-risk way of introducing Elm into your existing work, and
-lots of companies that use Elm started with this approach!
+{-| Create an HTML element managed by Elm. The resulting elements are easy to
+embed in a larger JavaScript projects, and lots of companies that use Elm
+started with this approach! Try it out on something small. If it works, great,
+do more! If not, revert, no big deal.
 
-Unlike a [`sandbox`](#sandbox), an “embedded” program can talk to the outside
-world in a couple ways:
+Unlike a [`sandbox`](#sandbox), an `element` can talk to the outside world in
+a couple ways:
 
   - `Cmd` &mdash; you can “command” the Elm runtime to do stuff, like HTTP.
   - `Sub` &mdash; you can “subscribe” to event sources, like clock ticks.
@@ -79,7 +79,7 @@ in [this section][fx]. You can learn more about flags and ports in [the interop
 section][interop].
 
 [guide]: https://guide.elm-lang.org/
-[fx]: https://guide.elm-lang.org/architecture/effects/
+[fx]: https://guide.elm-lang.org/effects/
 [interop]: https://guide.elm-lang.org/interop/
 -}
 element :
@@ -93,30 +93,9 @@ element =
   Elm.Kernel.Browser.element
 
 
--- TODO update docs below for name change and Env removal
-{-| Create a document Elm program. This expands the functionality of
-[`element`](#element) in two important ways:
+{-| Create an HTML document managed by Elm. This expands upon what `element`
+can do in that `view` now gives you control over the `<title>` and `<body>`.
 
-  1. The `view` gives you control over the `<title>` and `<body>`.
-
-  2. The `onNavigation` field lets you capture [`Url`][url] changes. This
-  allows you to create single-page apps (SPAs) with the help of the
-  [`Browser.Navigation`](Browser-Navigation) module.
-
-[url]: /packages/elm/url/latest/Url#Url
-
-You also get an [`Env`](#Env) value on `init` which gives a bit more
-information about the host browser.
-
-Here are some example usages of `document` programs:
-
-  - [RealWorld example app](https://github.com/rtfeldman/elm-spa-example)
-  - [Elm’s package website](https://github.com/elm/package.elm-lang.org)
-
-These are quite advanced Elm programs, so be sure to go through [the
-guide](https://guide.elm-lang.org/) first to get a solid conceptual foundation
-before diving in! If you start reading a calculus book from page 314, it might
-seem confusing. Same here!
 -}
 document :
   { init : flags -> (model, Cmd msg)
@@ -134,7 +113,6 @@ document impl =
     }
 
 
--- TODO update docs below for name change
 {-| This data specifies the `<title>` and all of the nodes that should go in
 the `<body>`. This means you can update the title as your application changes.
 Maybe your "single-page app" navigates to a "different page", maybe a calendar
@@ -144,7 +122,7 @@ app shows an accurate date in the title, etc.
 > not the place to manage CSS assets. If you want to work with CSS, there are
 > a couple ways:
 >
-> 1. Use the [`rtfeldman/elm-css`][elm-css] package to get all of the features
+> 1. Packages like [`rtfeldman/elm-css`][elm-css] give all of the features
 > of CSS without any CSS files. You can add all the styles you need in your
 > `view` function, and there is no need to worry about class names matching.
 >
@@ -167,16 +145,3 @@ type alias Document msg =
   , body : List (Html msg)
   }
 
-
-
--- HELPERS
-
-
-unsafeToUrl : String -> Url.Url
-unsafeToUrl string =
-  case Url.fromString string of
-    Just url ->
-      url
-
-    Nothing ->
-      Elm.Kernel.Browser.invalidUrl string
