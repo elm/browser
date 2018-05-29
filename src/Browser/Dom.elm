@@ -8,7 +8,10 @@ module Browser.Dom exposing
 
 {-|
 
-## Scroll
+# Focus
+@docs focus, blur, Error
+
+# Scroll
 @docs scrollIntoView, getScroll, setScrollTop, setScrollBottom, setScrollLeft, setScrollRight
 
 
@@ -33,14 +36,14 @@ type Error = NotFound String
 {-| Find a DOM node by `id` and focus on it. So if you wanted to focus a node
 like `<input type="text" id="search-box">` you could say:
 
-    import Browser
+    import Browser.Dom as Dom
     import Task
 
     type Msg = NoOp
 
     focusSearchBox : Cmd Msg
     focusSearchBox =
-      Task.attempt (\_ -> NoOp) (Browser.focus "search-box")
+      Task.attempt (\_ -> NoOp) (Dom.focus "search-box")
 
 Notice that this code ignores the possibility that `search-box` is not used
 as an `id` by any node, failing silently in that case. It would be better to
@@ -54,14 +57,14 @@ focus =
 {-| Find a DOM node by `id` and make it lose focus. So if you wanted a node
 like `<input type="text" id="search-box">` to lose focus you could say:
 
-    import Browser
+    import Browser.Dom as Dom
     import Task
 
     type Msg = NoOp
 
     unfocusSearchBox : Cmd Msg
     unfocusSearchBox =
-      Task.attempt (\_ -> NoOp) (Browser.blur "search-box")
+      Task.attempt (\_ -> NoOp) (Dom.blur "search-box")
 -}
 blur : String -> Task Error ()
 blur =
@@ -77,14 +80,14 @@ blur =
 to arbitrary headers in a long document? We could define a `scrollTo`
 function like this:
 
-    import Browser
+    import Browser.Dom as Dom
     import Task
 
     type Msg = NoOp
 
     scrollTo : String -> Cmd Msg
     scrollTo id =
-      Task.attempt (\_ -> NoOp) (Browser.scrollIntoView id)
+      Task.attempt (\_ -> NoOp) (Dom.scrollIntoView id)
 -}
 scrollIntoView : String -> Task Error ()
 scrollIntoView =
@@ -101,14 +104,14 @@ getScroll =
 {-| Find a DOM node by `id` and set the scroll offset from the top. If we want
 to scroll to the top, we can say:
 
-    import Browser
+    import Browser.Dom as Dom
     import Task
 
     type Msg = NoOp
 
     scrollToTop : String -> Cmd Msg
     scrollToTop id =
-      Task.attempt (\_ -> NoOp) (Browser.setScrollTop id 0)
+      Task.attempt (\_ -> NoOp) (Dom.setScrollTop id 0)
 
 So the offset from the top is zero. If we said `setScrollTop id 100` the
 content would be scrolled down 100 pixels.
