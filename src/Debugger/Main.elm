@@ -2,7 +2,7 @@ module Debugger.Main exposing
   ( wrapInit
   , wrapUpdate
   , wrapSubs
-  , wrapView
+  , getUserModel
   , cornerView
   , popoutView
   )
@@ -26,9 +26,9 @@ import Debugger.Report as Report
 -- VIEW
 
 
-wrapView : (model -> Html msg) -> Model model msg -> Html (Msg msg)
-wrapView view model =
-  Html.map UserMsg (view (getCurrentModel model.state))
+getUserModel : Model model msg -> model
+getUserModel model =
+  getCurrentModel model.state
 
 
 

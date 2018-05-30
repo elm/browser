@@ -61,8 +61,13 @@ sandbox :
   , update : msg -> model -> model
   }
   -> Program () model msg
-sandbox =
-  Elm.Kernel.Browser.sandbox
+sandbox impl =
+  Elm.Kernel.Browser.element
+    { init = \() -> (impl.init, Cmd.none)
+    , view = impl.view
+    , update = \msg model -> (impl.update msg model, Cmd.none)
+    , subscriptions = \_ -> Sub.none
+    }
 
 
 
@@ -116,7 +121,7 @@ document :
   , subscriptions : model -> Sub msg
   }
   -> Program flags model msg
-document impl =
+document =
   Elm.Kernel.Browser.document
 
 
@@ -189,4 +194,19 @@ application :
   }
   -> Program flags model msg
 application impl =
-  Elm.Kernel.Browser.application
+  Elm.Kernel.Browser.document
+    { init = \flags -> impl.init flags (unsafeToUrl (Elm.Kernel.Browser.getUrl ()))
+    , view = impl.view
+    , update = impl.update
+    , subscriptions = Navigation.addListen (impl.onNavigation << unsafeToUrl) impl.subscriptions
+    }
+
+
+unsafeToUrl : String -> Url.Url
+unsafeToUrl string =
+  case Url.fromString string of
+    Just url ->
+      url
+
+    Nothing ->
+      Elm.Kernel.Browser.invalidUrl string

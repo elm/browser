@@ -1,14 +1,15 @@
 /*
 
 import Debugger.Expando as Expando exposing (S, Primitive, Sequence, Dictionary, Record, Constructor, ListSeq, SetSeq, ArraySeq)
-import Debugger.Main as Main exposing (wrapView, wrapInit, wrapUpdate, wrapSubs, cornerView, popoutView, NoOp, Up, Down, toBlockerType)
+import Debugger.Main as Main exposing (getUserModel, wrapInit, wrapUpdate, wrapSubs, cornerView, popoutView, NoOp, UserMsg, Up, Down, toBlockerType)
 import Debugger.Overlay as Overlay exposing (BlockNone, BlockMost)
-import Elm.Kernel.Browser exposing (toEnv, makeAnimator)
+import Elm.Kernel.Browser exposing (makeAnimator)
+import Elm.Kernel.Debug exposing (crash)
 import Elm.Kernel.List exposing (Cons, Nil)
 import Elm.Kernel.Platform exposing (initialize)
 import Elm.Kernel.Scheduler exposing (binding, succeed)
-import Elm.Kernel.Utils exposing (Tuple0, Tuple2)
-import Elm.Kernel.VirtualDom exposing (node, applyPatches, diff, doc, makeStepper, render, virtualize)
+import Elm.Kernel.Utils exposing (Tuple0, Tuple2, ap)
+import Elm.Kernel.VirtualDom exposing (node, applyPatches, diff, doc, makeStepper, map, render, virtualize)
 import Json.Decode as Json exposing (map)
 import List exposing (map, reverse)
 import Maybe exposing (Just, Nothing)
@@ -33,44 +34,119 @@ function _Debugger_unsafeCoerce(value)
 // PROGRAMS
 
 
-var _Debugger_element = F4(function(impl, flagDecoder, debugMetadata, object)
+var _Debugger_element = F4(function(impl, flagDecoder, debugMetadata, args)
 {
-	object['element'] = function(node, flags)
-	{
-		return __Platform_initialize(
-			flagDecoder,
-			flags,
-			A3(__Main_wrapInit, debugMetadata, _Debugger_popout(), impl.__$init),
-			__Main_wrapUpdate(impl.__$update),
-			__Main_wrapSubs(impl.__$subscriptions),
-			_Debugger_makeStepperBuilder(node, __Main_wrapView(impl.__$view))
-		);
-	};
-	return object;
+	return __Platform_initialize(
+		flagDecoder,
+		args,
+		A3(__Main_wrapInit, debugMetadata, _Debugger_popout(), impl.__$init),
+		__Main_wrapUpdate(impl.__$update),
+		__Main_wrapSubs(impl.__$subscriptions),
+		function(sendToApp, initialModel)
+		{
+			var view = impl.__$view;
+			var title = __VirtualDom_doc.title;
+			var domNode = args && args['node'] ? args['node'] : __Debug_crash(0);
+			var currNode = __VirtualDom_virtualize(domNode);
+			var currBlocker = __Main_toBlockerType(initialModel);
+			var currPopout;
+
+			var cornerNode = __VirtualDom_doc.createElement('div');
+			domNode.parentNode.insertBefore(cornerNode, domNode.nextSibling);
+			var cornerCurr = __VirtualDom_virtualize(cornerNode);
+
+			return _Browser_makeAnimator(initialModel, function(model)
+			{
+				var nextNode = A2(__VirtualDom_map, __Main_UserMsg, view(__Main_getUserModel(model)));
+				var patches = __VirtualDom_diff(currNode, nextNode);
+				domNode = __VirtualDom_applyPatches(domNode, currNode, patches, sendToApp);
+				currNode = nextNode;
+
+				// update blocker
+
+				var nextBlocker = __Main_toBlockerType(model);
+				_Debugger_updateBlocker(currBlocker, nextBlocker);
+				currBlocker = nextBlocker;
+
+				// view corner
+
+				if (model.__$popout.__isClosed)
+				{
+					var cornerNext = __Main_cornerView(model);
+					var cornerPatches = __VirtualDom_diff(cornerCurr, cornerNext);
+					cornerNode = __VirtualDom_applyPatches(cornerNode, cornerCurr, cornerPatches, sendToApp);
+					cornerCurr = cornerNext;
+					return;
+				}
+
+				// view popout
+
+				model.__$popout.__doc || (currPopout = _Debugger_openWindow(model.__$popout, sendToApp));
+
+				__VirtualDom_doc = model.__$popout.__doc; // SWITCH TO POPOUT DOC
+				var nextPopout = __Main_popoutView(model);
+				var popoutPatches = __VirtualDom_diff(currPopout, nextPopout);
+				__VirtualDom_applyPatches(model.__$popout.__doc.body, currPopout, popoutPatches, sendToApp);
+				currPopout = nextPopout;
+				__VirtualDom_doc = document; // SWITCH BACK TO NORMAL DOC
+			});
+		}
+	);
 });
 
 
-var _Debugger_document = F4(function(impl, flagDecoder, debugMetadata, object)
+var _Debugger_document = F4(function(impl, flagDecoder, debugMetadata, args)
 {
-	object['document'] = function(flags)
-	{
-		return __Platform_initialize(
-			A2(__Json_map, __Browser_toEnv, flagDecoder),
-			flags,
-			A3(__Main_wrapInit, debugMetadata, _Debugger_popout(), impl.__$init),
-			__Main_wrapUpdate(impl.__$update),
-			__Main_wrapSubs(impl.__$subscriptions),
-			_Debugger_makeStepperBuilder(__VirtualDom_doc.body, function(model) {
-				var ui = A2(__Main_wrapView, impl.__$view, model);
-				if (__VirtualDom_doc.title !== ui.__$title)
-				{
-					__VirtualDom_doc.title = ui.__$title;
-				}
-				return __VirtualDom_node('body')(__List_Nil)(ui.__$body);
-			})
-		);
-	};
-	return object;
+	return __Platform_initialize(
+		flagDecoder,
+		args,
+		A3(__Main_wrapInit, debugMetadata, _Debugger_popout(), impl.__$init),
+		__Main_wrapUpdate(impl.__$update),
+		__Main_wrapSubs(impl.__$subscriptions),
+		function(sendToApp, initialModel)
+		{
+			var view = impl.__$view;
+			var title = __VirtualDom_doc.title;
+			var bodyNode = __VirtualDom_doc.body;
+			var currNode = __VirtualDom_virtualize(bodyNode);
+			var currBlocker = __Main_toBlockerType(initialModel);
+			var currPopout;
+
+			return _Browser_makeAnimator(initialModel, function(model)
+			{
+				var doc = view(__Main_getUserModel(model));
+				var nextNode = __VirtualDom_node('body')(__List_Nil)(
+					__Utils_ap(
+						A2(__List_map, __VirtualDom_map(__Main_UserMsg), doc.__$body),
+						__List_Cons(__Main_cornerView(model), __List_Nil)
+					)
+				);
+				var patches = __VirtualDom_diff(currNode, nextNode);
+				bodyNode = __VirtualDom_applyPatches(bodyNode, currNode, patches, sendToApp);
+				currNode = nextNode;
+				(title !== doc.__$title) && (__VirtualDom_doc.title = title = doc.__$title);
+
+				// update blocker
+
+				var nextBlocker = __Main_toBlockerType(model);
+				_Debugger_updateBlocker(currBlocker, nextBlocker);
+				currBlocker = nextBlocker;
+
+				// view popout
+
+				if (model.__$popout.__isClosed) return;
+
+				model.__$popout.__doc || (currPopout = _Debugger_openWindow(model.__$popout, sendToApp));
+
+				__VirtualDom_doc = model.__$popout.__doc; // SWITCH TO POPOUT DOC
+				var nextPopout = __Main_popoutView(model);
+				var popoutPatches = __VirtualDom_diff(currPopout, nextPopout);
+				__VirtualDom_applyPatches(model.__$popout.__doc.body, currPopout, popoutPatches, sendToApp);
+				currPopout = nextPopout;
+				__VirtualDom_doc = document; // SWITCH BACK TO NORMAL DOC
+			});
+		}
+	);
 });
 
 
@@ -88,57 +164,6 @@ function _Debugger_open(popout)
 {
 	popout.__isClosed = false;
 	return popout
-}
-
-
-function _Debugger_makeStepperBuilder(appNode, view)
-{
-	return function(sendToApp, initialModel)
-	{
-		var currApp = __VirtualDom_virtualize(appNode);
-		var currCorner = __Main_cornerView(initialModel);
-		var currPopout;
-		var currBlocker = __Main_toBlockerType(initialModel);
-
-		var cornerNode = __VirtualDom_render(currCorner, sendToApp);
-
-		return __Browser_makeAnimator(initialModel, function(model)
-		{
-			var nextApp = view(model);
-			var appPatches = __VirtualDom_diff(currApp, nextApp);
-			appNode = __VirtualDom_applyPatches(appNode, currApp, appPatches, sendToApp);
-			currApp = nextApp;
-
-			// view corner
-
-			var nextBlocker = __Main_toBlockerType(model);
-			_Debugger_updateBlocker(currBlocker, nextBlocker);
-			currBlocker = nextBlocker;
-
-			if (model.__$popout.__isClosed)
-			{
-				var nextCorner = __Main_cornerView(model);
-				var cornerPatches = __VirtualDom_diff(currCorner, nextCorner);
-				cornerNode = __VirtualDom_applyPatches(cornerNode, currCorner, cornerPatches, sendToApp);
-				currCorner = nextCorner;
-				cornerNode.parentNode === appNode || appNode.appendChild(cornerNode);
-				return;
-			}
-
-			cornerNode.parentNode && cornerNode.parentNode.removeChild(cornerNode);
-
-			// view popout
-
-			model.__$popout.__doc || (currPopout = _Debugger_openWindow(model.__$popout, sendToApp));
-
-			__VirtualDom_doc = model.__$popout.__doc; // SWITCH TO POPOUT DOC
-			var nextPopout = __Main_popoutView(model);
-			var popoutPatches = __VirtualDom_diff(currPopout, nextPopout);
-			__VirtualDom_applyPatches(model.__$popout.__doc.body, currPopout, popoutPatches, sendToApp);
-			currPopout = nextPopout;
-			__VirtualDom_doc = document; // SWITCH BACK TO NORMAL DOC
-		});
-	};
 }
 
 

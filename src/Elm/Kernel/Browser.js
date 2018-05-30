@@ -1,6 +1,6 @@
 /*
 
-import Browser exposing (NotFound)
+import Browser.Dom as Dom exposing (NotFound)
 import Elm.Kernel.Debug exposing (crash)
 import Elm.Kernel.Debugger exposing (element, document)
 import Elm.Kernel.Json exposing (runHelp)
@@ -61,7 +61,7 @@ function _Browser_reload(skipCache)
 {
 	return __Scheduler_binding(function(callback)
 	{
-		_VirtualDom_doc.location.reload(skipCache);
+		__VirtualDom_doc.location.reload(skipCache);
 	});
 }
 
@@ -77,7 +77,7 @@ function _Browser_load(url)
 		{
 			// Only Firefox can throw a NS_ERROR_MALFORMED_URI exception here.
 			// Other browsers reload the page, so let's be consistent about that.
-			_VirtualDom_doc.location.reload(false);
+			__VirtualDom_doc.location.reload(false);
 		}
 	});
 }
@@ -89,7 +89,7 @@ function _Browser_load(url)
 
 function _Browser_getUrl()
 {
-	return _VirtualDom_doc.location.href;
+	return __VirtualDom_doc.location.href;
 }
 
 
@@ -104,102 +104,78 @@ function _Browser_isInternetExplorer11()
 
 
 
-// INVALID URL
+// ELEMENT
+
+
+var __Debugger_element;
+
+var _Browser_element = __Debugger_element || F4(function(impl, flagDecoder, debugMetadata, args)
+{
+	return __Platform_initialize(
+		flagDecoder,
+		args,
+		impl.__$init,
+		impl.__$update,
+		impl.__$subscriptions,
+		function(sendToApp, initialModel) {
+			var view = impl.__$view;
+			/**__PROD/
+			var domNode = args['node'];
+			//*/
+			/**__DEBUG/
+			var domNode = args && args['node'] ? args['node'] : __Debug_crash(0);
+			//*/
+			var currNode = _VirtualDom_virtualize(domNode);
+
+			return _Browser_makeAnimator(initialModel, function(model)
+			{
+				var nextNode = view(model);
+				var patches = __VirtualDom_diff(currNode, nextNode);
+				domNode = __VirtualDom_applyPatches(domNode, currNode, patches, sendToApp);
+				currNode = nextNode;
+			});
+		}
+	);
+});
+
+
+
+// DOCUMENT
+
+
+var __Debugger_document;
+
+var _Browser_document = __Debugger_document || F4(function(impl, flagDecoder, debugMetadata, args)
+{
+	return __Platform_initialize(
+		flagDecoder,
+		args,
+		impl.__$init,
+		impl.__$update,
+		impl.__$subscriptions,
+		function(sendToApp, initialModel) {
+			var view = impl.__$view;
+			var title = __VirtualDom_doc.title;
+			var bodyNode = __VirtualDom_doc.body;
+			var currNode = _VirtualDom_virtualize(bodyNode);
+
+			return _Browser_makeAnimator(initialModel, function(model)
+			{
+				var doc = view(model);
+				var nextNode = __VirtualDom_node('body')(__List_Nil)(doc.__$body);
+				var patches = __VirtualDom_diff(currNode, nextNode);
+				bodyNode = __VirtualDom_applyPatches(bodyNode, currNode, patches, sendToApp);
+				currNode = nextNode;
+				(title !== doc.__$title) && (__VirtualDom_doc.title = title = doc.__$title);
+			});
+		}
+	);
+});
 
 
 function _Browser_invalidUrl(url)
 {
 	__Debug_crash(1, url);
-}
-
-
-// PROGRAMS
-
-
-var _Browser_staticPage = F4(function(virtualNode, flagDecoder, debugMetadata, object)
-{
-	object['element'] = function(node)
-	{
-		node.parentNode.replaceChild(
-			__VirtualDom_render(virtualNode, function() {}),
-			node
-		);
-	};
-	return object;
-});
-
-
-var __Debugger_element;
-
-var _Browser_element = __Debugger_element || F4(function(impl, flagDecoder, debugMetadata, object)
-{
-	object['element'] = function(node, flags)
-	{
-		return __Platform_initialize(
-			flagDecoder,
-			flags,
-			impl.__$init,
-			impl.__$update,
-			impl.__$subscriptions,
-			_Browser_makeStepperBuilder(node, impl.__$view)
-		);
-	};
-	return object;
-});
-
-var __Debugger_document;
-
-var _Browser_document = __Debugger_document || F4(function(impl, flagDecoder, debugMetadata, object)
-{
-	object['document'] = function(flags)
-	{
-		return __Platform_initialize(
-			A2(__Json_map, _Browser_toEnv, flagDecoder),
-			flags,
-			impl.__$init,
-			impl.__$update,
-			impl.__$subscriptions,
-			_Browser_makeStepperBuilder(_VirtualDom_doc.body, function(model) {
-				var ui = impl.__$view(model);
-				if (_VirtualDom_doc.title !== ui.__$title)
-				{
-					_VirtualDom_doc.title = ui.__$title;
-				}
-				return __VirtualDom_node('body')(__List_Nil)(ui.__$body);
-			})
-		);
-	};
-	return object;
-});
-
-
-function _Browser_toEnv(flags)
-{
-	return {
-		__$url: _Browser_getUrl(),
-		__$flags: flags
-	};
-}
-
-
-
-// RENDERER
-
-
-function _Browser_makeStepperBuilder(domNode, view)
-{
-	return function(sendToApp, initialModel)
-	{
-		var currNode = _VirtualDom_virtualize(domNode);
-
-		return _Browser_makeAnimator(initialModel, function(model)
-		{
-			var nextNode = view(model);
-			var patches = __VirtualDom_diff(currNode, nextNode);
-			domNode = __VirtualDom_applyPatches(domNode, currNode, patches, sendToApp);
-			currNode = nextNode;
-		});
-	};
 }
 
 
@@ -254,7 +230,7 @@ function _Browser_withNode(id, doStuff)
 			var node = document.getElementById(id);
 			callback(node
 				? __Scheduler_succeed(doStuff(node))
-				: __Scheduler_fail(__Browser_NotFound(id))
+				: __Scheduler_fail(__Dom_NotFound(id))
 			);
 		});
 	});
@@ -303,7 +279,7 @@ var _Browser_setNegativeScroll = F4(function(scroll, scrollMax, id, offset)
 
 
 var _Browser_fakeNode = { addEventListener: function() {}, removeEventListener: function() {} };
-var _Browser_document = typeof document !== 'undefined' ? document : _Browser_fakeNode;
+var _Browser_doc = typeof document !== 'undefined' ? document : _Browser_fakeNode;
 var _Browser_window = typeof window !== 'undefined' ? window : _Browser_fakeNode;
 
 var _Browser_on = F4(function(node, passive, eventName, sendToSelf)
