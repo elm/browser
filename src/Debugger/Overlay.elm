@@ -127,33 +127,39 @@ type alias Config msg =
 
 view : Config msg -> Bool -> Bool -> Int -> State -> Html msg
 view config isPaused isOpen numMsgs state =
-  div
-    [ id "elm-debugger-overlay"
-    , style "position" "fixed"
-    , style "top" "0"
-    , style "left" "0"
-    , style "width" "100%"
-    , style "height" "100%"
-    , style "color" "white"
-    , style "pointer-events" "none"
-    , style "font-family" "'Trebuchet MS', 'Lucida Grande', 'Bitstream Vera Sans', 'Helvetica Neue', sans-serif"
-    , style "z-index" "2147483647"
-    ]
-    (viewHelp config isPaused isOpen numMsgs state)
-
-
-viewHelp : Config msg -> Bool -> Bool -> Int -> State -> List (Html msg)
-viewHelp config isPaused isOpen numMsgs state =
   case state of
     None ->
-      let
-        miniControls =
-          if isOpen then [] else [ viewMiniControls config numMsgs ]
-      in
-      if isPaused && not isOpen then
-        viewResume config :: miniControls
+      if isOpen then
+        text ""
+
       else
-        miniControls
+        if isPaused then
+          div
+            [ style "width" "100%"
+            , style "height" "100%"
+            , style "cursor" "pointer"
+            , style "text-align" "center"
+            , style "pointer-events" "auto"
+            , style "background-color" "rgba(200, 200, 200, 0.7)"
+            , style "color" "white"
+            , style "font-family" "'Trebuchet MS', 'Lucida Grande', 'Bitstream Vera Sans', 'Helvetica Neue', sans-serif"
+            , style "z-index" "2147483646"
+            , onClick config.resume
+            ]
+            [ div
+                [ style "position" "absolute"
+                , style "top" "calc(50% - 40px)"
+                , style "font-size" "80px"
+                , style "line-height" "80px"
+                , style "height" "80px"
+                , style "width" "100%"
+                ]
+                [ text "Click to Resume"
+                ]
+            , viewMiniControls config numMsgs
+            ]
+        else
+          viewMiniControls config numMsgs
 
     BadMetadata badMetadata_ ->
       viewMessage config
@@ -174,65 +180,53 @@ viewHelp config isPaused isOpen numMsgs state =
         (Choose "Cancel" "Import Anyway")
 
 
-viewResume : Config msg -> Html msg
-viewResume config =
-  div
-    [ style "width" "100%"
-    , style "height" "100%"
-    , style "cursor" "pointer"
-    , style "text-align" "center"
-    , style "pointer-events" "auto"
-    , style "background-color" "rgba(200, 200, 200, 0.7)"
-    , onClick config.resume
-    ]
-    [ div
-        [ style "position" "absolute"
-        , style "top" "calc(50% - 40px)"
-        , style "font-size" "80px"
-        , style "line-height" "80px"
-        , style "height" "80px"
-        , style "width" "100%"
-        ]
-        [ text "Click to Resume"
-        ]
-    ]
-
-
 
 -- VIEW MESSAGE
 
 
-viewMessage : Config msg -> String -> List (Html msg) -> Buttons -> List (Html msg)
+viewMessage : Config msg -> String -> List (Html msg) -> Buttons -> Html msg
 viewMessage config title details buttons =
-  [ div
-      [ style "position" "absolute"
-      , style "width" "600px"
-      , style "height" "100%"
-      , style "padding-left" "calc(50% - 300px)"
-      , style "padding-right" "calc(50% - 300px)"
-      , style "background-color" "rgba(200, 200, 200, 0.7)"
-      , style "pointer-events" "auto"
-      ]
-      [ div
-          [ style "font-size" "36px"
-          , style "height" "80px"
-          , style "background-color" "rgb(50, 50, 50)"
-          , style "padding-left" "22px"
-          , style "vertical-align" "middle"
-          , style "line-height" "80px"
-          ]
-          [ text title ]
-      , div
-          [ id "elm-debugger-details"
-          , style "padding" " 8px 20px"
-          , style "overflow-y" "auto"
-          , style "max-height" "calc(100% - 156px)"
-          , style "background-color" "rgb(61, 61, 61)"
-          ]
-          details
-      , Html.map config.wrap (viewButtons buttons)
-      ]
-  ]
+  div
+    [ id "elm-debugger-overlay"
+    , style "position" "fixed"
+    , style "top" "0"
+    , style "left" "0"
+    , style "width" "100%"
+    , style "height" "100%"
+    , style "color" "white"
+    , style "pointer-events" "none"
+    , style "font-family" "'Trebuchet MS', 'Lucida Grande', 'Bitstream Vera Sans', 'Helvetica Neue', sans-serif"
+    , style "z-index" "2147483647"
+    ]
+    [ div
+        [ style "position" "absolute"
+        , style "width" "600px"
+        , style "height" "100%"
+        , style "padding-left" "calc(50% - 300px)"
+        , style "padding-right" "calc(50% - 300px)"
+        , style "background-color" "rgba(200, 200, 200, 0.7)"
+        , style "pointer-events" "auto"
+        ]
+        [ div
+            [ style "font-size" "36px"
+            , style "height" "80px"
+            , style "background-color" "rgb(50, 50, 50)"
+            , style "padding-left" "22px"
+            , style "vertical-align" "middle"
+            , style "line-height" "80px"
+            ]
+            [ text title ]
+        , div
+            [ id "elm-debugger-details"
+            , style "padding" " 8px 20px"
+            , style "overflow-y" "auto"
+            , style "max-height" "calc(100% - 156px)"
+            , style "background-color" "rgb(61, 61, 61)"
+            ]
+            details
+        , Html.map config.wrap (viewButtons buttons)
+        ]
+    ]
 
 
 viewReport : Bool -> Report -> List (Html msg)
@@ -468,8 +462,10 @@ viewMiniControls config numMsgs =
     , style "right" "6px"
     , style "border-radius" "4px"
     , style "background-color" "rgb(61, 61, 61)"
+    , style "color" "white"
     , style "font-family" "monospace"
     , style "pointer-events" "auto"
+    , style "z-index" "2147483647"
     ]
     [ div
         [ style "padding" "6px"
