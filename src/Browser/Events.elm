@@ -205,7 +205,7 @@ spawn router key (MySub node passive name _) =
     actualNode =
       case node of
         Document ->
-          Elm.Kernel.Browser.document
+          Elm.Kernel.Browser.doc
 
         Window ->
           Elm.Kernel.Browser.window
