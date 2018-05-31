@@ -173,7 +173,7 @@ the first frame.
 This allows you to create &ldquo;single-page apps&rdquo; (SPAs) when paired
 with the [`Browser.Navigation`](Browser-Navigation) module!
 
-Here are some example usages of `application` programs:
+**More Info:** Here are some example usages of `application` programs:
 
   - [RealWorld example app](https://github.com/rtfeldman/elm-spa-example)
   - [Elm’s package website](https://github.com/elm/package.elm-lang.org)
@@ -183,7 +183,12 @@ guide](https://guide.elm-lang.org/) first to get a solid conceptual foundation
 before diving in! If you start reading a calculus book from page 314, it might
 seem confusing. Same here!
 
+**Note:** Some companies have an [`element`](#element) filled with Elm and a
+small border of HTML created by their server. How can they manage the URL? Read
+[this][]!
+
 [url]: /packages/elm/url/latest/Url#Url
+[this]: https://github.com/elm/browser/blob/1.0.0/hints/navigation-in-elements.md
 -}
 application :
   { init : flags -> Url.Url -> (model, Cmd msg)
