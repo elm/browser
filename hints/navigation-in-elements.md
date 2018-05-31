@@ -39,6 +39,9 @@ main =
     }
 
 
+type Msg = NewRoute (Maybe Route) | ...
+
+
 -- INIT
 
 init : String -> ( Model, Cmd Msg )
@@ -48,6 +51,17 @@ init locationHref =
     Just _ -> ...
 
 
+-- SUBSCRIPTION
+
+subscriptions : Model -> Sub Msg
+subscriptions model =
+  navigation (NewRoute << locationHrefToRoute)
+
+
+-- NAVIGATION
+
+port navigation : (String -> msg) -> Sub msg
+
 locationHrefToRoute : String -> Maybe Route
 locationHrefToRoute locationHref =
   case Url.fromString locationHref of
@@ -55,17 +69,6 @@ locationHrefToRoute locationHref =
     Just url -> Url.parse myParser url
 
 -- myParser : Url.Parser (Route -> Route) Route
-
-
--- SUBSCRIPTION
-
-type Msg = NewRoute (Maybe Route) | ...
-
-port navigation : (String -> msg) -> Sub msg
-
-subscriptions : Model -> Sub Msg
-subscriptions model =
-  navigation (NewRoute << locationHrefToRoute)
 ```
 
 But a `Browser.application` sets some of this stuff up for us! Why not do that with `Browser.element` as well?!
@@ -112,32 +115,49 @@ main =
     { init = init
     , update = update
     , subscriptions = subscriptions
-    , onNavigation = NewRoute << Url.parse myParser
+    , onNavigation = NewRoute << urlToRoute
     , view = view
     }
+
+
+type Msg = NewRoute (Maybe Route) | ...
 
 
 -- INIT
 
 init : Flags -> Url.Url -> ( Model, Cmd Msg )
 init flags url =
-  case Url.parse myParser locationHref of
+  case urlToRoute url of
     Nothing -> ...
     Just _ -> ...
+
+
+-- SUBSCRIPTION
+
+subscriptions : Model -> Sub Msg
+subscriptions model =
+  Sub.none
+
+
+-- NAVIGATION
+
+urlToRoute : Url.Url -> Maybe Route
+urlToRoute url =
+  Url.parse myParser url
 
 -- myParser : Url.Parser (Route -> Route) Route
 ```
 
 So the main differences are:
 
-1. You can drop the `port` declaration.
-2. You move the `NewRoute` logic from `subscriptions` to `onNavigation`.
-3. You do not need to call `Url.fromString`.
+1. Remove `port navigation`.
+2. Change `locationHrefToRoute` to `urlToRoute`.
+3. The `NewRoute` logic moves from `subscriptions` to `onNavigation`.
 4. You do not need a `popstate` listener in JavaScript.
 
-Depending on your whitespace usage, this is probably 10 or 20 lines that we are skipping in the `application` version.
+So we are talking about roughly 10 lines that go away in the `application` version.
 
-The lines are very straight forward as well. Turn a `String` to a `Url` before using `myParser`, and add an event handler for `popstate`. Writing these functions yourself also gives you the leeway to customize things. Maybe you only want the hash because you support certain IE browsers? Maybe you only want the last two segments of the URL because the rest is managed in React? Just change `locationHrefToRoute` to be `whateverToRoute` based on what you need.
+The lines are very straight forward as well. Add an event handler for `popstate`, and instead of `String -> Maybe Route` we do `Url -> Maybe Route`. Writing these functions yourself also gives you the leeway to customize things. Maybe you only want the hash because you support certain IE browsers? Maybe you only want the last two segments of the URL because the rest is managed in React? Just change `locationHrefToRoute` to be `whateverToRoute` based on what you need.
 
 
 ### Summary
