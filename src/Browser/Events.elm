@@ -30,7 +30,7 @@ import Task exposing (Task)
 If you want to handle keyboard events check out [this document][kbd] all about
 how to get what you need from different browsers.
 
-[kbd]: https://github.com/elm/browser/blob/master/hints/keyboard.md
+[kbd]: https://github.com/elm/browser/blob/1.0.0/hints/keyboard.md
 
 **Note:** This uses [passive][] event handlers, enabling optimizations for events
 like `touchstart` and `touchmove`.
