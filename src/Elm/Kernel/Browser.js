@@ -158,7 +158,7 @@ var _Browser_document = __Debugger_document || F4(function(impl, flagDecoder, de
 			var title = __VirtualDom_doc.title;
 			var bodyNode = __VirtualDom_doc.body;
 			var currNode = _VirtualDom_virtualize(bodyNode);
-			var animator = _Browser_makeAnimator(initialModel, function(model)
+			return _Browser_makeAnimator(initialModel, function(model)
 			{
 				var doc = view(model);
 				var nextNode = __VirtualDom_node('body')(__List_Nil)(doc.__$body);
@@ -167,16 +167,6 @@ var _Browser_document = __Debugger_document || F4(function(impl, flagDecoder, de
 				currNode = nextNode;
 				(title !== doc.__$title) && (__VirtualDom_doc.title = title = doc.__$title);
 			});
-
-			var before = bodyNode.childNodes.length;
-			setTimeout(function() {
-				for (var after = bodyNode.childNodes.length; before < after; before++)
-				{
-					bodyNode.removeChild(bodyNode.lastChild);
-				}
-			}, 0);
-
-			return animator;
 		}
 	);
 });
