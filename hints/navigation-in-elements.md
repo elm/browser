@@ -2,9 +2,9 @@
 
 Many companies introduce Elm gradually. They use `Browser.element` to embed Elm in a larger codebase as a low-risk way to see if Elm is helpful. If so, great, do more! If not, just revert, no big deal.
 
-But at some point the element has grown to manage _almost_ the whole page. Everything except the header and footer, which are produced by the server. It might be nice to stop doing that, but it is not always practical, especially if there is a lot of legacy code that needs it.
+But at some point the element has grown to manage _almost_ the whole page. Everything except the header and footer, which are produced by the server. And at that time, you may want Elm to start managing URL changes, showing different things in different cases. Well, `Browser.application` lets you do that in Elm, but maybe you have a bunch of legacy code that still needs the header and footer to be created on the server, so `Browser.element` is the only option.
 
-So what do you do?
+What do you do?
 
 
 ## Managing the URL from `Browser.element`
