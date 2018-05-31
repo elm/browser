@@ -13,11 +13,11 @@ You would initialize your element like this:
 
 ```javascript
 var app = Elm.Main.init({
-	flags: location.href,
-	node: document.getElementById('elm-main')
+    flags: location.href,
+    node: document.getElementById('elm-main')
 });
 document.addEventListener('popstate', function () {
-	app.ports.navigation.send(location.href);
+    app.ports.navigation.send(location.href);
 });
 ```
 
@@ -32,11 +32,11 @@ import Url.Parser as Url
 main : Program String Model Msg
 main =
   Browser.element
-  	{ init = init
-  	, update = update
-  	, subscriptions = subscriptions
-  	, view = view
-  	}
+    { init = init
+    , update = update
+    , subscriptions = subscriptions
+    , view = view
+    }
 
 
 -- INIT
@@ -94,7 +94,7 @@ Well, the JavaScript code would be something like this:
 
 ```javascript
 var app = Elm.Main.init({
-	flags: ...
+    flags: ...
 });
 ```
 
@@ -109,12 +109,12 @@ import Url.Parser as Url
 main : Program Flags Model Msg
 main =
   Browser.application
-  	{ init = init
-  	, update = update
-  	, subscriptions = subscriptions
-  	, onNavigation = NewRoute << Url.parse myParser
-  	, view = view
-  	}
+    { init = init
+    , update = update
+    , subscriptions = subscriptions
+    , onNavigation = NewRoute << Url.parse myParser
+    , view = view
+    }
 
 
 -- INIT
