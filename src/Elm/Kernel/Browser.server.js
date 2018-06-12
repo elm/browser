@@ -37,13 +37,6 @@ var _Browser_on = F4(function() { return __Scheduler_spawn(_Browser_unitTask); }
 // PROGRAMS
 
 
-var _Browser_staticPage = F4(function(virtualNode, flagDecoder, object, debugMetadata)
-{
-	object['prerender'] = function() { return new Set(); };
-	object['render'] = function() { return virtualNode; };
-});
-
-
 var _Browser_element = F4(function(impl, flagDecoder, object, debugMetadata)
 {
 	object['prerender'] = function(flags)
