@@ -27,7 +27,7 @@ module Browser exposing
 
 
 import Dict
-import Browser.Navigation.Manager as Navigation
+import Browser.NavigationManager as Navigation
 import Debugger.Main
 import Elm.Kernel.Browser
 import Url

@@ -1,4 +1,4 @@
-effect module Browser.Navigation.Manager where { command = MyCmd, subscription = MySub } exposing
+effect module Browser.NavigationManager where { command = MyCmd, subscription = MySub } exposing
   ( forward
   , pushUrl
   , replaceUrl

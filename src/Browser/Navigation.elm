@@ -47,7 +47,7 @@ want!
 -}
 
 
-import Browser.Navigation.Manager as Navigation
+import Browser.NavigationManager as Navigation
 import Elm.Kernel.Browser
 import Json.Decode as Decode
 import Task exposing (Task)
