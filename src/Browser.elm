@@ -183,12 +183,11 @@ guide](https://guide.elm-lang.org/) first to get a solid conceptual foundation
 before diving in! If you start reading a calculus book from page 314, it might
 seem confusing. Same here!
 
-**Note:** Some companies have an [`element`](#element) filled with Elm and a
-small border of HTML created by their server. How can they manage the URL? Read
-[this][]!
+**Note:** Wait, but how can people use Elm in an [`element`](#element) and
+still manage the URL? Read [this][]!
 
 [url]: /packages/elm/url/latest/Url#Url
-[this]: https://github.com/elm/browser/blob/1.0.0/hints/navigation-in-elements.md
+[this]: https://github.com/elm/browser/blob/1.0.0/notes/navigation-in-elements.md
 -}
 application :
   { init : flags -> Url.Url -> (model, Cmd msg)
