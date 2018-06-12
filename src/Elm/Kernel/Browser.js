@@ -281,12 +281,12 @@ var _Browser_fakeNode = { addEventListener: function() {}, removeEventListener: 
 var _Browser_doc = typeof document !== 'undefined' ? document : _Browser_fakeNode;
 var _Browser_window = typeof window !== 'undefined' ? window : _Browser_fakeNode;
 
-var _Browser_on = F4(function(node, passive, eventName, sendToSelf)
+var _Browser_on = F3(function(node, eventName, sendToSelf)
 {
 	return __Scheduler_spawn(__Scheduler_binding(function(callback)
 	{
 		function handler(event)	{ __Scheduler_rawSpawn(sendToSelf(event)); }
-		node.addEventListener(eventName, handler, __VirtualDom_passiveSupported && { passive: passive });
+		node.addEventListener(eventName, handler, __VirtualDom_passiveSupported && { passive: true });
 		return function() { node.removeEventListener(eventName, handler); };
 	}));
 });
@@ -294,7 +294,54 @@ var _Browser_on = F4(function(node, passive, eventName, sendToSelf)
 var _Browser_decodeEvent = F2(function(decoder, event)
 {
 	var result = __Json_runHelp(decoder, event);
-	return __Result_isOk(result)
-		? (result.a.b && event.preventDefault(), __Maybe_Just(result.a.a))
-		: __Maybe_Nothing
+	return __Result_isOk(result) ? __Maybe_Just(result.a) : __Maybe_Nothing;
 });
+
+
+
+// PAGE VISIBILITY
+
+
+function _Browser_visibilityInfo()
+{
+	return (typeof __VirtualDom_doc.hidden !== 'undefined')
+		? { __$hidden: 'hidden', __$change: 'visibilitychange' }
+		:
+	(typeof __VirtualDom_doc.mozHidden !== 'undefined')
+		? { __$hidden: 'mozHidden', __$change: 'mozvisibilitychange' }
+		:
+	(typeof __VirtualDom_doc.msHidden !== 'undefined')
+		? { __$hidden: 'msHidden', __$change: 'msvisibilitychange' }
+		:
+	(typeof __VirtualDom_doc.webkitHidden !== 'undefined')
+		? { __$hidden: 'webkitHidden', __$change: 'webkitvisibilitychange' }
+		: { __$hidden: 'hidden', __$change: 'visibilitychange' };
+}
+
+
+
+// ANIMATION FRAMES
+
+
+function _Browser_rAF()
+{
+	return __Scheduler_binding(function(callback)
+	{
+		var id = requestAnimationFrame(function() {
+			callback(__Scheduler_succeed(Date.now()));
+		});
+
+		return function() {
+			cancelAnimationFrame(id);
+		};
+	});
+}
+
+
+function _Browser_now()
+{
+	return __Scheduler_binding(function(callback)
+	{
+		callback(__Scheduler_succeed(Date.now()));
+	});
+}

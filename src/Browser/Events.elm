@@ -1,91 +1,221 @@
 effect module Browser.Events where { subscription = MySub } exposing
-  ( onDocument
-  , onWindow
-  , preventDefaultOnDocument
-  , preventDefaultOnWindow
+  ( onAnimationFrame, onAnimationFrameDelta
+  , onKeyPress, onKeyDown, onKeyUp
+  , onClick, onMouseMove, onMouseDown, onMouseUp
+  , onResize, onVisibilityChange, Visibility(..)
   )
 
-{-|
 
-# Document
-@docs onDocument, preventDefaultOnDocument
+{-| In JavaScript, information about the root of an HTML document is held in
+the `document` and `window` objects. This module lets you create event
+listeners on those objects for the following topics: [animation](#animation),
+[keyboard](#keyboard), [mouse](#mouse), and [window](#window).
+
+If there is something else you need, use [ports][] to do it in JavaScript!
+
+[ports]: https://guide.elm-lang.org/interop/ports.html
+
+# Animation
+@docs onAnimationFrame, onAnimationFrameDelta
+
+# Keyboard
+@docs onKeyPress, onKeyDown, onKeyUp
+
+# Mouse
+@docs onClick, onMouseMove, onMouseDown, onMouseUp
 
 # Window
-@docs onWindow, preventDefaultOnWindow
-
+@docs onResize, onVisibilityChange, Visibility
 
 -}
 
 
+import Browser.AnimationManager as AM
 import Dict
 import Elm.Kernel.Browser
 import Json.Decode as Decode
 import Process
 import Task exposing (Task)
+import Time
 
 
 
-{-| Subscribe to events on `document`.
+-- ANIMATION
 
-If you want to handle keyboard events check out [this document][kbd] all about
-how to get what you need from different browsers.
 
-[kbd]: https://github.com/elm/browser/blob/1.0.0/hints/keyboard.md
+{-| An animation frame triggers about 60 times per second. Get the POSIX time
+on each frame. (See [`elm/time`](/packages/elm/time/latest) for more info on
+POSIX times.)
 
-**Note:** This uses [passive][] event handlers, enabling optimizations for events
-like `touchstart` and `touchmove`.
-
-[passive]: https://github.com/WICG/EventListenerOptions/blob/gh-pages/explainer.md
+**Note:** Browsers have their own render loop, repainting things as fast as
+possible. If you want smooth animations in your application, it is helpful to
+sync up with the browsers natural refresh rate. This hooks into JavaScript's
+`requestAnimationFrame` function.
 -}
-onDocument : String -> Decode.Decoder msg -> Sub msg
-onDocument name decoder =
-  on Document True name (Decode.map addFalse decoder)
+onAnimationFrame : (Time.Posix -> msg) -> Sub msg
+onAnimationFrame =
+  AM.onAnimationFrame
 
 
-{-| Subscribe to events on `window`.
-
-It would make sense to use this with `"scroll"` and `"wheel"` events.
-
-**Note:** This uses [passive][] event handlers, enabling optimizations for events
-like `scroll` and `wheel`.
-
-[passive]: https://github.com/WICG/EventListenerOptions/blob/gh-pages/explainer.md
+{-| Just like `onAnimationFrame`, except message is the time in milliseconds
+since the previous frame. So you should get a sequence of values all around
+`1000 / 60` which is nice for stepping animations by a time delta.
 -}
-onWindow : String -> Decode.Decoder msg -> Sub msg
-onWindow name decoder =
-  on Window True name (Decode.map addFalse decoder)
+onAnimationFrameDelta : (Float -> msg) -> Sub msg
+onAnimationFrameDelta =
+  AM.onAnimationFrameDelta
 
 
-{-| Subscribe to events on `document` and conditionally prevent the default
-behavior. For example, pressing `SPACE` causes a “page down” normally, and
-maybe you want it to do something different.
 
-**Note:** This disables the [passive][] optimization, causing a performance
-degredation for events like `touchstart` and `touchmove`.
+-- KEYBOARD
 
-[passive]: https://github.com/WICG/EventListenerOptions/blob/gh-pages/explainer.md
+
+{-| Subscribe to all key presses.
+
+**Note:** Check out [this advice][note] to learn more about decoding key codes.
+It is more complicated than it should be.
+
+[note]: https://github.com/elm/browser/blob/1.0.0/notes/keyboard.md
 -}
-preventDefaultOnDocument : String -> Decode.Decoder (msg, Bool) -> Sub msg
-preventDefaultOnDocument =
-  on Document False
+onKeyPress : Decode.Decoder msg -> Sub msg
+onKeyPress =
+  on Document "keypress"
 
 
-{-| Subscribe to events on `window` and conditionally prevent the default
-behavior.
+{-| Subscribe to get codes whenever a key goes down. This can be useful for
+creating games. Maybe you want to know if people are pressing `w`, `a`, `s`,
+or `d` at any given time. Check out how that works in [this example][example].
 
-**Note:** This disables the [passive][] optimization, causing a performance
-degredation for events like `scroll` and `wheel`.
+**Note:** Check out [this advice][note] to learn more about decoding key codes.
+It is more complicated than it should be.
 
-[passive]: https://github.com/WICG/EventListenerOptions/blob/gh-pages/explainer.md
+[note]: https://github.com/elm/browser/blob/1.0.0/notes/keyboard.md
+[example]: https://github.com/elm/browser/blob/1.0.0/examples/wasd.md
 -}
-preventDefaultOnWindow : String -> Decode.Decoder (msg, Bool) -> Sub msg
-preventDefaultOnWindow =
-  on Window False
+onKeyDown : Decode.Decoder msg -> Sub msg
+onKeyDown =
+  on Document "keydown"
 
 
-addFalse : msg -> (msg, Bool)
-addFalse msg =
-  (msg, False)
+{-| Subscribe to get codes whenever a key goes up. Often used in combination
+with [`onVisibilityChange`](#onVisibilityChange) to be sure keys do not appear
+to down and never come back up.
+-}
+onKeyUp : Decode.Decoder msg -> Sub msg
+onKeyUp =
+  on Document "keyup"
+
+
+
+-- MOUSE
+
+
+{-| Subscribe to mouse clicks anywhere on screen. Maybe you need to create a
+custom drop down. You could listen for clicks when it is open, letting you know
+if someone clicked out of it:
+
+    import Browser.Events as Events
+    import Json.Decode as D
+
+    type Msg = ClickOut
+
+    subscriptions : Model -> Sub Msg
+    subscriptions model =
+      case model.dropDown of
+        Closed _ ->
+          Sub.none
+
+        Open _ ->
+          Events.onClick (D.succeed ClickOut)
+-}
+onClick : Decode.Decoder msg -> Sub msg
+onClick =
+  on Document "click"
+
+
+{-| Subscribe to mouse moves anywhere on screen. You could use this to implement
+drag and drop.
+
+**Note:** Unsubscribe if you do not need these events! Running code on every
+single mouse movement can be very costly, and it is recommended to only
+subscribe when absolutely necessary.
+-}
+onMouseMove : Decode.Decoder msg -> Sub msg
+onMouseMove =
+  on Document "mousemove"
+
+
+{-| Subscribe to get mouse information whenever the mouse button goes down.
+-}
+onMouseDown : Decode.Decoder msg -> Sub msg
+onMouseDown =
+  on Document "mousedown"
+
+
+{-| Subscribe to get mouse information whenever the mouse button goes up.
+Often used in combination with [`onVisibilityChange`](#onVisibilityChange)
+to be sure keys do not appear to down and never come back up.
+-}
+onMouseUp : Decode.Decoder msg -> Sub msg
+onMouseUp =
+  on Document "mouseup"
+
+
+
+-- WINDOW
+
+
+{-| Subscribe to any changes in window size.
+
+If you wanted to always track the current width, you could do something [like
+this](TODO).
+
+**Note:** This is equivalent to getting events from [`window.onresize`][resize].
+
+[resize]: https://developer.mozilla.org/en-US/docs/Web/API/GlobalEventHandlers/onresize
+-}
+onResize : (Int -> Int -> msg) -> Sub msg
+onResize func =
+  on Window "resize" <|
+    Decode.field "target" <|
+      Decode.map2 func
+        (Decode.field "innerWidth" Decode.int)
+        (Decode.field "innerHeight" Decode.int)
+
+
+{-| Subscribe to any visibility changes, like if the user switches to a
+different tab or window. When the user looks away, you may want to:
+
+- Stop polling a server for new information.
+- Pause video or audio.
+- Pause an image carousel.
+
+This may also be useful with [`onKeyDown`](#onKeyDown). If you only listen for
+[`onKeyUp`](#onKeyUp) to end the key press, you can miss situations like using
+a keyboard shortcut to switch tabs. Visibility changes will cover those tricky
+cases, like in [this example][example]!
+
+[example]: https://github.com/elm/browser/blob/1.0.0/examples/wasd.md
+-}
+onVisibilityChange : (Visibility -> msg) -> Sub msg
+onVisibilityChange func =
+  let
+    info = Elm.Kernel.Browser.visibilityInfo ()
+  in
+  on Document info.changes <|
+    Decode.map (withHidden func) <|
+      Decode.field "target" <|
+        Decode.field info.hidden Decode.bool
+
+
+withHidden : (Visibility -> msg) -> Bool -> msg
+withHidden func isHidden =
+  func (if isHidden then Hidden else Visible)
+
+
+{-| Value describing whether the page is hidden or visible.
+-}
+type Visibility = Visible | Hidden
 
 
 
@@ -97,18 +227,18 @@ type Node
   | Window
 
 
-on : Node -> Bool -> String -> Decode.Decoder (msg, Bool) -> Sub msg
-on node bool name decoder =
-  subscription (MySub node bool name decoder)
+on : Node -> String -> Decode.Decoder msg -> Sub msg
+on node name decoder =
+  subscription (MySub node name decoder)
 
 
 type MySub msg =
-  MySub Node Bool String (Decode.Decoder (msg, Bool))
+  MySub Node String (Decode.Decoder msg)
 
 
 subMap : (a -> b) -> MySub a -> MySub b
-subMap func (MySub node passive name decoder) =
-  MySub node passive name (Decode.map (Tuple.mapFirst func) decoder)
+subMap func (MySub node name decoder) =
+  MySub node name (Decode.map func decoder)
 
 
 
@@ -135,7 +265,7 @@ type alias Event =
 onSelfMsg : Platform.Router msg Event -> Event -> State msg -> Task Never (State msg)
 onSelfMsg router { key, event } state =
   let
-    toMessage (subKey, MySub node passive name decoder) =
+    toMessage (subKey, MySub node name decoder) =
       if subKey == key then
         Elm.Kernel.Browser.decodeEvent decoder event
       else
@@ -176,23 +306,18 @@ onEffects router subs state =
 
 
 addKey : MySub msg -> ( String, MySub msg )
-addKey (MySub node passive name _ as sub) =
-  ( nodeToKey node ++ passiveToKey passive ++ name, sub )
+addKey (MySub node name _ as sub) =
+  ( nodeToKey node ++ name, sub )
 
 
 nodeToKey : Node -> String
 nodeToKey node =
   case node of
     Document ->
-      "d"
+      "d_"
 
     Window ->
-      "w"
-
-
-passiveToKey : Bool -> String
-passiveToKey passive =
-  if passive then "p" else "n"
+      "w_"
 
 
 
@@ -200,7 +325,7 @@ passiveToKey passive =
 
 
 spawn : Platform.Router msg Event -> String -> MySub msg -> Task Never (String, Process.Id)
-spawn router key (MySub node passive name _) =
+spawn router key (MySub node name _) =
   let
     actualNode =
       case node of
@@ -211,5 +336,5 @@ spawn router key (MySub node passive name _) =
           Elm.Kernel.Browser.window
   in
   Task.map (\value -> (key,value)) <|
-    Elm.Kernel.Browser.on actualNode passive name <|
+    Elm.Kernel.Browser.on actualNode name <|
       \event -> Platform.sendToSelf router (Event key event)
