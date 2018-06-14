@@ -4,6 +4,7 @@ module Browser exposing
   , document
   , Document
   , application
+  , UrlRequest(..)
   )
 
 {-| This module helps you set up an Elm `Program` with functions like
@@ -20,7 +21,7 @@ module Browser exposing
 @docs document, Document
 
 # Applications
-@docs application
+@docs application, UrlRequest
 
 -}
 
@@ -162,30 +163,38 @@ type alias Document msg =
 -- APPLICATION
 
 
-{-| Create an application that manages [`Url`][url] changes. It expands the
-`document` functionality in that:
+{-| Create an application that manages [`Url`][url] changes.
 
-1. You get the initial `Url` in `init` so you can figure out what to show on
-the first frame.
-2. You provide an `onNavigation` function to turn URLs into messages for your
-`update` function so you can show different things as the URL changes.
+**When the application starts**, `init` gets the initial `Url`. You can show
+different things depending on the `Url`!
 
-This allows you to create &ldquo;single-page apps&rdquo; (SPAs) when paired
-with the [`Browser.Navigation`](Browser-Navigation) module!
+**When someone clicks a link**, like `<a href="/home">Home</a>`, it always goes
+through `onUrlRequest`. The resulting message goes to your `update` function,
+giving you a chance to save scroll position or persist data before changing
+the URL yourself with [`pushUrl`][bnp] or [`load`][bnl]. More info on this in
+the [`UrlRequest`](#UrlRequest) docs!
+
+**When the URL changes**, the new `Url` goes through `onUrlChange`. The
+resulting message goes to `update` where you can decide what to show next.
+
+Applications always use the [`Browser.Navigation`][bn] module for precise
+control over `Url` changes.
 
 **More Info:** Here are some example usages of `application` programs:
 
-  - [RealWorld example app](https://github.com/rtfeldman/elm-spa-example)
-  - [Elm’s package website](https://github.com/elm/package.elm-lang.org)
+- [RealWorld example app](https://github.com/rtfeldman/elm-spa-example)
+- [Elm’s package website](https://github.com/elm/package.elm-lang.org)
 
-These are quite advanced Elm programs, so be sure to go through [the
-guide](https://guide.elm-lang.org/) first to get a solid conceptual foundation
-before diving in! If you start reading a calculus book from page 314, it might
-seem confusing. Same here!
+These are quite advanced Elm programs, so be sure to go through [the guide][g]
+first to get a solid conceptual foundation before diving in! If you start
+reading a calculus book from page 314, it might seem confusing. Same here!
 
-**Note:** Wait, but how can people use Elm in an [`element`](#element) and
-still manage the URL? Read [this][]!
+**Note:** Can an [`element`](#element) manage the URL too? Read [this][]!
 
+[g]: https://guide.elm-lang.org/
+[bn]: Browser-Navigation
+[bnp]: Browser-Navigation#pushUrl
+[bnl]: Browser-Navigation#load
 [url]: /packages/elm/url/latest/Url#Url
 [this]: https://github.com/elm/browser/blob/1.0.0/notes/navigation-in-elements.md
 -}
@@ -194,23 +203,82 @@ application :
   , view : model -> Document msg
   , update : msg -> model -> ( model, Cmd msg )
   , subscriptions : model -> Sub msg
-  , onNavigation : Url.Url -> msg
+  , onUrlRequest : UrlRequest -> msg
+  , onUrlChange : Url.Url -> msg
   }
   -> Program flags model msg
 application impl =
   Elm.Kernel.Browser.document
     { init = \flags -> impl.init flags (unsafeToUrl (Elm.Kernel.Browser.getUrl ()))
-    , view = impl.view
+    , view = Elm.Kernel.Browser.toApplicationView impl.view
     , update = impl.update
-    , subscriptions = Navigation.addListen (impl.onNavigation << unsafeToUrl) impl.subscriptions
+    , subscriptions = Navigation.addListen impl.onNavigation impl.subscriptions
     }
 
 
-unsafeToUrl : String -> Url.Url
-unsafeToUrl string =
-  case Url.fromString string of
-    Just url ->
-      url
+{-| All links in an [`application`](#application) create a `UrlRequest`. So
+when you click `<a href="/home">Home</a>`, it does not just navigate! It
+notifies `onUrlRequest` that the user wants to change the `Url`.
 
-    Nothing ->
-      Elm.Kernel.Browser.invalidUrl string
+### `Internal` vs `External`
+
+Imagine we are browsing `https://example.com`. An `Internal` link would be
+like:
+
+- `settings#privacy`
+- `/home`
+- `https://example.com/home`
+- `//example.com/home`
+
+All of these links exist under the `https://example.com` domain. An `External`
+link would be like:
+
+- `http://example.com/home`
+- `https://elm-lang.org/examples`
+- `data:text/html,%3Ch1%3EHello%2C%20World!%3C%2Fh1%3E`
+
+Notice that changing the protocol from `https` to `http` is considered an
+external link! (And vice versa!)
+
+### Purpose
+
+Having a `UrlRequest` requires a case in your `update` like this:
+
+    import Browser exposing (..)
+    import Browser.Navigation as Nav
+    import Url
+
+    type Msg = ClickedLink UrlRequest
+
+    update : Msg -> Model -> (Model, Cmd msg)
+    update msg model =
+      case msg of
+        ClickedLink urlRequest ->
+          case urlRequest of
+            Internal url ->
+              ( model
+              , Nav.pushUrl (Url.toString url)
+              )
+
+            External url ->
+              ( model
+              , Nav.load url
+              )
+
+This is useful because it gives you a chance to customize the behavior in each
+case. Maybe on some `Internal` links you save the scroll position with
+[`Browser.Dom.getViewport`](Browser-Dom#getViewport) so you can restore it
+later. Maybe on `External` links you persist parts of the `Model` on your
+servers before leaving. Whatever you need to do!
+
+**Note:** Knowing the scroll position is not enough restore it! What if the
+browser dimensions change? The scroll position will not correlate with
+&ldquo;what was on screen&rdquo; anymore. So it may be better to remember
+&ldquo;what was on screen&rdquo; and recreate the position based on that. For
+example, in a Wikipedia article, remember the header that they were looking at
+most recently. [`Browser.Dom.getElement`](Browser-Dom#getElement) is designed
+for figuring that out!
+-}
+type UrlRequest
+  = Internal Url.Url
+  | External String
