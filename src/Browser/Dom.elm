@@ -139,7 +139,7 @@ change the `x` and `y` of the viewport.
 -}
 getViewport : Task x Viewport
 getViewport =
-  Debug.todo "getViewport"
+  Elm.Kernel.Browser.withWindow Elm.Kernel.Browser.getViewport
 
 
 
@@ -207,7 +207,7 @@ API improvements!
 -}
 getViewportOf : String -> Task Error Viewport
 getViewportOf =
-  Debug.todo "getViewportOf"
+  Elm.Kernel.Browser.getViewportOf
 
 
 
@@ -234,7 +234,7 @@ and want people to start at the top!
 -}
 setViewport : Float -> Float -> Task x ()
 setViewport =
-  Debug.todo "setViewport"
+  Elm.Kernel.Browser.setViewport
 
 
 {-| Change the `x` and `y` offset of a DOM node&rsquo;s viewport by ID. This
@@ -250,26 +250,29 @@ way the latest message is always on screen! You could do this:
     jumpToBottom : String -> Cmd Msg
     jumpToBottom id =
       Dom.getViewportOf id
-        |> Task.andThen (\info -> Dom.setViewportOf id 0 (info.scene.height - info.viewport.hight))
+        |> Task.andThen (\info -> Dom.setViewportOf id 0 info.scene.height)
         |> Task.perform (\_ -> NoOp)
-
-This first gets the current information. How tall is the scene? How tall is
-the viewport? We want the new viewport offset to be `scene.height - viewport.height`
-so it is right at the end of the scene.
 
 So you could call `jumpToBottom "chat-box"` whenever you add a new message.
 
-**Note:** The example here just ignores when the element ID is not found, but
-it would be better to log that information. It means there may be a bug or a
-dead link somewhere!
+**Note 1:** What happens if the viewport is placed out of bounds? Where there
+is no `scene` to show? To avoid this question, the `x` and `y` offsets are
+clamped such that the viewport is always fully within the `scene`. So when
+`jumpToBottom` sets the `y` offset of the viewport to the `height` of the
+`scene` (i.e. too far!) it relies on this clamping behavior to put the viewport
+back in bounds.
+
+**Note 2:** The example ignores when the element ID is not found, but it would
+be great to log that information. It means there may be a bug or a dead link
+somewhere!
 -}
 setViewportOf : String -> Float -> Float -> Task Error ()
 setViewportOf =
-  Debug.todo "setViewportOf"
+  Elm.Kernel.Browser.setViewportOf
 
 
 
--- SLIDE VIEWPORT
+{-- SLIDE VIEWPORT
 
 
 {-| Change the `x` and `y` offset of the viewport with an animation. In JS,
@@ -305,6 +308,8 @@ slideViewportOf : String -> Float -> Float -> Task Error ()
 slideViewportOf =
   Debug.todo "slideViewportOf"
 
+--}
+
 
 
 -- ELEMENT
@@ -337,7 +342,7 @@ element in a `<div>` that adds the spacing. Just something to be aware of!
 -}
 getElement : String -> Task Error Element
 getElement =
-  Debug.todo "getElement"
+  Elm.Kernel.Browser.getElement
 
 
 {-| A bunch of information about the position and size of an element relative

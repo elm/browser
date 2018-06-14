@@ -71,7 +71,7 @@ function _Browser_load(url)
 	{
 		try
 		{
-			window.location = url;
+			_Browser_window.location = url;
 		}
 		catch(err)
 		{
@@ -99,7 +99,7 @@ function _Browser_getUrl()
 
 function _Browser_isInternetExplorer11()
 {
-	return window.navigator.userAgent.indexOf('Trident') !== -1;
+	return _Browser_window.navigator.userAgent.indexOf('Trident') !== -1;
 }
 
 
@@ -217,63 +217,6 @@ function _Browser_makeAnimator(model, draw)
 
 
 
-// DOM STUFF
-
-
-function _Browser_withNode(id, doStuff)
-{
-	return __Scheduler_binding(function(callback)
-	{
-		_Browser_requestAnimationFrame(function()
-		{
-			var node = document.getElementById(id);
-			callback(node
-				? __Scheduler_succeed(doStuff(node))
-				: __Scheduler_fail(__Dom_NotFound(id))
-			);
-		});
-	});
-}
-
-
-var _Browser_call = F2(function(functionName, id)
-{
-	return _Browser_withNode(id, function(node) {
-		node[functionName]();
-		return __Utils_Tuple0;
-	});
-});
-
-
-
-// SCROLLING
-
-
-function _Browser_getScroll(id)
-{
-	return _Browser_withNode(id, function(node) {
-		return __Utils_Tuple2(node.scrollLeft, node.scrollTop);
-	});
-}
-
-var _Browser_setPositiveScroll = F3(function(scroll, id, offset)
-{
-	return _Browser_withNode(id, function(node) {
-		node[scroll] = offset;
-		return __Utils_Tuple0;
-	});
-});
-
-var _Browser_setNegativeScroll = F4(function(scroll, scrollMax, id, offset)
-{
-	return _Browser_withNode(id, function(node) {
-		node[scroll] = node[scrollMax] - offset;
-		return __Utils_Tuple0;
-	});
-});
-
-
-
 // GLOBAL EVENTS
 
 
@@ -343,5 +286,146 @@ function _Browser_now()
 	return __Scheduler_binding(function(callback)
 	{
 		callback(__Scheduler_succeed(Date.now()));
+	});
+}
+
+
+
+// DOM STUFF
+
+
+function _Browser_withNode(id, doStuff)
+{
+	return __Scheduler_binding(function(callback)
+	{
+		_Browser_requestAnimationFrame(function() {
+			var node = document.getElementById(id);
+			callback(node
+				? __Scheduler_succeed(doStuff(node))
+				: __Scheduler_fail(__Dom_NotFound(id))
+			);
+		});
+	});
+}
+
+
+function _Browser_withWindow(doStuff)
+{
+	return __Scheduler_binding(function(callback)
+	{
+		_Browser_requestAnimationFrame(function() {
+			callback(__Scheduler_succeed(doStuff())
+		});
+	});
+}
+
+
+// FOCUS and BLUR
+
+
+var _Browser_call = F2(function(functionName, id)
+{
+	return _Browser_withNode(id, function(node) {
+		node[functionName]();
+		return __Utils_Tuple0;
+	});
+});
+
+
+
+// WINDOW VIEWPORT
+
+
+function _Browser_getViewport()
+{
+	var node = _Browser_doc.documentElement;
+	return {
+		__$scene: {
+			__$width: node.scrollWidth,
+			__$height: node.scrollHeight
+		},
+		__$viewport: {
+			__$x: _Browser_window.pageXOffset,
+			__$y: _Browser_window.pageYOffset,
+			__$width: node.clientWidth,
+			__$height: node.clientHeight
+		}
+	};
+}
+
+
+var _Browser_setViewport = F2(function(x, y)
+{
+	return _Browser_withWindow(function()
+	{
+		_Browser_window.scroll(x, y);
+		return __Utils_Tuple0;
+	});
+});
+
+
+
+// ELEMENT VIEWPORT
+
+
+function _Browser_getViewportOf(id)
+{
+	return _Browser_withNode(id, function(node)
+	{
+		return {
+			__$scene: {
+				__$width: node.scrollWidth,
+				__$height: node.scrollHeight
+			},
+			__$viewport: {
+				__$x: node.scrollLeft,
+				__$y: node.scrollTop,
+				__$width: node.clientWidth,
+				__$height: node.clientHeight
+			}
+		};
+	});
+}
+
+
+var _Browser_setViewportOf = F3(function(id, x, y)
+{
+	return _Browser_withNode(id, function(node)
+	{
+		node.scrollLeft = x;
+		node.scrollTop = y;
+		return __Utils_Tuple0;
+	});
+});
+
+
+
+// ELEMENT
+
+
+function _Browser_getElement(id)
+{
+	return _Browser_withNode(id, function(node)
+	{
+		var node = _Browser_doc.documentElement;
+		var rect = node.getBoundingClientRect();
+		return {
+			__$scene: {
+				__$width: node.scrollWidth,
+				__$height: node.scrollHeight
+			},
+			__$viewport: {
+				__$x: _Browser_window.pageXOffset,
+				__$y: _Browser_window.pageYOffset,
+				__$width: node.clientWidth,
+				__$height: node.clientHeight
+			},
+			__$element: {
+				__$x: rect.top,
+				__$y: rect.left,
+				__$width: rect.width,
+				__$height: rect.height
+			}
+		};
 	});
 }
