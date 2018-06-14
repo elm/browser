@@ -1,19 +1,65 @@
 module Browser.Dom exposing
   ( focus, blur, Error(..)
-  , scrollIntoView
-  , getScroll
-  , setScrollTop, setScrollBottom
-  , setScrollLeft, setScrollRight
+  , getViewport, Viewport, getViewportOf
+  , setViewport, setViewportOf
+  , getElement, Element
   )
 
-{-|
+
+{-| This module allows you to manipulate the DOM in various ways. It covers:
+
+- Focus and blur input elements.
+- Get the `width` and `height` of elements.
+- Get the `x` and `y` coordinates of elements.
+- Figure out the scroll position.
+- Change the scroll position!
+
+We use different terminology than JavaScript though...
+
+
+# Terminology
+
+Have you ever thought about how &ldquo;scrolling&rdquo; is a metaphor about
+scrolls? Like hanging scrolls of caligraphy made during the Han Dynasty
+in China?
+
+This metaphor falls apart almost immediately though. For example, many scrolls
+read horizontally! Like a [Sefer Torah][torah] or [Chinese Handscrolls][hand].
+The two sides move independently, sometimes kept in place with stones. What is
+a scroll bar in this world? And [hanging scrolls][hang] (which _are_ displayed
+vertically) do not &ldquo;scroll&rdquo; at all! They hang!
+
+So in JavaScript, we start with a badly stretched metaphor and add a bunch of
+DOM details like padding, borders, and margins. How do those relate to scrolls?
+For example, JavaScript has `clientWidth`. Client like a feudal state that pays
+tribute to the emperor? And `offsetHeight`. Can an offset even have height? And
+what has that got to do with scrolls?
+
+So instead of inheriting this metaphorical hodge-podge, we use terminology from
+3D graphics. You have a **scene** containing all your elements and a **viewport**
+into the scene. I think it ends up being a lot clearer, but you can evaluate
+for yourself when you see the diagrams later!
+
+**Note:** For more scroll facts, I recommend [A Day on the Grand Canal with
+the Emperor of China or: Surface Is Illusion But So Is Depth][doc] where David
+Hockney explores the history of _perspective_ in art. Really interesting!
+
+[torah]: https://en.wikipedia.org/wiki/Sefer_Torah
+[hand]: https://www.metmuseum.org/toah/hd/chhs/hd_chhs.htm
+[hang]: https://en.wikipedia.org/wiki/Hanging_scroll
+[doc]: https://www.imdb.com/title/tt0164525/
 
 # Focus
 @docs focus, blur, Error
 
-# Scroll
-@docs scrollIntoView, getScroll, setScrollTop, setScrollBottom, setScrollLeft, setScrollRight
+# Get Viewport
+@docs getViewport, Viewport, getViewportOf
 
+# Set Viewport
+@docs setViewport, setViewportOf
+
+# Position
+@docs getElement, Element
 
 -}
 
@@ -21,12 +67,6 @@ module Browser.Dom exposing
 
 import Elm.Kernel.Browser
 import Task exposing (Task)
-
-
-{-| All the DOM functions here look nodes up by their `id`. If you ask for an
-`id` that is not in the DOM, you will get this error.
--}
-type Error = NotFound String
 
 
 
@@ -47,7 +87,7 @@ like `<input type="text" id="search-box">` you could say:
 
 Notice that this code ignores the possibility that `search-box` is not used
 as an `id` by any node, failing silently in that case. It would be better to
-log the failure with whatever error reporting software you use.
+log the failure with whatever error reporting system you use.
 -}
 focus : String -> Task Error ()
 focus =
@@ -65,6 +105,10 @@ like `<input type="text" id="search-box">` to lose focus you could say:
     unfocusSearchBox : Cmd Msg
     unfocusSearchBox =
       Task.attempt (\_ -> NoOp) (Dom.blur "search-box")
+
+Notice that this code ignores the possibility that `search-box` is not used
+as an `id` by any node, failing silently in that case. It would be better to
+log the failure with whatever error reporting system you use.
 -}
 blur : String -> Task Error ()
 blur =
@@ -72,79 +116,251 @@ blur =
 
 
 
+-- ERROR
 
--- SCROLL
+
+{-| Many functions in this module look up DOM nodes up by their `id`. If you
+ask for an `id` that is not in the DOM, you will get this error.
+-}
+type Error = NotFound String
 
 
-{-| Find a DOM node by `id` and scroll it into view. Maybe we want to scroll
-to arbitrary headers in a long document? We could define a `scrollTo`
-function like this:
+
+-- VIEWPORT
+
+
+{-| Get information on the current viewport of the browser.
+
+![getViewport](TODO)
+
+If you want to move the viewport around (i.e. change the scroll position) you
+can use [`setViewport`](#setViewport) or [`moveViewport`](#moveViewport) which
+change the `x` and `y` of the viewport.
+-}
+getViewport : Task x Viewport
+getViewport =
+  Debug.todo "getViewport"
+
+
+
+{-| All the information about the current viewport.
+
+![getViewport](TODO)
+
+-}
+type alias Viewport =
+  { scene :
+      { width : Float
+      , height : Float
+      }
+  , viewport :
+      { x : Float
+      , y : Float
+      , width : Float
+      , height : Float
+      }
+  }
+
+
+{-| Just like `getViewport`, but for any scrollable DOM node. Say we have an
+application with a chat box in the bottow right corner like this:
+
+![chat](TODO)
+
+There are probably a whole bunch of messages that are not being shown. You
+could scroll up to see them all. Well, we can think of that chat box is a
+viewport into a scene!
+
+![getViewportOf](TODO)
+
+This can be useful with [`setViewportOf`](#setViewportOf) to make sure new
+messages always appear on the bottom.
+
+The viewport size *does not* include the border or margins.
+
+**Note:** This data is collected from specific fields in JavaScript, so it
+may be helpful to know that:
+
+- `scene.width` = [`scrollWidth`][sw]
+- `scene.height` = [`scrollHeight`][sh]
+- `viewport.x` = [`scrollTop`][st]
+- `viewport.y` = [`scrollLeft`][sl]
+- `viewport.width` = [`clientWidth`][cw]
+- `viewport.height` = [`clientHeight`][ch]
+
+Neither [`offsetWidth`][ow] nor [`offsetHeight`][oh] are available. The theory
+is that (1) the information can always be obtained by using `getElement` on a
+node without margins, (2) no cases came to mind where you actually care in the
+first place, and (3) it is available through ports if it is really needed.
+If you have a case that really needs it though, please share your specific
+scenario in an issue! Nicely presented case studies are the raw ingredients for
+API improvements!
+
+[sw]: https://developer.mozilla.org/en-US/docs/Web/API/Element/scrollWidth
+[sh]: https://developer.mozilla.org/en-US/docs/Web/API/Element/scrollHeight
+[st]: https://developer.mozilla.org/en-US/docs/Web/API/Element/scrollTop
+[sl]: https://developer.mozilla.org/en-US/docs/Web/API/Element/scrollLeft
+[cw]: https://developer.mozilla.org/en-US/docs/Web/API/Element/clientWidth
+[ch]: https://developer.mozilla.org/en-US/docs/Web/API/Element/clientHeight
+[ow]: https://developer.mozilla.org/en-US/docs/Web/API/Element/offsetWidth
+[oh]: https://developer.mozilla.org/en-US/docs/Web/API/Element/offsetHeight
+-}
+getViewportOf : String -> Task Error Viewport
+getViewportOf =
+  Debug.todo "getViewportOf"
+
+
+
+-- SET VIEWPORT
+
+
+{-| Change the `x` and `y` offset of the browser viewport immediately. For
+example, you could make a command to jump to the top of the page:
 
     import Browser.Dom as Dom
     import Task
 
     type Msg = NoOp
 
-    scrollTo : String -> Cmd Msg
-    scrollTo id =
-      Task.attempt (\_ -> NoOp) (Dom.scrollIntoView id)
+    resetViewport : Cmd Msg
+    resetViewport =
+      Task.perform (\_ -> NoOp) (Dom.setViewport 0 0)
+
+This sets the viewport offset to zero.
+
+This could be useful with `Browser.application` where you may want to reset
+the viewport when the URL changes. Maybe you go to a &ldquo;new page&rdquo;
+and want people to start at the top!
 -}
-scrollIntoView : String -> Task Error ()
-scrollIntoView =
-  Elm.Kernel.Browser.call "scrollIntoView"
+setViewport : Float -> Float -> Task x ()
+setViewport =
+  Debug.todo "setViewport"
 
 
-{-| Find a DOM node by `id` and get its `scrollLeft` and `scrollTop` values.
--}
-getScroll : String -> Task Error ( Float, Float )
-getScroll =
-  Elm.Kernel.Browser.getScroll
-
-
-{-| Find a DOM node by `id` and set the scroll offset from the top. If we want
-to scroll to the top, we can say:
+{-| Change the `x` and `y` offset of a DOM node&rsquo;s viewport by ID. This
+is common in text messaging and chat rooms, where once the messages fill the
+screen, you want to always be at the very bottom of the message chain. This
+way the latest message is always on screen! You could do this:
 
     import Browser.Dom as Dom
     import Task
 
     type Msg = NoOp
 
-    scrollToTop : String -> Cmd Msg
-    scrollToTop id =
-      Task.attempt (\_ -> NoOp) (Dom.setScrollTop id 0)
+    jumpToBottom : String -> Cmd Msg
+    jumpToBottom id =
+      Dom.getViewportOf id
+        |> Task.andThen (\info -> Dom.setViewportOf id 0 (info.scene.height - info.viewport.hight))
+        |> Task.perform (\_ -> NoOp)
 
-So the offset from the top is zero. If we said `setScrollTop id 100` the
-content would be scrolled down 100 pixels.
+This first gets the current information. How tall is the scene? How tall is
+the viewport? We want the new viewport offset to be `scene.height - viewport.height`
+so it is right at the end of the scene.
+
+So you could call `jumpToBottom "chat-box"` whenever you add a new message.
+
+**Note:** The example here just ignores when the element ID is not found, but
+it would be better to log that information. It means there may be a bug or a
+dead link somewhere!
 -}
-setScrollTop : String -> Float -> Task Error ()
-setScrollTop =
-  Elm.Kernel.Browser.setPositiveScroll "scrollTop"
+setViewportOf : String -> Float -> Float -> Task Error ()
+setViewportOf =
+  Debug.todo "setViewportOf"
 
 
-{-| Same as [`setScrollTop`](#setScrollTop), but it sets the scroll offset
-from the bottom. So saying `setScrollBottom id 0` scrolls all the way down.
-That can be useful in a chat room where messages keep appearing.
 
-If you said `setScrollBottom id 200`, it is like you scrolled all the way to
-the bottom and then scrolled up 200 pixels.
+-- SLIDE VIEWPORT
+
+
+{-| Change the `x` and `y` offset of the viewport with an animation. In JS,
+this corresponds to setting [`scroll-behavior`][sb] to `smooth`.
+
+This can definitely be overused, so try to use it specifically when you want
+the user to be spatially situated in a scene. For example, a &ldquo;back to
+top&rdquo; button might use it:
+
+    import Browser.Dom as Dom
+    import Task
+
+    type Msg = NoOp
+
+    backToTop : Cmd Msg
+    backToTop =
+      Task.perform (\_ -> NoOp) (Dom.slideViewport 0 0)
+
+Be careful when paring this with `Browser.application`. When the URL changes
+and a whole new scene is going to be rendered, using `setViewport` is probably
+best. If you are moving within a scene, you may benefit from a mix of
+`setViewport` and `slideViewport`. Sliding to the top is nice, but sliding
+around everywhere is probably annoying.
+
+[sb]: https://developer.mozilla.org/en-US/docs/Web/CSS/scroll-behavior
 -}
-setScrollBottom : String -> Float -> Task Error ()
-setScrollBottom =
-  Elm.Kernel.Browser.setNegativeScroll "scrollTop" "scrollHeight"
+slideViewport : Float -> Float -> Task x ()
+slideViewport =
+  Debug.todo "slideViewport"
 
 
-{-| Same as [`setScrollTop`](#setScrollTop), but it sets the horizontal scroll
-offset from the left side.
+slideViewportOf : String -> Float -> Float -> Task Error ()
+slideViewportOf =
+  Debug.todo "slideViewportOf"
+
+
+
+-- ELEMENT
+
+
+{-| Get position information about specific elements. Say we put
+`id "jesting-aside"` on the seventh paragraph of the text. When we call
+`getElement "jesting-aside"` we would get the following information:
+
+![getElement](TODO)
+
+This can be useful for:
+
+- **Scrolling** &mdash; Pair this information with `setViewport` to scroll
+specific elements into view. This gives you a lot of control over where exactly
+the element would be after the viewport moved.
+
+- **Drag and Drop** &mdash; As of this writing, `touchmove` events do not tell
+you which element you are currently above. To figure out if you have dragged
+something over the target, you could see if the `pageX` and `pageY` of the
+touch are inside the `x`, `y`, `width`, and `height` of the target element.
+
+**Note:** This corresponds to JavaScript&rsquo;s [`getBoundingClientRect`][gbcr],
+so **the element&rsquo;s margins are included in its `width` and `height`**.
+With scrolling, maybe you want to include the margins. With drag-and-drop, you
+probably do not, so some folks set the margins to zero and put the target
+element in a `<div>` that adds the spacing. Just something to be aware of!
+
+[gbcr]: https://developer.mozilla.org/en-US/docs/Web/API/Element/getBoundingClientRect
 -}
-setScrollLeft : String -> Float -> Task Error ()
-setScrollLeft =
-  Elm.Kernel.Browser.setPositiveScroll "scrollLeft"
+getElement : String -> Task Error Element
+getElement =
+  Debug.todo "getElement"
 
 
-{-| Same as [`setScrollTop`](#setScrollTop), but it sets the horizontal scroll
-offset from the right side.
+{-| A bunch of information about the position and size of an element relative
+to the overall scene.
+
+![getViewport](TODO)
+
 -}
-setScrollRight : String -> Float -> Task Error ()
-setScrollRight =
-  Elm.Kernel.Browser.setNegativeScroll "scrollLeft" "scrollWidth"
-
+type alias Element =
+  { scene :
+      { width : Float
+      , height : Float
+      }
+  , viewport :
+      { x : Float
+      , y : Float
+      , width : Float
+      , height : Float
+      }
+  , element :
+      { x : Float
+      , y : Float
+      , width : Float
+      , height : Float
+      }
+  }
