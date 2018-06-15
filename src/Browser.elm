@@ -26,13 +26,12 @@ module Browser exposing
 -}
 
 
-
-import Dict
-import Browser.NavigationManager as Navigation
+import Browser.Navigation as Navigation
 import Debugger.Main
+import Dict
 import Elm.Kernel.Browser
-import Url
 import Html exposing (Html)
+import Url
 
 
 
@@ -199,7 +198,7 @@ reading a calculus book from page 314, it might seem confusing. Same here!
 [this]: https://github.com/elm/browser/blob/1.0.0/notes/navigation-in-elements.md
 -}
 application :
-  { init : flags -> Url.Url -> (model, Cmd msg)
+  { init : flags -> Url.Url -> Navigation.Key -> (model, Cmd msg)
   , view : model -> Document msg
   , update : msg -> model -> ( model, Cmd msg )
   , subscriptions : model -> Sub msg
@@ -207,13 +206,8 @@ application :
   , onUrlChange : Url.Url -> msg
   }
   -> Program flags model msg
-application impl =
-  Elm.Kernel.Browser.document
-    { init = \flags -> impl.init flags (unsafeToUrl (Elm.Kernel.Browser.getUrl ()))
-    , view = Elm.Kernel.Browser.toApplicationView impl.view
-    , update = impl.update
-    , subscriptions = Navigation.addListen impl.onNavigation impl.subscriptions
-    }
+application =
+  Elm.Kernel.Browser.application
 
 
 {-| All links in an [`application`](#application) create a `UrlRequest`. So

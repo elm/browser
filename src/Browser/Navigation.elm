@@ -1,5 +1,6 @@
 module Browser.Navigation exposing
-  ( pushUrl
+  ( Key
+  , pushUrl
   , replaceUrl
   , back
   , forward
@@ -10,7 +11,7 @@ module Browser.Navigation exposing
 
 
 {-| This module helps you manage the browser’s URL yourself. This is the
-crucial trick in creating single-page apps.
+crucial trick when using [`Browser.application`](Browser#application).
 
 The most important function is [`pushUrl`](#pushUrl) which changes the
 address bar *without* starting a page load.
@@ -39,7 +40,7 @@ want!
 
 
 # Navigate within Page
-@docs pushUrl, replaceUrl, back, forward
+@docs Key, pushUrl, replaceUrl, back, forward
 
 # Navigate to other Pages
 @docs load, reload, reloadAndSkipCache
@@ -47,14 +48,26 @@ want!
 -}
 
 
-import Browser.NavigationManager as Navigation
 import Elm.Kernel.Browser
-import Json.Decode as Decode
 import Task exposing (Task)
 
 
 
--- CHANGE HISTORY
+-- WITHIN PAGE
+
+
+{-| To create a reliable application, the URL needs to be managed in one place.
+Otherwise, you are bound to end up with some tricky bugs as described [here][].
+
+So a navigation `Key` is needed to use `pushUrl`, `replaceUrl`, `back`, and
+`forward`. And a navigation `Key` is only available when you create your
+program with [`Browser.application`][app]. This ensures that no one ever misses
+URL changes.
+
+[here]: https://github.com/elm/browser/blob/1.0.0/notes/navigation-in-elements.md
+[app]: Browser#application
+-}
+type Key = Key
 
 
 {-| Change the URL, but do not trigger a page load.
@@ -74,9 +87,9 @@ pages&rdquo; that the user can go `forward` to. Adding a new URL in that
 scenario will clear out any future pages. It is like going back in time and
 making a different choice.
 -}
-pushUrl : String -> Cmd msg
+pushUrl : Key -> String -> Cmd msg
 pushUrl =
-  Navigation.pushUrl
+  Elm.Kernel.Browser.pushUrl
 
 
 {-| Change the URL, but do not trigger a page load.
@@ -88,13 +101,9 @@ the URL to match without adding a history entry for every single key stroke.
 Imagine how annoying it would be to click `back` thirty times and still be on
 the same page!
 -}
-replaceUrl : String -> Cmd msg
+replaceUrl : Key -> String -> Cmd msg
 replaceUrl =
-  Navigation.replaceUrl
-
-
-
--- NAVIGATE HISTORY
+  Elm.Kernel.Browser.replaceUrl
 
 
 {-| Go back some number of pages. So `back 1` goes back one page, and `back 2`
@@ -105,9 +114,9 @@ library as letting you have access to a small part of the overall history. So
 if you go back farther than the history you own, you will just go back to some
 other website!
 -}
-back : Int -> Cmd msg
-back n =
-  Navigation.forward -n
+back : Key -> Int -> Cmd msg
+back key n =
+  Elm.Kernel.Browser.go key -n
 
 
 {-| Go forward some number of pages. So `forward 1` goes forward one page, and
@@ -119,19 +128,21 @@ library as letting you have access to a small part of the overall history. So
 if you go forward farther than the history you own, the user will end up on
 whatever website they visited next!
 -}
-forward : Int -> Cmd msg
+forward : Key -> Int -> Cmd msg
 forward =
-  Navigation.forward
+  Elm.Kernel.Browser.go
 
 
 
--- PAGE LOADS
+-- EXTERNAL PAGES
 
 
 {-| Leave the current page and load the given URL. **This always results in a
 page load**, even if the provided URL is the same as the current one.
 
-    load "https://elm-lang.org"
+    gotoElmWebsite : Cmd msg
+    gotoElmWebsite =
+      load "https://elm-lang.org"
 
 Check out the [`elm/url`][url] package for help building URLs. The
 [`Url.absolute`][abs] and [`Url.relative`][rel] functions can be particularly
@@ -142,7 +153,7 @@ handy!
 [rel]: /packages/elm/url/latest/Url#relative
 
 -}
-load : String -> Task Never Never
+load : String -> Cmd msg
 load =
   Elm.Kernel.Browser.load
 
@@ -152,7 +163,7 @@ This may grab resources from the browser cache, so use
 [`reloadAndSkipCache`](#reloadAndSkipCache)
 if you want to be sure that you are not loading any cached resources.
 -}
-reload : Task Never Never
+reload : Cmd msg
 reload =
   Elm.Kernel.Browser.reload False
 
@@ -160,6 +171,6 @@ reload =
 {-| Reload the current page without using the browser cache. **This always
 results in a page load!** It is more common to want [`reload`](#reload).
 -}
-reloadAndSkipCache : Task Never Never
+reloadAndSkipCache : Cmd msg
 reloadAndSkipCache =
   Elm.Kernel.Browser.reload True
