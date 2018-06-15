@@ -1,5 +1,7 @@
 /*
 
+import Basics exposing (never)
+import Browser exposing (Internal, External)
 import Browser.Dom as Dom exposing (NotFound)
 import Elm.Kernel.Debug exposing (crash)
 import Elm.Kernel.Debugger exposing (element, document)
@@ -8,99 +10,14 @@ import Elm.Kernel.List exposing (Nil)
 import Elm.Kernel.Platform exposing (initialize)
 import Elm.Kernel.Scheduler exposing (binding, fail, rawSpawn, succeed, spawn)
 import Elm.Kernel.Utils exposing (Tuple0, Tuple2)
-import Elm.Kernel.VirtualDom exposing (appendChild, applyPatches, diff, doc, node, passiveSupported, render)
+import Elm.Kernel.VirtualDom exposing (appendChild, applyPatches, diff, doc, node, passiveSupported, render, divertHrefToApp)
 import Json.Decode as Json exposing (map)
 import Maybe exposing (Just, Nothing)
 import Result exposing (isOk)
+import Task exposing (perform)
+import Url exposing (fromString)
 
 */
-
-
-
-// FAKE NAVIGATION
-
-
-function _Browser_go(n)
-{
-	return __Scheduler_binding(function(callback)
-	{
-		if (n !== 0)
-		{
-			history.go(n);
-		}
-		callback(__Scheduler_succeed(__Utils_Tuple0));
-	});
-}
-
-
-function _Browser_pushState(url)
-{
-	return __Scheduler_binding(function(callback)
-	{
-		history.pushState({}, '', url);
-		callback(__Scheduler_succeed(_Browser_getUrl()));
-	});
-}
-
-
-function _Browser_replaceState(url)
-{
-	return __Scheduler_binding(function(callback)
-	{
-		history.replaceState({}, '', url);
-		callback(__Scheduler_succeed(_Browser_getUrl()));
-	});
-}
-
-
-
-// REAL NAVIGATION
-
-
-function _Browser_reload(skipCache)
-{
-	return __Scheduler_binding(function(callback)
-	{
-		__VirtualDom_doc.location.reload(skipCache);
-	});
-}
-
-function _Browser_load(url)
-{
-	return __Scheduler_binding(function(callback)
-	{
-		try
-		{
-			_Browser_window.location = url;
-		}
-		catch(err)
-		{
-			// Only Firefox can throw a NS_ERROR_MALFORMED_URI exception here.
-			// Other browsers reload the page, so let's be consistent about that.
-			__VirtualDom_doc.location.reload(false);
-		}
-	});
-}
-
-
-
-// GET URL
-
-
-function _Browser_getUrl()
-{
-	return __VirtualDom_doc.location.href;
-}
-
-
-
-// DETECT IE11 PROBLEMS
-
-
-function _Browser_isInternetExplorer11()
-{
-	return _Browser_window.navigator.userAgent.indexOf('Trident') !== -1;
-}
 
 
 
@@ -154,28 +71,25 @@ var _Browser_document = __Debugger_document || F4(function(impl, flagDecoder, de
 		impl.__$update,
 		impl.__$subscriptions,
 		function(sendToApp, initialModel) {
+			var divertHrefToApp = impl.__$setup && impl.__$setup(sendToApp)
 			var view = impl.__$view;
 			var title = __VirtualDom_doc.title;
 			var bodyNode = __VirtualDom_doc.body;
 			var currNode = _VirtualDom_virtualize(bodyNode);
 			return _Browser_makeAnimator(initialModel, function(model)
 			{
+				__VirtualDom_divertHrefToApp = divertHrefToApp;
 				var doc = view(model);
 				var nextNode = __VirtualDom_node('body')(__List_Nil)(doc.__$body);
 				var patches = __VirtualDom_diff(currNode, nextNode);
 				bodyNode = __VirtualDom_applyPatches(bodyNode, currNode, patches, sendToApp);
 				currNode = nextNode;
+				__VirtualDom_divertHrefToApp = 0;
 				(title !== doc.__$title) && (__VirtualDom_doc.title = title = doc.__$title);
 			});
 		}
 	);
 });
-
-
-function _Browser_invalidUrl(url)
-{
-	__Debug_crash(1, url);
-}
 
 
 
@@ -214,6 +128,85 @@ function _Browser_makeAnimator(model, draw)
 				);
 	};
 }
+
+
+
+// APPLICATION
+
+
+function _Browser_application(impl)
+{
+	var key = {};
+	var onUrlChange = impl.__$onUrlChange;
+	var onUrlRequest = impl.__$onUrlRequest;
+	return _Browser_document({
+		__$setup: function(sendToApp)
+		{
+			function reportChange()
+			{
+				sendToApp(onUrlChange(_Browser_getUrl()));
+			}
+
+			key.__change = reportChange;
+
+			_Browser_window.addEventListener('popstate', reportChange);
+			_Browser_window.navigator.userAgent.indexOf('Trident') < 0 || _Browser_window.addEventListener('hashchange', reportChange);
+
+			return F2(function(domNode, event)
+			{
+				event.preventDefault();
+				var href = domNode.href;
+				var curr = _Browser_getUrl();
+				var next = __Url_fromString(href).a;
+				sendToApp(onUrlRequest(
+					(next
+						&& curr.__$protocol === next.__$protocol
+						&& curr.__$host === next.__$host
+						&& curr.__$port_.a === next.__$port_.a
+					)
+						? __Browser_Internal(next)
+						: __Browser_External(href)
+				));
+			});
+		},
+		__$init: function(flags)
+		{
+			return A3(impl.__$init, flags, _Browser_getUrl(), key);
+		},
+		__$view: impl.__$view,
+		__$update: impl.__$update,
+		__$subscriptions: impl.__$subscriptions
+	});
+}
+
+function _Browser_getUrl()
+{
+	return __Url_fromString(__VirtualDom_doc.location.href).a || __Debug_crash(1);
+}
+
+var _Browser_go = F2(function(key, n)
+{
+	return A2(__Task_perform, __Basics_never, __Scheduler_binding(function() {
+		n && history.go(n);
+		key.__change();
+	}));
+});
+
+var _Browser_pushUrl = F2(function(key, url)
+{
+	return A2(__Task_perform, __Basics_never, __Scheduler_binding(function() {
+		history.pushState({}, '', url);
+		key.__change();
+	}));
+});
+
+var _Browser_replaceUrl = F2(function(key, url)
+{
+	return A2(__Task_perform, __Basics_never, __Scheduler_binding(function() {
+		history.replaceState({}, '', url);
+		key.__change();
+	}));
+});
 
 
 
@@ -314,7 +307,7 @@ function _Browser_withWindow(doStuff)
 	return __Scheduler_binding(function(callback)
 	{
 		_Browser_requestAnimationFrame(function() {
-			callback(__Scheduler_succeed(doStuff())
+			callback(__Scheduler_succeed(doStuff()));
 		});
 	});
 }
@@ -428,4 +421,34 @@ function _Browser_getElement(id)
 			}
 		};
 	});
+}
+
+
+
+// LOAD and RELOAD
+
+
+function _Browser_reload(skipCache)
+{
+	return A2(__Task_perform, __Basics_never, __Scheduler_binding(function(callback)
+	{
+		__VirtualDom_doc.location.reload(skipCache);
+	}));
+}
+
+function _Browser_load(url)
+{
+	return A2(__Task_perform, __Basics_never, __Scheduler_binding(function(callback)
+	{
+		try
+		{
+			_Browser_window.location = url;
+		}
+		catch(err)
+		{
+			// Only Firefox can throw a NS_ERROR_MALFORMED_URI exception here.
+			// Other browsers reload the page, so let's be consistent about that.
+			__VirtualDom_doc.location.reload(false);
+		}
+	}));
 }
