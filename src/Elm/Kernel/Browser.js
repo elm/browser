@@ -154,19 +154,22 @@ function _Browser_application(impl)
 
 			return F2(function(domNode, event)
 			{
-				event.preventDefault();
-				var href = domNode.href;
-				var curr = _Browser_getUrl();
-				var next = __Url_fromString(href).a;
-				sendToApp(onUrlRequest(
-					(next
-						&& curr.__$protocol === next.__$protocol
-						&& curr.__$host === next.__$host
-						&& curr.__$port_.a === next.__$port_.a
-					)
-						? __Browser_Internal(next)
-						: __Browser_External(href)
-				));
+				if (!event.ctrlKey && !event.metaKey && !event.shiftKey)
+				{
+					event.preventDefault();
+					var href = domNode.href;
+					var curr = _Browser_getUrl();
+					var next = __Url_fromString(href).a;
+					sendToApp(onUrlRequest(
+						(next
+							&& curr.__$protocol === next.__$protocol
+							&& curr.__$host === next.__$host
+							&& curr.__$port_.a === next.__$port_.a
+						)
+							? __Browser_Internal(next)
+							: __Browser_External(href)
+					));
+				}
 			});
 		},
 		__$init: function(flags)
@@ -400,22 +403,23 @@ function _Browser_getElement(id)
 {
 	return _Browser_withNode(id, function(node)
 	{
-		var node = _Browser_doc.documentElement;
 		var rect = node.getBoundingClientRect();
+		var x = _Browser_window.pageXOffset;
+		var y = _Browser_window.pageYOffset;
 		return {
 			__$scene: {
 				__$width: node.scrollWidth,
 				__$height: node.scrollHeight
 			},
 			__$viewport: {
-				__$x: _Browser_window.pageXOffset,
-				__$y: _Browser_window.pageYOffset,
+				__$x: x,
+				__$y: y,
 				__$width: node.clientWidth,
 				__$height: node.clientHeight
 			},
 			__$element: {
-				__$x: rect.top,
-				__$y: rect.left,
+				__$x: x + rect.left,
+				__$y: y + rect.top,
 				__$width: rect.width,
 				__$height: rect.height
 			}
