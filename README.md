@@ -5,9 +5,6 @@ This library has two main modules:
   - `Browser` &mdash; for creating Elm programs in the browser
   - `Browser.Navigation` &mdash; tools for single-page apps (SPAs)
 
-
-<br>
-
 ## Learning Path
 
 **I highly recommend working through [guide.elm-lang.org][guide] to learn how to use Elm.** It is built around a learning path that introduces concepts gradually.
