@@ -131,7 +131,7 @@ type Error = NotFound String
 
 {-| Get information on the current viewport of the browser.
 
-![getViewport](TODO)
+![getViewport](https://elm.github.io/browser/v1/getViewport.svg)
 
 If you want to move the viewport around (i.e. change the scroll position) you
 can use [`setViewport`](#setViewport) or [`moveViewport`](#moveViewport) which
@@ -145,7 +145,7 @@ getViewport =
 
 {-| All the information about the current viewport.
 
-![getViewport](TODO)
+![getViewport](https://elm.github.io/browser/v1/getViewport.svg)
 
 -}
 type alias Viewport =
@@ -165,13 +165,13 @@ type alias Viewport =
 {-| Just like `getViewport`, but for any scrollable DOM node. Say we have an
 application with a chat box in the bottow right corner like this:
 
-![chat](TODO)
+![chat](https://elm.github.io/browser/v1/chat.svg)
 
 There are probably a whole bunch of messages that are not being shown. You
 could scroll up to see them all. Well, we can think of that chat box is a
 viewport into a scene!
 
-![getViewportOf](TODO)
+![getViewportOf](https://elm.github.io/browser/v1/getViewportOf.svg)
 
 This can be useful with [`setViewportOf`](#setViewportOf) to make sure new
 messages always appear on the bottom.
@@ -319,7 +319,7 @@ slideViewportOf =
 `id "jesting-aside"` on the seventh paragraph of the text. When we call
 `getElement "jesting-aside"` we would get the following information:
 
-![getElement](TODO)
+![getElement](https://elm.github.io/browser/v1/getElement.svg)
 
 This can be useful for:
 
@@ -348,7 +348,7 @@ getElement =
 {-| A bunch of information about the position and size of an element relative
 to the overall scene.
 
-![getViewport](TODO)
+![getElement](https://elm.github.io/browser/v1/getElement.svg)
 
 -}
 type alias Element =
