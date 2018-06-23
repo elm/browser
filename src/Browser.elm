@@ -251,7 +251,7 @@ Having a `UrlRequest` requires a case in your `update` like this:
           case urlRequest of
             Internal url ->
               ( model
-              , Nav.pushUrl (Url.toString url)
+              , Nav.pushUrl model.key (Url.toString url)
               )
 
             External url ->
