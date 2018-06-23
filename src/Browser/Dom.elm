@@ -134,8 +134,8 @@ type Error = NotFound String
 ![getViewport](https://elm.github.io/browser/v1/getViewport.svg)
 
 If you want to move the viewport around (i.e. change the scroll position) you
-can use [`setViewport`](#setViewport) or [`moveViewport`](#moveViewport) which
-change the `x` and `y` of the viewport.
+can use [`setViewport`](#setViewport) which change the `x` and `y` of the
+viewport.
 -}
 getViewport : Task x Viewport
 getViewport =
