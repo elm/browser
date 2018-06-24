@@ -98,9 +98,9 @@ onSelfMsg router newTime {subs, oldTime} =
 
 rAF : Task x Int
 rAF =
-  Elm.Kernel.AnimationFrame.rAF ()
+  Elm.Kernel.Browser.rAF ()
 
 
 now : Task x Int
 now =
-  Elm.Kernel.AnimationFrame.now ()
+  Elm.Kernel.Browser.now ()
