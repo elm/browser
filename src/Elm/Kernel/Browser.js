@@ -334,21 +334,26 @@ var _Browser_call = F2(function(functionName, id)
 
 function _Browser_getViewport()
 {
-	var node = _Browser_doc.documentElement;
 	return {
-		__$scene: {
-			__$width: node.scrollWidth,
-			__$height: node.scrollHeight
-		},
+		__$scene: _Browser_getScene(),
 		__$viewport: {
 			__$x: _Browser_window.pageXOffset,
 			__$y: _Browser_window.pageYOffset,
-			__$width: node.clientWidth,
-			__$height: node.clientHeight
+			__$width: _Browser_doc.documentElement.clientWidth,
+			__$height: _Browser_doc.documentElement.clientHeight
 		}
 	};
 }
 
+function _Browser_getScene()
+{
+	var body = _Browser_doc.body;
+	var elem = _Browser_doc.documentElement;
+	return {
+		__$width: Math.max(body.scrollWidth, body.offsetWidth, elem.scrollWidth, elem.offsetWidth, elem.clientWidth),
+		__$height: Math.max(body.scrollHeight, body.offsetHeight, elem.scrollHeight, elem.offsetHeight, elem.clientHeight)
+	};
+}
 
 var _Browser_setViewport = F2(function(x, y)
 {
@@ -407,15 +412,12 @@ function _Browser_getElement(id)
 		var x = _Browser_window.pageXOffset;
 		var y = _Browser_window.pageYOffset;
 		return {
-			__$scene: {
-				__$width: node.scrollWidth,
-				__$height: node.scrollHeight
-			},
+			__$scene: _Browser_getScene(),
 			__$viewport: {
 				__$x: x,
 				__$y: y,
-				__$width: node.clientWidth,
-				__$height: node.clientHeight
+				__$width: _Browser_doc.documentElement.clientWidth,
+				__$height: _Browser_doc.documentElement.clientHeight
 			},
 			__$element: {
 				__$x: x + rect.left,
