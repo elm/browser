@@ -9,7 +9,7 @@ import Elm.Kernel.List exposing (Cons, Nil)
 import Elm.Kernel.Platform exposing (initialize)
 import Elm.Kernel.Scheduler exposing (binding, succeed)
 import Elm.Kernel.Utils exposing (Tuple0, Tuple2, ap)
-import Elm.Kernel.VirtualDom exposing (node, applyPatches, diff, doc, makeStepper, map, render, virtualize)
+import Elm.Kernel.VirtualDom exposing (node, applyPatches, diff, doc, makeStepper, map, render, virtualize, divertHrefToApp)
 import Json.Decode as Json exposing (map)
 import List exposing (map, reverse)
 import Maybe exposing (Just, Nothing)
@@ -105,6 +105,7 @@ var _Debugger_document = F4(function(impl, flagDecoder, debugMetadata, args)
 		__Main_wrapSubs(impl.__$subscriptions),
 		function(sendToApp, initialModel)
 		{
+			var divertHrefToApp = impl.__$setup && impl.__$setup(sendToApp)
 			var view = impl.__$view;
 			var title = __VirtualDom_doc.title;
 			var bodyNode = __VirtualDom_doc.body;
@@ -114,6 +115,7 @@ var _Debugger_document = F4(function(impl, flagDecoder, debugMetadata, args)
 
 			return _Browser_makeAnimator(initialModel, function(model)
 			{
+				__VirtualDom_divertHrefToApp = divertHrefToApp;
 				var doc = view(__Main_getUserModel(model));
 				var nextNode = __VirtualDom_node('body')(__List_Nil)(
 					__Utils_ap(
@@ -124,6 +126,7 @@ var _Debugger_document = F4(function(impl, flagDecoder, debugMetadata, args)
 				var patches = __VirtualDom_diff(currNode, nextNode);
 				bodyNode = __VirtualDom_applyPatches(bodyNode, currNode, patches, sendToApp);
 				currNode = nextNode;
+				__VirtualDom_divertHrefToApp = 0;
 				(title !== doc.__$title) && (__VirtualDom_doc.title = title = doc.__$title);
 
 				// update blocker
