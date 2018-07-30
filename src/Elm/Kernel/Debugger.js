@@ -106,7 +106,7 @@ var _Debugger_document = F4(function(impl, flagDecoder, debugMetadata, args)
 		__Main_wrapSubs(impl.__$subscriptions),
 		function(sendToApp, initialModel)
 		{
-			var divertHrefToApp = impl.__$setup && impl.__$setup(sendToApp)
+			var divertHrefToApp = impl.__$setup && impl.__$setup(function(x) { return sendToApp(__Main_UserMsg(x)); });
 			var view = impl.__$view;
 			var title = __VirtualDom_doc.title;
 			var bodyNode = __VirtualDom_doc.body;
