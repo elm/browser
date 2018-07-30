@@ -5,6 +5,7 @@ import Debugger.Main as Main exposing (getUserModel, wrapInit, wrapUpdate, wrapS
 import Debugger.Overlay as Overlay exposing (BlockNone, BlockMost)
 import Elm.Kernel.Browser exposing (makeAnimator)
 import Elm.Kernel.Debug exposing (crash)
+import Elm.Kernel.Json exposing (wrap)
 import Elm.Kernel.List exposing (Cons, Nil)
 import Elm.Kernel.Platform exposing (initialize)
 import Elm.Kernel.Scheduler exposing (binding, succeed)
@@ -39,7 +40,7 @@ var _Debugger_element = F4(function(impl, flagDecoder, debugMetadata, args)
 	return __Platform_initialize(
 		flagDecoder,
 		args,
-		A3(__Main_wrapInit, debugMetadata, _Debugger_popout(), impl.__$init),
+		A3(__Main_wrapInit, __Json_wrap(debugMetadata), _Debugger_popout(), impl.__$init),
 		__Main_wrapUpdate(impl.__$update),
 		__Main_wrapSubs(impl.__$subscriptions),
 		function(sendToApp, initialModel)
@@ -100,7 +101,7 @@ var _Debugger_document = F4(function(impl, flagDecoder, debugMetadata, args)
 	return __Platform_initialize(
 		flagDecoder,
 		args,
-		A3(__Main_wrapInit, debugMetadata, _Debugger_popout(), impl.__$init),
+		A3(__Main_wrapInit, __Json_wrap(debugMetadata), _Debugger_popout(), impl.__$init),
 		__Main_wrapUpdate(impl.__$update),
 		__Main_wrapSubs(impl.__$subscriptions),
 		function(sendToApp, initialModel)
