@@ -136,21 +136,16 @@ function _Browser_makeAnimator(model, draw)
 
 function _Browser_application(impl)
 {
-	var key = {};
 	var onUrlChange = impl.__$onUrlChange;
 	var onUrlRequest = impl.__$onUrlRequest;
+	var key = function() { key.__sendToApp(onUrlChange(_Browser_getUrl())); };
+
 	return _Browser_document({
 		__$setup: function(sendToApp)
 		{
-			function reportChange()
-			{
-				sendToApp(onUrlChange(_Browser_getUrl()));
-			}
-
-			key.__change = reportChange;
-
-			_Browser_window.addEventListener('popstate', reportChange);
-			_Browser_window.navigator.userAgent.indexOf('Trident') < 0 || _Browser_window.addEventListener('hashchange', reportChange);
+			key.__sendToApp = sendToApp;
+			_Browser_window.addEventListener('popstate', key);
+			_Browser_window.navigator.userAgent.indexOf('Trident') < 0 || _Browser_window.addEventListener('hashchange', key);
 
 			return F2(function(domNode, event)
 			{
@@ -191,7 +186,7 @@ var _Browser_go = F2(function(key, n)
 {
 	return A2(__Task_perform, __Basics_never, __Scheduler_binding(function() {
 		n && history.go(n);
-		key.__change();
+		key();
 	}));
 });
 
@@ -199,7 +194,7 @@ var _Browser_pushUrl = F2(function(key, url)
 {
 	return A2(__Task_perform, __Basics_never, __Scheduler_binding(function() {
 		history.pushState({}, '', url);
-		key.__change();
+		key();
 	}));
 });
 
@@ -207,7 +202,7 @@ var _Browser_replaceUrl = F2(function(key, url)
 {
 	return A2(__Task_perform, __Basics_never, __Scheduler_binding(function() {
 		history.replaceState({}, '', url);
-		key.__change();
+		key();
 	}));
 });
 
