@@ -227,12 +227,12 @@ like:
 All of these links exist under the `https://example.com` domain. An `External`
 link would be like:
 
-- `http://example.com/home`
 - `https://elm-lang.org/examples`
-- `data:text/html,%3Ch1%3EHello%2C%20World!%3C%2Fh1%3E`
+- `https://other.example.com/home`
+- `http://example.com/home`
 
-Notice that changing the protocol from `https` to `http` is considered an
-external link! (And vice versa!)
+Anything that changes the domain. Notice that changing the protocol from
+`https` to `http` is considered a different domain! (And vice versa!)
 
 ### Purpose
 
