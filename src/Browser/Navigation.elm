@@ -56,16 +56,17 @@ import Task exposing (Task)
 -- WITHIN PAGE
 
 
-{-| A navigation `Key` is needed to create `pushUrl`, `replaceUrl`, `back`, and
-`forward` commands.
+{-| A navigation `Key` is needed to create navigation commands that change the
+URL. That includes [`pushUrl`](#pushUrl), [`replaceUrl`](#replaceUrl),
+[`back`](#back), and [`forward`](#forward).
 
-A navigation `Key` is only available when you create your program with
-[`Browser.application`](Browser#application). This guarantees that your program
-is equipped to detect _all_ URL changes. If `Key` values were available in
-other kinds of programs, unsuspecting programmers would be sure to run into the
-problems described [here][] the hard way.
+You only get access to a `Key` when you create your program with
+[`Browser.application`](Browser#application), guaranteeing that your program is
+equipped to detect these URL changes. If `Key` values were available in other
+kinds of programs, unsuspecting programmers would be sure to run into some
+[annoying bugs][bugs] and learn a bunch of techniques the hard way!
 
-[here]: https://github.com/elm/browser/blob/1.0.0/notes/navigation-in-elements.md
+[bugs]: https://github.com/elm/browser/blob/1.0.0/notes/navigation-in-elements.md
 -}
 type Key = Key
 
