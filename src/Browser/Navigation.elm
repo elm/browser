@@ -56,16 +56,16 @@ import Task exposing (Task)
 -- WITHIN PAGE
 
 
-{-| To create a reliable application, the URL needs to be managed in one place.
-Otherwise, you are bound to end up with some tricky bugs as described [here][].
+{-| A navigation `Key` is needed to create `pushUrl`, `replaceUrl`, `back`, and
+`forward` commands.
 
-So a navigation `Key` is needed to use `pushUrl`, `replaceUrl`, `back`, and
-`forward`. And a navigation `Key` is only available when you create your
-program with [`Browser.application`][app]. This ensures that no one ever misses
-URL changes.
+A navigation `Key` is only available when you create your program with
+[`Browser.application`](Browser#application). This guarantees that your program
+is equipped to detect _all_ URL changes. If `Key` values were available in
+other kinds of programs, unsuspecting programmers would be sure to run into the
+problems described [here][] the hard way.
 
 [here]: https://github.com/elm/browser/blob/1.0.0/notes/navigation-in-elements.md
-[app]: Browser#application
 -}
 type Key = Key
 
