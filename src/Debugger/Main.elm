@@ -202,8 +202,8 @@ wrapUpdate update msg model =
       )
 
     Open ->
-      ( { model | popout = Elm.Kernel.Debugger.open model.popout }
-      , Cmd.none
+      ( model
+      , Task.perform (\_ -> NoOp) (Elm.Kernel.Debugger.open model.popout)
       )
 
     Up ->

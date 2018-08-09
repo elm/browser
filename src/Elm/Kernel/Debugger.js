@@ -56,6 +56,8 @@ var _Debugger_element = F4(function(impl, flagDecoder, debugMetadata, args)
 			domNode.parentNode.insertBefore(cornerNode, domNode.nextSibling);
 			var cornerCurr = __VirtualDom_virtualize(cornerNode);
 
+			initialModel.__$popout.__sendToApp = sendToApp;
+
 			return _Browser_makeAnimator(initialModel, function(model)
 			{
 				var nextNode = A2(__VirtualDom_map, __Main_UserMsg, view(__Main_getUserModel(model)));
@@ -71,20 +73,20 @@ var _Debugger_element = F4(function(impl, flagDecoder, debugMetadata, args)
 
 				// view corner
 
-				if (model.__$popout.__isClosed)
+				if (!model.__$popout.__doc)
 				{
 					var cornerNext = __Main_cornerView(model);
 					var cornerPatches = __VirtualDom_diff(cornerCurr, cornerNext);
 					cornerNode = __VirtualDom_applyPatches(cornerNode, cornerCurr, cornerPatches, sendToApp);
 					cornerCurr = cornerNext;
+					currPopout = undefined;
 					return;
 				}
 
 				// view popout
 
-				model.__$popout.__doc || (currPopout = _Debugger_openWindow(model.__$popout, sendToApp));
-
 				__VirtualDom_doc = model.__$popout.__doc; // SWITCH TO POPOUT DOC
+				currPopout || (currPopout = __VirtualDom_virtualize(model.__$popout.__doc));
 				var nextPopout = __Main_popoutView(model);
 				var popoutPatches = __VirtualDom_diff(currPopout, nextPopout);
 				__VirtualDom_applyPatches(model.__$popout.__doc.body, currPopout, popoutPatches, sendToApp);
@@ -114,6 +116,8 @@ var _Debugger_document = F4(function(impl, flagDecoder, debugMetadata, args)
 			var currBlocker = __Main_toBlockerType(initialModel);
 			var currPopout;
 
+			initialModel.__$popout.__sendToApp = sendToApp;
+
 			return _Browser_makeAnimator(initialModel, function(model)
 			{
 				__VirtualDom_divertHrefToApp = divertHrefToApp;
@@ -138,11 +142,10 @@ var _Debugger_document = F4(function(impl, flagDecoder, debugMetadata, args)
 
 				// view popout
 
-				if (model.__$popout.__isClosed) return;
-
-				model.__$popout.__doc || (currPopout = _Debugger_openWindow(model.__$popout, sendToApp));
+				if (!model.__$popout.__doc) { currPopout = undefined; return; }
 
 				__VirtualDom_doc = model.__$popout.__doc; // SWITCH TO POPOUT DOC
+				currPopout || (currPopout = __VirtualDom_virtualize(model.__$popout.__doc));
 				var nextPopout = __Main_popoutView(model);
 				var popoutPatches = __VirtualDom_diff(currPopout, nextPopout);
 				__VirtualDom_applyPatches(model.__$popout.__doc.body, currPopout, popoutPatches, sendToApp);
@@ -156,26 +159,27 @@ var _Debugger_document = F4(function(impl, flagDecoder, debugMetadata, args)
 
 function _Debugger_popout()
 {
-	return { __doc: undefined, __isClosed: true };
+	return {
+		__doc: undefined,
+		__sendToApp: undefined
+	};
 }
 
 function _Debugger_isOpen(popout)
 {
-	return !popout.__isClosed;
+	return !!popout.__doc;
 }
 
 function _Debugger_open(popout)
 {
-	popout.__isClosed = false;
-	return popout
+	return __Scheduler_binding(function(callback)
+	{
+		_Debugger_openWindow(popout);
+		callback(__Scheduler_succeed(__Utils_Tuple0));
+	});
 }
 
-
-
-// POPOUT
-
-
-function _Debugger_openWindow(popout, sendToApp)
+function _Debugger_openWindow(popout)
 {
 	var w = 900, h = 360, x = screen.width - w, y = screen.height - h;
 	var debuggerWindow = window.open('', '', 'width=' + w + ',height=' + h + ',left=' + x + ',top=' + y);
@@ -185,29 +189,25 @@ function _Debugger_openWindow(popout, sendToApp)
 	// handle arrow keys
 	doc.addEventListener('keydown', function(event) {
 		event.metaKey && event.which === 82 && window.location.reload();
-		event.which === 38 && (sendToApp(__Main_Up), event.preventDefault());
-		event.which === 40 && (sendToApp(__Main_Down), event.preventDefault());
+		event.which === 38 && (popout.__sendToApp(__Main_Up), event.preventDefault());
+		event.which === 40 && (popout.__sendToApp(__Main_Down), event.preventDefault());
 	});
 
 	// handle window close
 	window.addEventListener('unload', close);
 	debuggerWindow.addEventListener('unload', function() {
 		popout.__doc = undefined;
-		popout.__isClosed = true;
-		sendToApp(__Main_NoOp);
+		popout.__sendToApp(__Main_NoOp);
 		window.removeEventListener('unload', close);
 	});
 	function close() {
 		popout.__doc = undefined;
-		popout.__isClosed = true;
-		sendToApp(__Main_NoOp);
+		popout.__sendToApp(__Main_NoOp);
 		debuggerWindow.close();
 	}
 
 	// register new window
 	popout.__doc = doc;
-	popout.__isClosed = false;
-	return __VirtualDom_virtualize(doc.body);
 }
 
 
