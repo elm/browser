@@ -1,8 +1,9 @@
-import Browser.Mouse as Mouse
+import Browser
+import Browser.Events
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
-
+import Json.Decode as D
 
 
 -- MAIN
@@ -20,7 +21,7 @@ main =
 -- MODEL
 
 
-type Model =
+type alias Model =
   { x : Int
   , y : Int
   , dragState : DragState
@@ -29,12 +30,12 @@ type Model =
 
 type DragState
   = Static
-  | Moving Int Int Int Int
+  | Moving { startX : Int, startY : Int, endX : Int, endY : Int }
 
 
 init : () -> (Model, Cmd Msg)
 init _ =
-  ( Model 100 100 Static
+  ( { x = 0, y = 0, dragState = Static }
   , Cmd.none
   )
 
@@ -42,37 +43,52 @@ init _ =
 
 -- UPDATE
 
-
 type Msg
-  = Start Int Int
-  | Move Int Int
-  | Stop Int Int
+  = Start Point
+  | Move Point
+  | Stop Point
 
+type alias Point =
+    { x : Int, y : Int }
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
   case msg of
-    Start x y ->
-      ( { model | dragState = Moving x y x y }
+    Start {x, y} ->
+      ( { model | dragState =
+          Moving
+            { startX = x
+            , startY = y
+            , endX = x
+            , endY = y
+            }
+        }
       , Cmd.none
       )
 
-    Move x y ->
+    Move {x, y} ->
       case model.dragState of
         Static ->
           ( model, Cmd.none )
 
-        Moving startX startY _ _ ->
-          ( { model | dragState = Moving startX startY x y }
+        Moving {startX, startY} ->
+          ( { model | dragState =
+              Moving
+                { startX = startX, startY = startY
+                , endX = x
+                , endY = y
+                }
+            }
+            , Cmd.none
           )
 
-    Stop x y ->
+    Stop {x, y} ->
       case model.dragState of
         Static ->
           ( model, Cmd.none )
 
-        Moving startX startY _ _ ->
-          ( Model (model.x + startX - x) (model.y + startY - y) Static
+        Moving {startX, startY} ->
+          ( Model (model.x - startX + x) (model.y - startY + y) Static
           , Cmd.none
           )
 
@@ -86,19 +102,23 @@ view model =
   let
     (x, y) = getPosition model
   in
+  div [ style "height" "100vh"
+      , style "width" "100vw"
+      , on "mouseup" (D.map2 (fromPoint Stop) pageX pageY)
+      ]
+  [
   div
     [ style "background-color" "rgb(104,216,239)"
     , style "position" "absolute"
-    , style "top"  (String.fromInt x ++ "px")
-    , style "left" (String.fromInt y ++ "px")
+    , style "left" (String.fromInt x ++ "px")
+    , style "top"  (String.fromInt y ++ "px")
     , style "width" "100px"
     , style "height" "100px"
-    , on "mousedown" (D.map2 Start pageX pageY)
-    , on "mouseup" (D.map2 Stop pageX pageY)
+    , on "mousedown" (D.map2 (fromPoint Start) pageX pageY)
     ]
     [ text "Drag me!"
     ]
-
+  ]
 
 getPosition : Model -> (Int, Int)
 getPosition model =
@@ -106,9 +126,12 @@ getPosition model =
     Static ->
       (model.x, model.y)
 
-    Moving startX startY endX endY ->
-      (x + startX - endX, y + startY - endY)
+    Moving m ->
+      (model.x - m.startX + m.endX, model.y - m.startY + m.endY)
 
+fromPoint : (Point -> Msg) -> Int -> Int -> Msg
+fromPoint msg x y =
+    Point x y |> msg
 
 
 -- SUBSCRIPTIONS
@@ -120,8 +143,8 @@ subscriptions model =
     Static ->
       Sub.none
 
-    Moving _ _ _ _ ->
-      Mouse.moves (D.map2 Move pageX pageY)
+    Moving _ ->
+      Browser.Events.onMouseMove (D.map2 (fromPoint Move) pageX pageY)
 
 
 pageX : D.Decoder Int

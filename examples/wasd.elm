@@ -1,7 +1,20 @@
-
-import Browser.Keyboard as Keyboard
-import Browser.Window as Window
+import Browser
+import Browser.Events
+import Html exposing (..)
+import Html.Attributes exposing (..)
 import Json.Decode as D
+
+
+-- MAIN
+
+
+main =
+  Browser.element
+    { init = init
+    , update = update
+    , subscriptions = subscriptions
+    , view = view
+    }
 
 
 
@@ -23,7 +36,13 @@ type KeyStatus = Up | Down
 
 init : () -> ( Model, Cmd Msg )
 init _ =
-  ( Model 0 0 Up Up Up Up
+  ( { x = 0
+    , y = 0
+    , north = Up
+    , south = Up
+    , east = Up
+    , west = Up
+    }
   , Cmd.none
   )
 
@@ -42,12 +61,16 @@ update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
   case msg of
     Change status string ->
-      ( updateKey status string
+      ( updateKey status string model
       , Cmd.none
       )
 
     Blur ->
-      ( Model model.x model.y Up Up Up Up
+      ( { model | north = Up
+                , south = Up
+                , east = Up
+                , west = Up
+                }
       , Cmd.none
       )
 
@@ -74,8 +97,8 @@ updatePosition delta model =
     vy = toOne model.north - toOne model.south
   in
   { model
-      | x = model.x + vx * delta
-      , y = model.y + vy * delta
+      | x = model.x - vx * delta
+      , y = model.y - vy * delta
   }
 
 
@@ -98,11 +121,11 @@ isDown status =
 subscriptions : Model -> Sub Msg
 subscriptions model =
   Sub.batch
-    [ Keyboard.downs (D.map (Change Down) keyDecoder)
-    , Keyboard.ups (D.map (Change Up) keyDecoder)
-    , Window.blurs (D.succeed Blur)
-    , if anyIsDown then
-        Animation.deltas TimeDelta
+    [ Browser.Events.onKeyDown (D.map (Change Down) keyDecoder)
+    , Browser.Events.onKeyUp (D.map (Change Up) keyDecoder)
+    , Browser.Events.onVisibilityChange (always Blur)
+    , if anyIsDown model then
+        Browser.Events.onAnimationFrameDelta TimeDelta
       else
         Sub.none
     ]
@@ -130,8 +153,8 @@ view model =
   div
     [ style "background-color" "rgb(104,216,239)"
     , style "position" "absolute"
-    , style "top"  (String.fromInt (round model.x) ++ "px")
-    , style "left" (String.fromInt (round model.y) ++ "px")
+    , style "left"  (String.fromInt (round model.x) ++ "px")
+    , style "top" (String.fromInt (round model.y) ++ "px")
     , style "width" "100px"
     , style "height" "100px"
     ]
