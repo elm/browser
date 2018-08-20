@@ -90,7 +90,7 @@ or `d` at any given time. Check out how that works in [this example][example].
 It is more complicated than it should be.
 
 [note]: https://github.com/elm/browser/blob/1.0.0/notes/keyboard.md
-[example]: https://github.com/elm/browser/blob/1.0.0/examples/wasd.md
+[example]: https://github.com/elm/browser/blob/1.0.0/examples/wasd.elm
 -}
 onKeyDown : Decode.Decoder msg -> Sub msg
 onKeyDown =
@@ -195,7 +195,7 @@ This may also be useful with [`onKeyDown`](#onKeyDown). If you only listen for
 a keyboard shortcut to switch tabs. Visibility changes will cover those tricky
 cases, like in [this example][example]!
 
-[example]: https://github.com/elm/browser/blob/1.0.0/examples/wasd.md
+[example]: https://github.com/elm/browser/blob/1.0.0/examples/wasd.elm
 -}
 onVisibilityChange : (Visibility -> msg) -> Sub msg
 onVisibilityChange func =
