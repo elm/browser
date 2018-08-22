@@ -70,7 +70,8 @@ onAnimationFrameDelta =
 -- KEYBOARD
 
 
-{-| Subscribe to all key presses.
+{-| Subscribe to key presses that normally produce characters. So you should
+not rely on this for arrow keys.
 
 **Note:** Check out [this advice][note] to learn more about decoding key codes.
 It is more complicated than it should be.
