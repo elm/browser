@@ -203,7 +203,7 @@ onVisibilityChange func =
   let
     info = Elm.Kernel.Browser.visibilityInfo ()
   in
-  on Document info.changes <|
+  on Document info.change <|
     Decode.map (withHidden func) <|
       Decode.field "target" <|
         Decode.field info.hidden Decode.bool
