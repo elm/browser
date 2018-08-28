@@ -265,7 +265,7 @@ case. Maybe on some `Internal` links you save the scroll position with
 later. Maybe on `External` links you persist parts of the `Model` on your
 servers before leaving. Whatever you need to do!
 
-**Note:** Knowing the scroll position is not enough restore it! What if the
+**Note:** Knowing the scroll position is not enough to restore it! What if the
 browser dimensions change? The scroll position will not correlate with
 &ldquo;what was on screen&rdquo; anymore. So it may be better to remember
 &ldquo;what was on screen&rdquo; and recreate the position based on that. For
