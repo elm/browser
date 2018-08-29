@@ -14,40 +14,13 @@ module Browser.Dom exposing
 - Figure out the scroll position.
 - Change the scroll position!
 
-We use different terminology than JavaScript though...
-
 
 # Terminology
 
-Have you ever thought about how &ldquo;scrolling&rdquo; is a metaphor about
-scrolls? Like hanging scrolls of caligraphy made during the Han Dynasty
-in China?
-
-This metaphor falls apart almost immediately though. For example, many scrolls
-read horizontally! Like a [Sefer Torah][torah] or [Chinese Handscrolls][hand].
-The two sides move independently, sometimes kept in place with stones. What is
-a scroll bar in this world? And [hanging scrolls][hang] (which _are_ displayed
-vertically) do not &ldquo;scroll&rdquo; at all! They hang!
-
-So in JavaScript, we start with a badly stretched metaphor and add a bunch of
-DOM details like padding, borders, and margins. How do those relate to scrolls?
-For example, JavaScript has `clientWidth`. Client like a feudal state that pays
-tribute to the emperor? And `offsetHeight`. Can an offset even have height? And
-what has that got to do with scrolls?
-
-So instead of inheriting this metaphorical hodge-podge, we use terminology from
+Instead of inheriting JavaScript's complicated and inadequate metaphors, we use terminology from
 3D graphics. You have a **scene** containing all your elements and a **viewport**
-into the scene. I think it ends up being a lot clearer, but you can evaluate
-for yourself when you see the diagrams later!
+into the scene. Check out the diagrams below to get an idea how this works!
 
-**Note:** For more scroll facts, I recommend [A Day on the Grand Canal with
-the Emperor of China or: Surface Is Illusion But So Is Depth][doc] where David
-Hockney explores the history of _perspective_ in art. Really interesting!
-
-[torah]: https://en.wikipedia.org/wiki/Sefer_Torah
-[hand]: https://www.metmuseum.org/toah/hd/chhs/hd_chhs.htm
-[hang]: https://en.wikipedia.org/wiki/Hanging_scroll
-[doc]: https://www.imdb.com/title/tt0164525/
 
 # Focus
 @docs focus, blur, Error
