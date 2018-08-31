@@ -76,12 +76,12 @@ type Key = Key
 This will add a new entry to the browser history.
 
 Check out the [`elm/url`][url] package for help building URLs. The
-[`Url.absolute`][abs] and [`Url.relative`][rel] functions can be particularly
-handy!
+[`Url.Builder.absolute`][abs] and [`Url.Builder.relative`][rel] functions can 
+be particularly handy!
 
 [url]: /packages/elm/url/latest
-[abs]: /packages/elm/url/latest/Url#absolute
-[rel]: /packages/elm/url/latest/Url#relative
+[abs]: /packages/elm/url/latest/Url-Builder#absolute
+[rel]: /packages/elm/url/latest/Url-Builder#relative
 
 **Note:** If the user has gone `back` a few pages, there will be &ldquo;future
 pages&rdquo; that the user can go `forward` to. Adding a new URL in that
