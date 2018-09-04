@@ -183,8 +183,8 @@ may be helpful to know that:
 
 - `scene.width` = [`scrollWidth`][sw]
 - `scene.height` = [`scrollHeight`][sh]
-- `viewport.x` = [`scrollTop`][st]
-- `viewport.y` = [`scrollLeft`][sl]
+- `viewport.x` = [`scrollLeft`][sl]
+- `viewport.y` = [`scrollTop`][st]
 - `viewport.width` = [`clientWidth`][cw]
 - `viewport.height` = [`clientHeight`][ch]
 
