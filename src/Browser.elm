@@ -42,7 +42,7 @@ import Url
 world.
 
 This is great for learning the basics of [The Elm Architecture][tea]. You can
-see sandboxes in action in tho following examples:
+see sandboxes in action in the following examples:
 
   - [Buttons](https://elm-lang.org/examples/buttons)
   - [Text Field](https://elm-lang.org/examples/field)
