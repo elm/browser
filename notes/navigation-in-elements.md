@@ -19,7 +19,7 @@ var app = Elm.Main.init({
 });
 
 // Inform app of browser navigation (the BACK and FORWARD buttons)
-document.addEventListener('popstate', function () {
+window.addEventListener('popstate', function () {
     app.ports.onUrlChange.send(location.href);
 });
 
