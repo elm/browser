@@ -78,7 +78,7 @@ port onUrlChange : (String -> msg) -> Sub msg
 
 port pushUrl : String -> Cmd msg
 
-link msg -> List (Attribute msg) -> List (Html msg) -> Html msg
+link : msg -> List (Attribute msg) -> List (Html msg) -> Html msg
 link href attrs children =
   a (preventDefaultOn "click" (D.succeed (href, True)) :: attrs) children
 
