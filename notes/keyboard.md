@@ -1,6 +1,6 @@
 # Which key was pressed?
 
-When you listening for global keyboard events, you very likely want to know *which* key was pressed. Unfortunately different browsers implement the [`KeyboardEvent`][ke] values in different ways, so there is no one-size-fit-all solution.
+When you're listening for global keyboard events, you very likely want to know *which* key was pressed. Unfortunately different browsers implement the [`KeyboardEvent`][ke] values in different ways, so there is no one-size-fits-all solution.
 
 [ke]: https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent
 
