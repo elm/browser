@@ -44,9 +44,9 @@ world.
 This is great for learning the basics of [The Elm Architecture][tea]. You can
 see sandboxes in action in the following examples:
 
-  - [Buttons](https://elm-lang.org/examples/buttons)
-  - [Text Field](https://elm-lang.org/examples/field)
-  - [Checkboxes](https://elm-lang.org/examples/checkboxes)
+  - [Buttons](https://guide.elm-lang.org/architecture/buttons.html)
+  - [Text Fields](https://guide.elm-lang.org/architecture/text_fields.html)
+  - [Forms](https://guide.elm-lang.org/architecture/forms.html)
 
 Those are nice, but **I very highly recommend reading [this guide][guide]
 straight through** to really learn how Elm works. Understanding the
