@@ -99,7 +99,7 @@ var _Browser_document = __Debugger_document || F4(function(impl, flagDecoder, de
 var _Browser_cancelAnimationFrame =
 	typeof cancelAnimationFrame !== 'undefined'
 		? cancelAnimationFrame
-		: function(id) { clearTimeout(id); };
+		: clearTimeout;
 
 var _Browser_requestAnimationFrame =
 	typeof requestAnimationFrame !== 'undefined'
