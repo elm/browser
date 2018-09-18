@@ -251,7 +251,7 @@ way the latest message is always on screen! You could do this:
     jumpToBottom id =
       Dom.getViewportOf id
         |> Task.andThen (\info -> Dom.setViewportOf id 0 info.scene.height)
-        |> Task.perform (\_ -> NoOp)
+        |> Task.attempt (\_ -> NoOp)
 
 So you could call `jumpToBottom "chat-box"` whenever you add a new message.
 
