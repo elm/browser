@@ -135,13 +135,17 @@ view config isPaused isOpen numMsgs state =
       else
         if isPaused then
           div
-            [ style "width" "100%"
+            [ id "elm-debugger-overlay"
+            , style "width" "100%"
             , style "height" "100%"
             , style "cursor" "pointer"
             , style "text-align" "center"
             , style "pointer-events" "auto"
             , style "background-color" "rgba(200, 200, 200, 0.7)"
             , style "color" "white"
+            , style "position" "fixed"
+            , style "top" "0"
+            , style "left" "0"
             , style "font-family" "'Trebuchet MS', 'Lucida Grande', 'Bitstream Vera Sans', 'Helvetica Neue', sans-serif"
             , style "z-index" "2147483646"
             , onClick config.resume
