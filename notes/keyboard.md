@@ -87,4 +87,18 @@ toDirection string =
 
 By converting to a specialized `Direction` type, the compiler can guarantee that you never forget to handle one of the valid inputs. If it was a `String`, new code could have typos or missing branches that would be hard to find.
 
+Based on this snippet, this is how the `subscription` and `msg` parts of the code could look like : 
+
+```elm
+type Msg
+    = KeyPressed Direction
+
+...
+
+subscriptions : Model -> Sub Msg
+subscriptions _ =
+    onKeyDown (Json.Decode.map KeyPressed keyDecoder)
+```
+
+
 Hope that helps you write a decoder that works for your scenario!
