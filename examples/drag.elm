@@ -1,7 +1,9 @@
-import Browser.Mouse as Mouse
+import Browser
+import Browser.Events exposing (onMouseMove)
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
+import Json.Decode as D
 
 
 
@@ -20,7 +22,7 @@ main =
 -- MODEL
 
 
-type Model =
+type alias Model =
   { x : Int
   , y : Int
   , dragState : DragState
@@ -64,6 +66,7 @@ update msg model =
 
         Moving startX startY _ _ ->
           ( { model | dragState = Moving startX startY x y }
+          , Cmd.none
           )
 
     Stop x y ->
@@ -72,7 +75,7 @@ update msg model =
           ( model, Cmd.none )
 
         Moving startX startY _ _ ->
-          ( Model (model.x + startX - x) (model.y + startY - y) Static
+          ( Model (model.x + x - startX) (model.y + y - startY) Static
           , Cmd.none
           )
 
@@ -89,8 +92,8 @@ view model =
   div
     [ style "background-color" "rgb(104,216,239)"
     , style "position" "absolute"
-    , style "top"  (String.fromInt x ++ "px")
-    , style "left" (String.fromInt y ++ "px")
+    , style "top"  (String.fromInt y ++ "px")
+    , style "left" (String.fromInt x ++ "px")
     , style "width" "100px"
     , style "height" "100px"
     , on "mousedown" (D.map2 Start pageX pageY)
@@ -107,7 +110,7 @@ getPosition model =
       (model.x, model.y)
 
     Moving startX startY endX endY ->
-      (x + startX - endX, y + startY - endY)
+      ( model.x + endX - startX, model.y + endY - startY )
 
 
 
@@ -121,7 +124,7 @@ subscriptions model =
       Sub.none
 
     Moving _ _ _ _ ->
-      Mouse.moves (D.map2 Move pageX pageY)
+      onMouseMove (D.map2 Move pageX pageY)
 
 
 pageX : D.Decoder Int
