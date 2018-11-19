@@ -375,7 +375,7 @@ function _Debugger_init(value)
 		return __Expando_S("'" + _Debugger_addSlashes(value, true) + "'");
 	}
 
-	if (typeof value === 'object' && '$' in value)
+	if (typeof value === 'object' && value !== null && '$' in value)
 	{
 		var tag = value.$;
 
