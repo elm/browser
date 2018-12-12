@@ -202,8 +202,8 @@ API improvements!
 [sl]: https://developer.mozilla.org/en-US/docs/Web/API/Element/scrollLeft
 [cw]: https://developer.mozilla.org/en-US/docs/Web/API/Element/clientWidth
 [ch]: https://developer.mozilla.org/en-US/docs/Web/API/Element/clientHeight
-[ow]: https://developer.mozilla.org/en-US/docs/Web/API/Element/offsetWidth
-[oh]: https://developer.mozilla.org/en-US/docs/Web/API/Element/offsetHeight
+[ow]: https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/offsetWidth
+[oh]: https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/offsetHeight
 -}
 getViewportOf : String -> Task Error Viewport
 getViewportOf =
