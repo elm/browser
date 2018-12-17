@@ -134,7 +134,7 @@ app shows an accurate date in the title, etc.
 > not the place to manage CSS assets. If you want to work with CSS, there are
 > a couple ways:
 >
-> 1. Packages like `https://github.com/rtfeldman/elm-css` give all of the features
+> 1. Packages like [`rtfeldman/elm-css`][elm-css] give all of the features
 > of CSS without any CSS files. You can add all the styles you need in your
 > `view` function, and there is no need to worry about class names matching.
 >
@@ -150,7 +150,7 @@ app shows an accurate date in the title, etc.
 > as an implementation detail of browsers, but that does not mean it should be
 > the responsibility of the `view` function in Elm. So we do it differently!
 
-[elm-css]: /rtfeldman/elm-css/latest/
+[elm-css]: /packages/rtfeldman/elm-css/latest/
 -}
 type alias Document msg =
   { title : String
