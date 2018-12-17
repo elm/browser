@@ -134,7 +134,7 @@ app shows an accurate date in the title, etc.
 > not the place to manage CSS assets. If you want to work with CSS, there are
 > a couple ways:
 >
-> 1. Packages like [`rtfeldman/elm-css`][elm-css] give all of the features
+> 1. Packages like `https://github.com/rtfeldman/elm-css` give all of the features
 > of CSS without any CSS files. You can add all the styles you need in your
 > `view` function, and there is no need to worry about class names matching.
 >
