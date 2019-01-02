@@ -87,6 +87,9 @@ be particularly handy!
 pages&rdquo; that the user can go `forward` to. Adding a new URL in that
 scenario will clear out any future pages. It is like going back in time and
 making a different choice.
+
+**Warning:** See the note about rate-limiting at [`replaceUrl`](#replaceUrl)
+
 -}
 pushUrl : Key -> String -> Cmd msg
 pushUrl =
@@ -101,6 +104,14 @@ This can be useful if you have search box and you want the `?search=hats` in
 the URL to match without adding a history entry for every single key stroke.
 Imagine how annoying it would be to click `back` thirty times and still be on
 the same page!
+
+**Warning:** If this function is invoked rapidly, the browser may [impose rate-
+limiting][wekbkitbug] by throwing an exception. Since Elm does not support
+exceptions, this [causes apps to break][breakreport], so please tread carefully!
+
+[webkitbug]: https://bugs.webkit.org/show_bug.cgi?id=156115
+[breakreport]: https://discourse.elm-lang.org/t/runtime-error-due-to-browser-rate-limiting
+
 -}
 replaceUrl : Key -> String -> Cmd msg
 replaceUrl =
