@@ -75,7 +75,7 @@ sandbox impl =
 
 
 {-| Create an HTML element managed by Elm. The resulting elements are easy to
-embed in a larger JavaScript projects, and lots of companies that use Elm
+embed in larger JavaScript projects, and lots of companies that use Elm
 started with this approach! Try it out on something small. If it works, great,
 do more! If not, revert, no big deal.
 
