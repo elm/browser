@@ -73,12 +73,13 @@ var _Debugger_element = F4(function(impl, flagDecoder, debugMetadata, args)
 
 				// view corner
 
+				var cornerNext = __Main_cornerView(model);
+				var cornerPatches = __VirtualDom_diff(cornerCurr, cornerNext);
+				cornerNode = __VirtualDom_applyPatches(cornerNode, cornerCurr, cornerPatches, sendToApp);
+				cornerCurr = cornerNext;
+
 				if (!model.__$popout.__doc)
 				{
-					var cornerNext = __Main_cornerView(model);
-					var cornerPatches = __VirtualDom_diff(cornerCurr, cornerNext);
-					cornerNode = __VirtualDom_applyPatches(cornerNode, cornerCurr, cornerPatches, sendToApp);
-					cornerCurr = cornerNext;
 					currPopout = undefined;
 					return;
 				}
