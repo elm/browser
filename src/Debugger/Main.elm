@@ -234,7 +234,7 @@ wrapUpdate update msg model =
 
     Import ->
       withGoodMetadata model <| \_ ->
-        ( model, upload )
+        ( model, upload model.popout )
 
     Export ->
       withGoodMetadata model <| \metadata ->
@@ -267,9 +267,9 @@ scroll popout =
   Task.perform (always NoOp) (Elm.Kernel.Debugger.scroll popout)
 
 
-upload : Cmd (Msg msg)
-upload =
-  Task.perform Upload (Elm.Kernel.Debugger.upload ())
+upload : Popout -> Cmd (Msg msg)
+upload popout =
+  Task.perform Upload (Elm.Kernel.Debugger.upload popout)
 
 
 download : Metadata -> History model msg -> Cmd (Msg msg)

@@ -236,11 +236,12 @@ function _Debugger_scroll(popout)
 // UPLOAD
 
 
-function _Debugger_upload()
+function _Debugger_upload(popout)
 {
 	return __Scheduler_binding(function(callback)
 	{
-		var element = document.createElement('input');
+		var doc = popout.__doc || document;
+		var element = doc.createElement('input');
 		element.setAttribute('type', 'file');
 		element.setAttribute('accept', 'text/json');
 		element.style.display = 'none';
@@ -252,9 +253,9 @@ function _Debugger_upload()
 				callback(__Scheduler_succeed(e.target.result));
 			};
 			fileReader.readAsText(event.target.files[0]);
-			document.body.removeChild(element);
+			doc.body.removeChild(element);
 		});
-		document.body.appendChild(element);
+		doc.body.appendChild(element);
 		element.click();
 	});
 }
