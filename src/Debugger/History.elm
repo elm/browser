@@ -97,7 +97,8 @@ decoder initialModel update =
 
 jsToElm : Encode.Value -> a
 jsToElm =
-  Elm.Kernel.Debugger.unsafeCoerce
+  Elm.Kernel.Json.unwrap
+    >> Elm.Kernel.Debugger.unsafeCoerce
 
 
 encode : History model msg -> Encode.Value
