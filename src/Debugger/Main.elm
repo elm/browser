@@ -283,6 +283,7 @@ download metadata history =
         [ ("metadata", Metadata.encode metadata)
         , ("history", History.encode history)
         ]
+        |> Elm.Kernel.Json.unwrap
   in
     Task.perform (\_ -> NoOp) (Elm.Kernel.Debugger.download historyLength json)
 

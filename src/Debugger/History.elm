@@ -112,7 +112,8 @@ encodeHelp snapshot allMessages =
 
 elmToJs : a -> Encode.Value
 elmToJs =
-  Elm.Kernel.Debugger.unsafeCoerce
+  Elm.Kernel.Json.wrap
+    >> Elm.Kernel.Debugger.unsafeCoerce
 
 
 
