@@ -166,7 +166,7 @@ onMouseUp =
 -- WINDOW
 
 
-{-| Subscribe to any changes in window size.
+{-| Subscribe to any changes in window size. The first Int is width, the second height.
 
 If you wanted to always track the current width, you could do something [like
 this](TODO).
