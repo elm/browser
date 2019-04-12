@@ -69,7 +69,7 @@ init locationHref =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-  onUrlChange UrlChanged
+  onUrlChange (locationHrefToRoute >> UrlChanged)
 
 
 -- NAVIGATION
