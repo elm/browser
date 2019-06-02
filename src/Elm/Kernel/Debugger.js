@@ -182,7 +182,7 @@ function _Debugger_open(popout)
 function _Debugger_openWindow(popout)
 {
 	var w = 900, h = 360, x = screen.width - w, y = screen.height - h;
-	var debuggerWindow = window.open('', '', 'width=' + w + ',height=' + h + ',left=' + x + ',top=' + y);
+	var debuggerWindow = window.open('', 'elm-debugger', 'width=' + w + ',height=' + h + ',left=' + x + ',top=' + y);
 	var doc = debuggerWindow.document;
 	doc.title = 'Elm Debugger';
 
