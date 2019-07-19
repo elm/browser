@@ -15,7 +15,7 @@ import Debugger.Report as Report
 import Elm.Kernel.Debugger
 import Html exposing (..)
 import Html.Attributes exposing (..)
-import Html.Events exposing (onClick, onInput)
+import Html.Events exposing (on, onClick, onInput, onMouseDown, onMouseUp)
 import Json.Decode as Decode
 import Json.Encode as Encode
 import Task exposing (Task)
@@ -50,6 +50,8 @@ type alias Model model msg =
     , metadata : Result Metadata.Error Metadata
     , overlay : Overlay.State
     , popout : Popout
+    , sidePanelResizable : Bool
+    , sidePanelWidth : Int
     }
 
 
@@ -112,6 +114,8 @@ wrapInit metadata popout init flags =
       , metadata = Metadata.decode metadata
       , overlay = Overlay.none
       , popout = popout
+      , sidePanelResizable = False
+      , sidePanelWidth = 500
       }
     , Cmd.map UserMsg userCommands
     )
@@ -130,6 +134,9 @@ type Msg msg
     | Open
     | Up
     | Down
+    | InitiatePanelSizing
+    | StopPanelSizing
+    | SizePanel Int
     | Import
     | Export
     | Upload String
@@ -240,6 +247,21 @@ wrapUpdate update msg model =
 
                     else
                         wrapUpdate update (Jump (index + 1)) model
+
+        InitiatePanelSizing ->
+            ( { model | sidePanelResizable = True }
+            , Cmd.none
+            )
+
+        StopPanelSizing ->
+            ( { model | sidePanelResizable = False }
+            , Cmd.none
+            )
+
+        SizePanel currentX ->
+            ( { model | sidePanelWidth = Basics.max 150 currentX }
+            , Cmd.none
+            )
 
         Import ->
             withGoodMetadata model <|
@@ -381,22 +403,43 @@ toBlockerType model =
 
 
 popoutView : Model model msg -> Html (Msg msg)
-popoutView { history, state, expando } =
+popoutView { history, state, expando, sidePanelWidth, sidePanelResizable } =
+    let
+        bodyAttributes =
+            [ style "margin" "0"
+            , style "padding" "0"
+            , style "width" "100%"
+            , style "height" "100%"
+            , style "font-family" "monospace"
+            , style "overflow" "auto"
+            ]
+
+        sidePanelWidthStyle =
+            String.fromInt sidePanelWidth ++ "px"
+    in
     node "body"
-        [ style "margin" "0"
-        , style "padding" "0"
-        , style "width" "100%"
-        , style "height" "100%"
-        , style "font-family" "monospace"
-        , style "overflow" "auto"
-        ]
-        [ viewSidebar state history
+        (if sidePanelResizable then
+            List.append bodyAttributes
+                [ onMouseMove SizePanel
+                , onMouseUp StopPanelSizing
+
+                -- Disable highlighting when dragging
+                , style "-webkit-user-select" "none"
+                , style "-moz-user-select" "none"
+                , style "-ms-user-select" "none"
+                , style "user-select" "none"
+                ]
+
+         else
+            bodyAttributes
+        )
+        [ viewSidebar state history sidePanelWidthStyle
         , Html.map ExpandoMsg <|
             div
                 [ style "display" "block"
                 , style "float" "left"
                 , style "height" "100%"
-                , style "width" "calc(100% - 30ch)"
+                , style "width" <| "calc(100% - " ++ sidePanelWidthStyle ++ ")"
                 , style "margin" "0"
                 , style "overflow" "auto"
                 , style "cursor" "default"
@@ -406,8 +449,8 @@ popoutView { history, state, expando } =
         ]
 
 
-viewSidebar : State model -> History model msg -> Html (Msg msg)
-viewSidebar state history =
+viewSidebar : State model -> History model msg -> String -> Html (Msg msg)
+viewSidebar state history sidePanelWidthStyle =
     let
         maybeIndex =
             case state of
@@ -418,17 +461,39 @@ viewSidebar state history =
                     Just index
     in
     div
-        [ style "display" "block"
+        [ style "position" "relative"
+        , style "display" "block"
         , style "float" "left"
-        , style "width" "30ch"
+        , style "width" sidePanelWidthStyle
         , style "height" "100%"
         , style "color" "white"
         , style "background-color" "rgb(61, 61, 61)"
         ]
-        [ slider history maybeIndex
+        [ draggableBorder
+        , slider history maybeIndex
         , Html.map Jump (History.view maybeIndex history)
         , playButton maybeIndex
         ]
+
+
+draggableBorder : Html (Msg msg)
+draggableBorder =
+    div
+        [ style "position" "absolute"
+        , style "top" "0px"
+        , style "right" "0px"
+        , style "height" "100%"
+        , style "width" "5px"
+        , style "background-color" "black"
+        , style "cursor" "col-resize"
+        , onMouseDown InitiatePanelSizing
+        ]
+        []
+
+
+onMouseMove : (Int -> Msg msg) -> Attribute (Msg msg)
+onMouseMove toMsg =
+    on "mousemove" (Decode.map toMsg (Decode.field "pageX" Decode.int))
 
 
 slider : History model msg -> Maybe Int -> Html (Msg msg)
