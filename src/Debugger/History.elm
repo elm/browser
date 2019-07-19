@@ -6,6 +6,7 @@ module Debugger.History exposing
     , encode
     , get
     , getInitialModel
+    , getRecent
     , size
     , view
     )
@@ -173,6 +174,18 @@ get update index history =
             Just { model, messages } ->
                 undone <|
                     Array.foldr (getHelp update) (Stepping (remainderBy maxSnapshotSize index) model) messages
+
+
+getRecent : History model msg -> ( model, msg )
+getRecent history =
+    case history.recent.messages of
+        [] ->
+            getRecent history
+
+        recentMsg :: _ ->
+            ( history.recent.model
+            , recentMsg
+            )
 
 
 type GetResult model msg

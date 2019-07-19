@@ -45,7 +45,8 @@ wrapSubs subscriptions model =
 
 type alias Model model msg =
     { history : History model msg
-    , state : State model
+    , state : State model msg
+    , expandTarget : ExpandTarget
     , expando : Expando
     , metadata : Result Metadata.Error Metadata
     , overlay : Overlay.State
@@ -59,42 +60,47 @@ type Popout
     = Popout Popout
 
 
+type ExpandTarget
+    = ExpandModel
+    | ExpandMsg
+
+
 
 -- STATE
 
 
-type State model
+type State model msg
     = Running model
-    | Paused Int model model
+    | Paused Int model model msg
 
 
-getLatestModel : State model -> model
+getLatestModel : State model msg -> model
 getLatestModel state =
     case state of
         Running model ->
             model
 
-        Paused _ _ model ->
+        Paused _ _ model _ ->
             model
 
 
-getCurrentModel : State model -> model
+getCurrentModel : State model msg -> model
 getCurrentModel state =
     case state of
         Running model ->
             model
 
-        Paused _ model _ ->
+        Paused _ model _ _ ->
             model
 
 
-isPaused : State model -> Bool
+isPaused : State model msg -> Bool
 isPaused state =
     case state of
         Running _ ->
             False
 
-        Paused _ _ _ ->
+        Paused _ _ _ _ ->
             True
 
 
@@ -110,6 +116,7 @@ wrapInit metadata popout init flags =
     in
     ( { history = History.empty userModel
       , state = Running userModel
+      , expandTarget = ExpandModel
       , expando = Expando.init userModel
       , metadata = Metadata.decode metadata
       , overlay = Overlay.none
@@ -128,6 +135,7 @@ wrapInit metadata popout init flags =
 type Msg msg
     = NoOp
     | UserMsg msg
+    | SetExpandTarget ExpandTarget
     | ExpandoMsg Expando.Msg
     | Resume
     | Jump Int
@@ -172,18 +180,47 @@ wrapUpdate update msg model =
                     ( { model
                         | history = newHistory
                         , state = Running newUserModel
-                        , expando = Expando.merge newUserModel model.expando
+                        , expando =
+                            case model.expandTarget of
+                                ExpandModel ->
+                                    Expando.init newUserModel
+
+                                ExpandMsg ->
+                                    Expando.init userMsg
                       }
                     , Cmd.batch [ commands, scroll model.popout ]
                     )
 
-                Paused index indexModel _ ->
+                Paused index indexModel _ _ ->
                     ( { model
                         | history = newHistory
-                        , state = Paused index indexModel newUserModel
+                        , state = Paused index indexModel newUserModel userMsg
                       }
                     , commands
                     )
+
+        SetExpandTarget target ->
+            let
+                ( userModel, userMsg ) =
+                    case model.state of
+                        Running _ ->
+                            History.getRecent model.history
+
+                        Paused idx _ _ _ ->
+                            History.get update idx model.history
+            in
+            ( { model
+                | expandTarget = target
+                , expando =
+                    case target of
+                        ExpandModel ->
+                            Expando.init userModel
+
+                        ExpandMsg ->
+                            Expando.init userMsg
+              }
+            , Cmd.none
+            )
 
         ExpandoMsg eMsg ->
             ( { model | expando = Expando.update eMsg model.expando }
@@ -195,22 +232,37 @@ wrapUpdate update msg model =
                 Running _ ->
                     ( model, Cmd.none )
 
-                Paused _ _ userModel ->
+                Paused _ _ userModel userMsg ->
                     ( { model
                         | state = Running userModel
-                        , expando = Expando.merge userModel model.expando
+                        , expando =
+                            case model.expandTarget of
+                                ExpandModel ->
+                                    Expando.merge userModel model.expando
+
+                                ExpandMsg ->
+                                    Expando.merge userMsg model.expando
                       }
                     , scroll model.popout
                     )
 
         Jump index ->
             let
+                ( currentModel, currentMsg ) =
+                    History.getRecent model.history
+
                 ( indexModel, indexMsg ) =
                     History.get update index model.history
             in
             ( { model
-                | state = Paused index indexModel (getLatestModel model.state)
-                , expando = Expando.merge indexModel model.expando
+                | state = Paused index indexModel currentModel currentMsg
+                , expando =
+                    case model.expandTarget of
+                        ExpandModel ->
+                            Expando.merge indexModel model.expando
+
+                        ExpandMsg ->
+                            Expando.merge indexMsg model.expando
               }
             , Cmd.none
             )
@@ -224,7 +276,7 @@ wrapUpdate update msg model =
             let
                 index =
                     case model.state of
-                        Paused i _ _ ->
+                        Paused i _ _ _ ->
                             i
 
                         Running _ ->
@@ -241,7 +293,7 @@ wrapUpdate update msg model =
                 Running _ ->
                     ( model, Cmd.none )
 
-                Paused index _ userModel ->
+                Paused index _ userModel userMsg ->
                     if index == History.size model.history - 1 then
                         wrapUpdate update Resume model
 
@@ -367,6 +419,7 @@ loadNewHistory rawHistory update model =
             ( { model
                 | history = newHistory
                 , state = Running latestUserModel
+                , expandTarget = ExpandModel
                 , expando = Expando.init latestUserModel
                 , overlay = Overlay.none
               }
@@ -403,7 +456,7 @@ toBlockerType model =
 
 
 popoutView : Model model msg -> Html (Msg msg)
-popoutView { history, state, expando, sidePanelWidth, sidePanelResizable } =
+popoutView { history, state, expandTarget, expando, sidePanelWidth, sidePanelResizable } =
     let
         bodyAttributes =
             [ style "margin" "0"
@@ -434,22 +487,22 @@ popoutView { history, state, expando, sidePanelWidth, sidePanelResizable } =
             bodyAttributes
         )
         [ viewSidebar state history sidePanelWidthStyle
-        , Html.map ExpandoMsg <|
-            div
-                [ style "display" "block"
-                , style "float" "left"
-                , style "height" "100%"
-                , style "width" <| "calc(100% - " ++ sidePanelWidthStyle ++ ")"
-                , style "margin" "0"
-                , style "overflow" "auto"
-                , style "cursor" "default"
-                ]
-                [ Expando.view Nothing expando
-                ]
+        , div
+            [ style "display" "block"
+            , style "float" "left"
+            , style "height" "100%"
+            , style "width" <| "calc(100% - " ++ sidePanelWidthStyle ++ ")"
+            , style "margin" "0"
+            , style "overflow" "auto"
+            , style "cursor" "default"
+            ]
+            [ expandConfigPanel expandTarget
+            , Html.map ExpandoMsg <| Expando.view Nothing expando
+            ]
         ]
 
 
-viewSidebar : State model -> History model msg -> String -> Html (Msg msg)
+viewSidebar : State model msg -> History model msg -> String -> Html (Msg msg)
 viewSidebar state history sidePanelWidthStyle =
     let
         maybeIndex =
@@ -457,7 +510,7 @@ viewSidebar state history sidePanelWidthStyle =
                 Running _ ->
                     Nothing
 
-                Paused index _ _ ->
+                Paused index _ _ _ ->
                     Just index
     in
     div
@@ -507,6 +560,7 @@ slider history maybeIndex =
     in
     div
         [ style "width" "100%"
+        , style "height" "24px"
         , style "text-align" "center"
         , style "background-color" "rgb(50, 50, 50)"
         , style "padding" "0 20px"
@@ -587,3 +641,39 @@ resumeStyle =
 }
 
 """
+
+
+expandConfigPanel : ExpandTarget -> Html (Msg msg)
+expandConfigPanel target =
+    div
+        [ style "height" "24px"
+        , style "width" "100%"
+        , style "background-color" "rgb(50, 50, 50)"
+        , style "color" "white"
+        , style "text-align" "right"
+        , style "box-sizing" "border-box"
+        , style "padding" "2px 10px"
+        ]
+        [ span [] [ text "Expand: " ]
+        , selectableTextButton (target == ExpandMsg) (SetExpandTarget ExpandMsg) "Message"
+        , text " / "
+        , selectableTextButton (target == ExpandModel) (SetExpandTarget ExpandModel) "Model"
+        ]
+
+
+selectableTextButton : Bool -> msg -> String -> Html msg
+selectableTextButton selected msg label =
+    let
+        baseAttributes =
+            [ onClick msg
+            , style "cursor" "pointer"
+            ]
+    in
+    span
+        (if selected then
+            style "text-decoration" "underline" :: baseAttributes
+
+         else
+            baseAttributes
+        )
+        [ text label ]
