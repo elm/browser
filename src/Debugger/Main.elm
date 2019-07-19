@@ -15,7 +15,7 @@ import Debugger.Report as Report
 import Elm.Kernel.Debugger
 import Html exposing (..)
 import Html.Attributes exposing (..)
-import Html.Events exposing (onClick)
+import Html.Events exposing (onClick, onInput)
 import Json.Decode as Decode
 import Json.Encode as Encode
 import Task exposing (Task)
@@ -425,8 +425,38 @@ viewSidebar state history =
         , style "color" "white"
         , style "background-color" "rgb(61, 61, 61)"
         ]
-        [ Html.map Jump (History.view maybeIndex history)
+        [ slider history maybeIndex
+        , Html.map Jump (History.view maybeIndex history)
         , playButton maybeIndex
+        ]
+
+
+slider : History model msg -> Maybe Int -> Html (Msg msg)
+slider history maybeIndex =
+    let
+        lastIndex =
+            History.size history - 1
+
+        selectedIndex =
+            Maybe.withDefault lastIndex maybeIndex
+    in
+    div
+        [ style "width" "100%"
+        , style "text-align" "center"
+        , style "background-color" "rgb(50, 50, 50)"
+        , style "padding" "0 20px"
+        , style "box-sizing" "border-box"
+        ]
+        [ input
+            [ type_ "range"
+            , style "width" "100%"
+            , style "height" "24px"
+            , Html.Attributes.min "0"
+            , Html.Attributes.max (String.fromInt lastIndex)
+            , value (String.fromInt selectedIndex)
+            , onInput (String.toInt >> Maybe.withDefault lastIndex >> Jump)
+            ]
+            []
         ]
 
 

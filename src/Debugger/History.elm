@@ -215,10 +215,10 @@ view maybeIndex { snapshots, recent, numMessages } =
         ( index, height ) =
             case maybeIndex of
                 Nothing ->
-                    ( -1, "calc(100% - 24px)" )
+                    ( -1, "calc(100% - 48px)" )
 
                 Just i ->
-                    ( i, "calc(100% - 54px)" )
+                    ( i, "calc(100% - 78px)" )
 
         oldStuff =
             lazy2 viewSnapshots index snapshots
