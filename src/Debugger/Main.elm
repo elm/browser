@@ -122,7 +122,7 @@ wrapInit metadata popout init flags =
       , overlay = Overlay.none
       , popout = popout
       , sidePanelResizable = False
-      , sidePanelWidth = 500
+      , sidePanelWidth = 300
       }
     , Cmd.map UserMsg userCommands
     )
@@ -142,9 +142,8 @@ type Msg msg
     | Open
     | Up
     | Down
-    | InitiatePanelSizing
-    | StopPanelSizing
-    | SizePanel Int
+    | EnableSidePanelResizing Bool
+    | ResizeSidePanel Int
     | Import
     | Export
     | Upload String
@@ -300,17 +299,12 @@ wrapUpdate update msg model =
                     else
                         wrapUpdate update (Jump (index + 1)) model
 
-        InitiatePanelSizing ->
-            ( { model | sidePanelResizable = True }
+        EnableSidePanelResizing enabled ->
+            ( { model | sidePanelResizable = enabled }
             , Cmd.none
             )
 
-        StopPanelSizing ->
-            ( { model | sidePanelResizable = False }
-            , Cmd.none
-            )
-
-        SizePanel currentX ->
+        ResizeSidePanel currentX ->
             ( { model | sidePanelWidth = Basics.max 150 currentX }
             , Cmd.none
             )
@@ -473,8 +467,8 @@ popoutView { history, state, expandTarget, expando, sidePanelWidth, sidePanelRes
     node "body"
         (if sidePanelResizable then
             List.append bodyAttributes
-                [ onMouseMove SizePanel
-                , onMouseUp StopPanelSizing
+                [ onMouseMove ResizeSidePanel
+                , onMouseUp (EnableSidePanelResizing False)
 
                 -- Disable highlighting when dragging
                 , style "-webkit-user-select" "none"
@@ -539,7 +533,7 @@ draggableBorder =
         , style "width" "5px"
         , style "background-color" "black"
         , style "cursor" "col-resize"
-        , onMouseDown InitiatePanelSizing
+        , onMouseDown (EnableSidePanelResizing True)
         ]
         []
 
@@ -654,7 +648,7 @@ expandConfigPanel target =
         , style "box-sizing" "border-box"
         , style "padding" "2px 10px"
         ]
-        [ span [] [ text "Expand: " ]
+        [ text "Expand: "
         , selectableTextButton (target == ExpandMsg) (SetExpandTarget ExpandMsg) "Message"
         , text " / "
         , selectableTextButton (target == ExpandModel) (SetExpandTarget ExpandModel) "Model"
