@@ -338,7 +338,7 @@ viewBadMetadata {message, problems} =
   , ul [] (List.map viewProblemType problems)
   , p []
       [ text goodNews1
-      , a [ href "https://guide.elm-lang.org/types/union_types.html" ] [ text "union types" ]
+      , a [ href "https://guide.elm-lang.org/types/custom_types.html" ] [ text "custom types" ]
       , text ", in your messages. From there, your "
       , viewCode "update"
       , text goodNews2
