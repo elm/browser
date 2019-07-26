@@ -3,6 +3,7 @@ module Debugger.Expando exposing
     , Msg
     , init
     , merge
+    , messagePath
     , update
     , view
     )
@@ -104,6 +105,30 @@ initHelp isOuter expando =
 
             else
                 expando
+
+
+
+-- Message path
+
+
+messagePath : a -> List String
+messagePath value =
+    List.reverse (messagePathHelp [] (Elm.Kernel.Debugger.init value))
+
+
+messagePathHelp : List String -> Expando -> List String
+messagePathHelp path value =
+    case value of
+        Constructor (Just name) _ args ->
+            case args of
+                firstArg :: [] ->
+                    messagePathHelp (name :: path) firstArg
+
+                _ ->
+                    path
+
+        _ ->
+            path
 
 
 

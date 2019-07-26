@@ -1,5 +1,6 @@
 module Debugger.History exposing
     ( History
+    , Msg(..)
     , add
     , decoder
     , empty
@@ -7,11 +8,13 @@ module Debugger.History exposing
     , get
     , getInitialModel
     , getRecent
+    , openMultiContainer
     , size
     , view
     )
 
 import Array exposing (Array)
+import Debugger.Expando as Expando
 import Debugger.Metadata as Metadata
 import Elm.Kernel.Debugger
 import Html exposing (..)
@@ -20,6 +23,7 @@ import Html.Events exposing (onClick)
 import Html.Lazy exposing (..)
 import Json.Decode as Decode
 import Json.Encode as Encode
+import Set exposing (Set)
 
 
 
@@ -39,6 +43,7 @@ type alias History model msg =
     { snapshots : Array (Snapshot model msg)
     , recent : RecentHistory model msg
     , numMessages : Int
+    , messageHierarchy : MsgHierarchy msg
     }
 
 
@@ -55,9 +60,29 @@ type alias Snapshot model msg =
     }
 
 
+type alias MsgHierarchy msg =
+    { nextMultiID : Int
+    , openMultis : Set Int
+    , list : List (MsgContainer msg)
+    }
+
+
+type MsgContainer msg
+    = Single (List String) msg
+    | Multi Int String (List (MsgContainer msg))
+
+
 empty : model -> History model msg
 empty model =
-    History Array.empty (RecentHistory model [] 0) 0
+    History Array.empty (RecentHistory model [] 0) 0 emptyHierarchy
+
+
+emptyHierarchy : MsgHierarchy msg
+emptyHierarchy =
+    { nextMultiID = 0
+    , openMultis = Set.empty
+    , list = []
+    }
 
 
 size : History model msg -> Int
@@ -73,6 +98,109 @@ getInitialModel { snapshots, recent } =
 
         Nothing ->
             recent.model
+
+
+addToHierarchy : msg -> MsgHierarchy msg -> MsgHierarchy msg
+addToHierarchy msg hierarchy =
+    let
+        messagePath =
+            Expando.messagePath msg
+    in
+    addToHierarchyWithPath msg (Expando.messagePath msg) hierarchy
+
+
+addToHierarchyWithPath : msg -> List String -> MsgHierarchy msg -> MsgHierarchy msg
+addToHierarchyWithPath msg path hierarchy =
+    case hierarchy.list of
+        [] ->
+            { hierarchy
+                | list =
+                    [ Single path msg ]
+            }
+
+        (Single (lastPrefix :: lastRestPath) lastMsg) :: rest ->
+            case path of
+                prefix :: restPath ->
+                    if lastPrefix == prefix then
+                        let
+                            subHierarchy =
+                                addToHierarchyWithPath
+                                    msg
+                                    restPath
+                                    { nextMultiID = hierarchy.nextMultiID + 1
+                                    , openMultis = hierarchy.openMultis
+                                    , list =
+                                        [ Single lastRestPath lastMsg ]
+                                    }
+                        in
+                        { nextMultiID = subHierarchy.nextMultiID
+                        , openMultis = subHierarchy.openMultis
+                        , list =
+                            Multi hierarchy.nextMultiID prefix subHierarchy.list :: rest
+                        }
+
+                    else
+                        { hierarchy
+                            | list =
+                                Single path msg :: hierarchy.list
+                        }
+
+                _ ->
+                    { hierarchy
+                        | list =
+                            Single path msg :: hierarchy.list
+                    }
+
+        (Multi _ lastPrefix msgs) :: rest ->
+            case path of
+                prefix :: restPath ->
+                    if lastPrefix == prefix then
+                        let
+                            subHierarchy =
+                                addToHierarchyWithPath
+                                    msg
+                                    restPath
+                                    { nextMultiID = hierarchy.nextMultiID + 1
+                                    , openMultis = hierarchy.openMultis
+                                    , list =
+                                        msgs
+                                    }
+                        in
+                        { nextMultiID = subHierarchy.nextMultiID
+                        , openMultis = subHierarchy.openMultis
+                        , list =
+                            Multi hierarchy.nextMultiID lastPrefix subHierarchy.list :: rest
+                        }
+
+                    else
+                        { hierarchy
+                            | list =
+                                Single path msg :: hierarchy.list
+                        }
+
+                _ ->
+                    { hierarchy
+                        | list =
+                            Single path msg :: hierarchy.list
+                    }
+
+        _ ->
+            { hierarchy
+                | list =
+                    Single path msg :: hierarchy.list
+            }
+
+
+openMultiContainer : Int -> MsgHierarchy msg -> MsgHierarchy msg
+openMultiContainer id hierarchy =
+    { hierarchy
+        | openMultis =
+            if Set.member id hierarchy.openMultis then
+                Set.remove id hierarchy.openMultis
+
+            else
+                Set.insert id hierarchy.openMultis
+    }
 
 
 
@@ -122,13 +250,13 @@ elmToJs =
 
 
 add : msg -> model -> History model msg -> History model msg
-add msg model { snapshots, recent, numMessages } =
+add msg model { snapshots, recent, numMessages, messageHierarchy } =
     case addRecent msg model recent of
         ( Just snapshot, newRecent ) ->
-            History (Array.push snapshot snapshots) newRecent (numMessages + 1)
+            History (Array.push snapshot snapshots) newRecent (numMessages + 1) (addToHierarchy msg messageHierarchy)
 
         ( Nothing, newRecent ) ->
-            History snapshots newRecent (numMessages + 1)
+            History snapshots newRecent (numMessages + 1) (addToHierarchy msg messageHierarchy)
 
 
 addRecent :
@@ -222,8 +350,13 @@ undone getResult =
 -- VIEW
 
 
-view : Maybe Int -> History model msg -> Html Int
-view maybeIndex { snapshots, recent, numMessages } =
+type Msg
+    = SelectMsg Int
+    | ToggleMulti Int
+
+
+view : Maybe Int -> History model msg -> Html Msg
+view maybeIndex { messageHierarchy, numMessages } =
     let
         ( index, height ) =
             case maybeIndex of
@@ -232,12 +365,6 @@ view maybeIndex { snapshots, recent, numMessages } =
 
                 Just i ->
                     ( i, "calc(100% - 78px)" )
-
-        oldStuff =
-            lazy2 viewSnapshots index snapshots
-
-        newStuff =
-            Tuple.second <| List.foldl (consMsg index) ( numMessages - 1, [] ) recent.messages
     in
     div
         [ id "elm-debugger-sidebar"
@@ -245,14 +372,14 @@ view maybeIndex { snapshots, recent, numMessages } =
         , style "overflow-y" "auto"
         , style "height" height
         ]
-        (styles :: oldStuff :: newStuff)
+        (styles :: List.map (viewMessageContainer messageHierarchy.openMultis) messageHierarchy.list)
 
 
 
 -- VIEW SNAPSHOTS
 
 
-viewSnapshots : Int -> Array (Snapshot model msg) -> Html Int
+viewSnapshots : Int -> Array (Snapshot model msg) -> Html Msg
 viewSnapshots currentIndex snapshots =
     let
         highIndex =
@@ -263,7 +390,7 @@ viewSnapshots currentIndex snapshots =
             Array.foldr (consSnapshot currentIndex) ( highIndex, [] ) snapshots
 
 
-consSnapshot : Int -> Snapshot model msg -> ( Int, List (Html Int) ) -> ( Int, List (Html Int) )
+consSnapshot : Int -> Snapshot model msg -> ( Int, List (Html Msg) ) -> ( Int, List (Html Msg) )
 consSnapshot currentIndex snapshot ( index, rest ) =
     let
         nextIndex =
@@ -281,7 +408,7 @@ consSnapshot currentIndex snapshot ( index, rest ) =
     )
 
 
-viewSnapshot : Int -> Int -> Snapshot model msg -> Html Int
+viewSnapshot : Int -> Int -> Snapshot model msg -> Html Msg
 viewSnapshot currentIndex index { messages } =
     div [] <|
         Tuple.second <|
@@ -292,14 +419,24 @@ viewSnapshot currentIndex index { messages } =
 -- VIEW MESSAGE
 
 
-consMsg : Int -> msg -> ( Int, List (Html Int) ) -> ( Int, List (Html Int) )
+consMsg : Int -> msg -> ( Int, List (Html Msg) ) -> ( Int, List (Html Msg) )
 consMsg currentIndex msg ( index, rest ) =
     ( index - 1
     , lazy3 viewMessage currentIndex index msg :: rest
     )
 
 
-viewMessage : Int -> Int -> msg -> Html Int
+viewMessageContainer : Set Int -> MsgContainer msg -> Html Msg
+viewMessageContainer openMultis container =
+    case container of
+        Single _ msg ->
+            viewMessage 0 1 msg
+
+        Multi id prefix msgs ->
+            viewMultiContainer 0 1 openMultis id prefix msgs
+
+
+viewMessage : Int -> Int -> msg -> Html Msg
 viewMessage currentIndex index msg =
     let
         className =
@@ -314,7 +451,7 @@ viewMessage currentIndex index msg =
     in
     div
         [ class className
-        , onClick index
+        , onClick (SelectMsg index)
         ]
         [ span
             [ title messageName
@@ -327,6 +464,44 @@ viewMessage currentIndex index msg =
             ]
             [ text (String.fromInt index)
             ]
+        ]
+
+
+viewMultiContainer : Int -> Int -> Set Int -> Int -> String -> List (MsgContainer msg) -> Html Msg
+viewMultiContainer currentIndex index openMultis id prefix children =
+    let
+        isOpen =
+            Set.member id openMultis
+    in
+    div []
+        [ div
+            [ class "elm-debugger-entry"
+            , onClick (ToggleMulti id)
+            ]
+            [ span [] <|
+                if isOpen then
+                    [ text "▾" ]
+
+                else
+                    [ text "▸" ]
+            , span
+                [ title prefix
+                , class "elm-debugger-entry-content"
+                ]
+                [ text prefix
+                ]
+            , span
+                [ class "elm-debugger-entry-index"
+                ]
+                [ text (String.fromInt index)
+                ]
+            ]
+        , if isOpen then
+            div [ style "margin-left" "12px" ]
+                (List.map (viewMessageContainer openMultis) children)
+
+          else
+            text ""
         ]
 
 
@@ -352,7 +527,7 @@ styles =
 }
 
 .elm-debugger-entry-content {
-  width: calc(100% - 7ch);
+  width: calc(100% - 8ch);
   padding-top: 4px;
   padding-bottom: 4px;
   padding-left: 1ch;
