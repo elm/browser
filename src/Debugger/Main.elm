@@ -46,8 +46,8 @@ wrapSubs subscriptions model =
 type alias Model model msg =
     { history : History model msg
     , state : State model msg
-    , expandTarget : ExpandTarget
-    , expando : Expando
+    , modelExpando : Expando
+    , messageExpando : Maybe Expando
     , metadata : Result Metadata.Error Metadata
     , overlay : Overlay.State
     , popout : Popout
@@ -58,11 +58,6 @@ type alias Model model msg =
 
 type Popout
     = Popout Popout
-
-
-type ExpandTarget
-    = ExpandModel
-    | ExpandMsg
 
 
 
@@ -116,8 +111,8 @@ wrapInit metadata popout init flags =
     in
     ( { history = History.empty userModel
       , state = Running userModel
-      , expandTarget = ExpandModel
-      , expando = Expando.init userModel
+      , modelExpando = Expando.init userModel
+      , messageExpando = Nothing
       , metadata = Metadata.decode metadata
       , overlay = Overlay.none
       , popout = popout
@@ -135,8 +130,7 @@ wrapInit metadata popout init flags =
 type Msg msg
     = NoOp
     | UserMsg msg
-    | SetExpandTarget ExpandTarget
-    | ExpandoMsg Expando.Msg
+    | ExpandoMsg ExpandoTarget Expando.Msg
     | HistoryMsg History.Msg
     | Resume
     | Jump Int
@@ -153,6 +147,11 @@ type Msg msg
 
 type alias UserUpdate model msg =
     msg -> model -> ( model, Cmd msg )
+
+
+type ExpandoTarget
+    = MessageExpando
+    | ModelExpando
 
 
 wrapUpdate : UserUpdate model msg -> Msg msg -> Model model msg -> ( Model model msg, Cmd (Msg msg) )
@@ -180,13 +179,8 @@ wrapUpdate update msg model =
                     ( { model
                         | history = newHistory
                         , state = Running newUserModel
-                        , expando =
-                            case model.expandTarget of
-                                ExpandModel ->
-                                    Expando.init newUserModel
-
-                                ExpandMsg ->
-                                    Expando.init userMsg
+                        , modelExpando = Expando.init newUserModel
+                        , messageExpando = Just (Expando.init userMsg)
                       }
                     , Cmd.batch [ commands, scroll model.popout ]
                     )
@@ -199,33 +193,17 @@ wrapUpdate update msg model =
                     , commands
                     )
 
-        SetExpandTarget target ->
-            let
-                ( userModel, userMsg ) =
-                    case model.state of
-                        Running _ ->
-                            History.getRecent model.history
+        ExpandoMsg target eMsg ->
+            case target of
+                MessageExpando ->
+                    ( { model | messageExpando = Maybe.map (Expando.update eMsg) model.messageExpando }
+                    , Cmd.none
+                    )
 
-                        Paused idx _ _ _ ->
-                            History.get update idx model.history
-            in
-            ( { model
-                | expandTarget = target
-                , expando =
-                    case target of
-                        ExpandModel ->
-                            Expando.init userModel
-
-                        ExpandMsg ->
-                            Expando.init userMsg
-              }
-            , Cmd.none
-            )
-
-        ExpandoMsg eMsg ->
-            ( { model | expando = Expando.update eMsg model.expando }
-            , Cmd.none
-            )
+                ModelExpando ->
+                    ( { model | modelExpando = Expando.update eMsg model.modelExpando }
+                    , Cmd.none
+                    )
 
         HistoryMsg historyMsg ->
             case historyMsg of
@@ -255,13 +233,8 @@ wrapUpdate update msg model =
                 Paused _ _ userModel userMsg ->
                     ( { model
                         | state = Running userModel
-                        , expando =
-                            case model.expandTarget of
-                                ExpandModel ->
-                                    Expando.merge userModel model.expando
-
-                                ExpandMsg ->
-                                    Expando.merge userMsg model.expando
+                        , modelExpando = Expando.merge userModel model.modelExpando
+                        , messageExpando = Maybe.map (Expando.merge userMsg) model.messageExpando
                       }
                     , scroll model.popout
                     )
@@ -276,13 +249,8 @@ wrapUpdate update msg model =
             in
             ( { model
                 | state = Paused index indexModel currentModel currentMsg
-                , expando =
-                    case model.expandTarget of
-                        ExpandModel ->
-                            Expando.merge indexModel model.expando
-
-                        ExpandMsg ->
-                            Expando.merge indexMsg model.expando
+                , modelExpando = Expando.merge indexModel model.modelExpando
+                , messageExpando = Maybe.map (Expando.merge indexMsg) model.messageExpando
               }
             , Cmd.none
             )
@@ -434,8 +402,8 @@ loadNewHistory rawHistory update model =
             ( { model
                 | history = newHistory
                 , state = Running latestUserModel
-                , expandTarget = ExpandModel
-                , expando = Expando.init latestUserModel
+                , modelExpando = Expando.init latestUserModel
+                , messageExpando = Nothing
                 , overlay = Overlay.none
               }
             , Cmd.none
@@ -471,7 +439,7 @@ toBlockerType model =
 
 
 popoutView : Model model msg -> Html (Msg msg)
-popoutView { history, state, expandTarget, expando, sidePanelWidth, sidePanelResizable } =
+popoutView model =
     let
         bodyAttributes =
             [ style "margin" "0"
@@ -483,10 +451,10 @@ popoutView { history, state, expandTarget, expando, sidePanelWidth, sidePanelRes
             ]
 
         sidePanelWidthStyle =
-            String.fromInt sidePanelWidth ++ "px"
+            String.fromInt model.sidePanelWidth ++ "px"
     in
     node "body"
-        (if sidePanelResizable then
+        (if model.sidePanelResizable then
             List.append bodyAttributes
                 [ onMouseMove ResizeSidePanel
                 , onMouseUp (EnableSidePanelResizing False)
@@ -501,7 +469,7 @@ popoutView { history, state, expandTarget, expando, sidePanelWidth, sidePanelRes
          else
             bodyAttributes
         )
-        [ viewSidebar state history sidePanelWidthStyle
+        [ viewSidebar model.state model.history sidePanelWidthStyle
         , div
             [ style "display" "block"
             , style "float" "left"
@@ -511,8 +479,19 @@ popoutView { history, state, expandTarget, expando, sidePanelWidth, sidePanelRes
             , style "overflow" "auto"
             , style "cursor" "default"
             ]
-            [ expandConfigPanel expandTarget
-            , Html.map ExpandoMsg <| Expando.view Nothing expando
+            [ case model.messageExpando of
+                Just messageExpandoModel ->
+                    div []
+                        [ div [] [ text "Message:" ]
+                        , Html.map (ExpandoMsg MessageExpando) <| Expando.view Nothing messageExpandoModel
+                        ]
+
+                Nothing ->
+                    text ""
+            , div []
+                [ div [] [ text "Model:" ]
+                , Html.map (ExpandoMsg ModelExpando) <| Expando.view Nothing model.modelExpando
+                ]
             ]
         ]
 
@@ -656,39 +635,3 @@ resumeStyle =
 }
 
 """
-
-
-expandConfigPanel : ExpandTarget -> Html (Msg msg)
-expandConfigPanel target =
-    div
-        [ style "height" "24px"
-        , style "width" "100%"
-        , style "background-color" "rgb(50, 50, 50)"
-        , style "color" "white"
-        , style "text-align" "right"
-        , style "box-sizing" "border-box"
-        , style "padding" "2px 10px"
-        ]
-        [ text "Expand: "
-        , selectableTextButton (target == ExpandMsg) (SetExpandTarget ExpandMsg) "Message"
-        , text " / "
-        , selectableTextButton (target == ExpandModel) (SetExpandTarget ExpandModel) "Model"
-        ]
-
-
-selectableTextButton : Bool -> msg -> String -> Html msg
-selectableTextButton selected msg label =
-    let
-        baseAttributes =
-            [ onClick msg
-            , style "cursor" "pointer"
-            ]
-    in
-    span
-        (if selected then
-            style "text-decoration" "underline" :: baseAttributes
-
-         else
-            baseAttributes
-        )
-        [ text label ]
