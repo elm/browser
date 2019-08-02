@@ -52,12 +52,20 @@ type alias Model model msg =
     , overlay : Overlay.State
     , popout : Popout
     , sidePanelResizable : Bool
-    , sidePanelWidth : Int
+    , sidePanelOffset : Int
+    , layout : Layout
+    , windowWidth : Int
+    , windowHeight : Int
     }
 
 
 type Popout
     = Popout Popout
+
+
+type Layout
+    = Vertical
+    | Horizontal
 
 
 
@@ -117,7 +125,10 @@ wrapInit metadata popout init flags =
       , overlay = Overlay.none
       , popout = popout
       , sidePanelResizable = False
-      , sidePanelWidth = 300
+      , sidePanelOffset = 300
+      , layout = Vertical
+      , windowWidth = 0
+      , windowHeight = 0
       }
     , Cmd.map UserMsg userCommands
     )
@@ -129,6 +140,7 @@ wrapInit metadata popout init flags =
 
 type Msg msg
     = NoOp
+    | Resize Int Int
     | UserMsg msg
     | ExpandoMsg ExpandoTarget Expando.Msg
     | HistoryMsg History.Msg
@@ -160,6 +172,33 @@ wrapUpdate update msg model =
         NoOp ->
             ( model, Cmd.none )
 
+        Resize width height ->
+            let
+                newLayout =
+                    if width < height then
+                        Horizontal
+
+                    else
+                        Vertical
+            in
+            ( { model
+                | windowWidth = width
+                , windowHeight = height
+                , layout = newLayout
+                , sidePanelOffset =
+                    case ( model.layout, newLayout ) of
+                        ( Horizontal, Vertical ) ->
+                            300
+
+                        ( Vertical, Horizontal ) ->
+                            height // 2
+
+                        otherwise ->
+                            model.sidePanelOffset
+              }
+            , Cmd.none
+            )
+
         UserMsg userMsg ->
             let
                 userModel =
@@ -182,7 +221,10 @@ wrapUpdate update msg model =
                         , modelExpando = Expando.init newUserModel
                         , messageExpando = Just (Expando.init userMsg)
                       }
-                    , Cmd.batch [ commands, scroll model.popout ]
+                    , Cmd.batch
+                        [ commands
+                        , scroll model.popout
+                        ]
                     )
 
                 Paused index indexModel _ _ ->
@@ -293,8 +335,28 @@ wrapUpdate update msg model =
             , Cmd.none
             )
 
-        ResizeSidePanel currentX ->
-            ( { model | sidePanelWidth = Basics.max 150 currentX }
+        ResizeSidePanel mousePosition ->
+            let
+                minPanelSize =
+                    150
+
+                dimensionSize =
+                    case model.layout of
+                        Horizontal ->
+                            model.windowHeight
+
+                        Vertical ->
+                            model.windowWidth
+
+                upperBound =
+                    dimensionSize - minPanelSize
+            in
+            ( { model
+                | sidePanelOffset =
+                    mousePosition
+                        |> Basics.max minPanelSize
+                        |> Basics.min upperBound
+              }
             , Cmd.none
             )
 
@@ -450,13 +512,13 @@ popoutView model =
             , style "overflow" "auto"
             ]
 
-        sidePanelWidthStyle =
-            String.fromInt model.sidePanelWidth ++ "px"
+        sidePanelOffset =
+            String.fromInt model.sidePanelOffset ++ "px"
     in
     node "body"
         (if model.sidePanelResizable then
             List.append bodyAttributes
-                [ onMouseMove ResizeSidePanel
+                [ onMouseMove model.layout ResizeSidePanel
                 , onMouseUp (EnableSidePanelResizing False)
 
                 -- Disable highlighting when dragging
@@ -469,35 +531,64 @@ popoutView model =
          else
             bodyAttributes
         )
-        [ viewSidebar model.state model.history sidePanelWidthStyle
-        , div
-            [ style "display" "block"
-            , style "float" "left"
-            , style "height" "100%"
-            , style "width" <| "calc(100% - " ++ sidePanelWidthStyle ++ ")"
-            , style "margin" "0"
-            , style "overflow" "auto"
-            , style "cursor" "default"
-            ]
-            [ case model.messageExpando of
-                Just messageExpandoModel ->
-                    div []
-                        [ div [] [ text "Message:" ]
-                        , Html.map (ExpandoMsg MessageExpando) <| Expando.view Nothing messageExpandoModel
+        (case model.layout of
+            Horizontal ->
+                [ div
+                    [ style "display" "block"
+                    , style "width" "100%"
+                    , style "height" sidePanelOffset
+                    , style "margin" "0"
+                    , style "overflow" "auto"
+                    , style "cursor" "default"
+                    ]
+                    [ case model.messageExpando of
+                        Just messageExpandoModel ->
+                            div []
+                                [ div [] [ text "Message:" ]
+                                , Html.map (ExpandoMsg MessageExpando) <| Expando.view Nothing messageExpandoModel
+                                ]
+
+                        Nothing ->
+                            text ""
+                    , div []
+                        [ div [] [ text "Model:" ]
+                        , Html.map (ExpandoMsg ModelExpando) <| Expando.view Nothing model.modelExpando
                         ]
-
-                Nothing ->
-                    text ""
-            , div []
-                [ div [] [ text "Model:" ]
-                , Html.map (ExpandoMsg ModelExpando) <| Expando.view Nothing model.modelExpando
+                    ]
+                , viewSidebar model.state model.history model.layout sidePanelOffset
                 ]
-            ]
-        ]
+
+            Vertical ->
+                [ viewSidebar model.state model.history model.layout sidePanelOffset
+                , div
+                    [ style "display" "block"
+                    , style "float" "left"
+                    , style "height" "100%"
+                    , style "width" <| "calc(100% - " ++ sidePanelOffset ++ ")"
+                    , style "margin" "0"
+                    , style "overflow" "auto"
+                    , style "cursor" "default"
+                    ]
+                    [ case model.messageExpando of
+                        Just messageExpandoModel ->
+                            div []
+                                [ div [] [ text "Message:" ]
+                                , Html.map (ExpandoMsg MessageExpando) <| Expando.view Nothing messageExpandoModel
+                                ]
+
+                        Nothing ->
+                            text ""
+                    , div []
+                        [ div [] [ text "Model:" ]
+                        , Html.map (ExpandoMsg ModelExpando) <| Expando.view Nothing model.modelExpando
+                        ]
+                    ]
+                ]
+        )
 
 
-viewSidebar : State model msg -> History model msg -> String -> Html (Msg msg)
-viewSidebar state history sidePanelWidthStyle =
+viewSidebar : State model msg -> History model msg -> Layout -> String -> Html (Msg msg)
+viewSidebar state history layout offsetStyle =
     let
         maybeIndex =
             case state of
@@ -507,20 +598,37 @@ viewSidebar state history sidePanelWidthStyle =
                 Paused index _ _ _ ->
                     Just index
     in
-    div
-        [ style "position" "relative"
-        , style "display" "block"
-        , style "float" "left"
-        , style "width" sidePanelWidthStyle
-        , style "height" "100%"
-        , style "color" "white"
-        , style "background-color" "rgb(61, 61, 61)"
-        ]
-        [ draggableBorder
-        , slider history maybeIndex
-        , Html.map HistoryMsg (History.view maybeIndex history)
-        , playButton maybeIndex
-        ]
+    case layout of
+        Horizontal ->
+            div
+                [ style "position" "relative"
+                , style "display" "block"
+                , style "width" "100%"
+                , style "height" <| "calc(100% - " ++ offsetStyle ++ ")"
+                , style "color" "white"
+                , style "background-color" "rgb(61, 61, 61)"
+                ]
+                [ draggableBorderHorizontal
+                , slider history maybeIndex
+                , Html.map HistoryMsg (History.view maybeIndex history)
+                , playButton maybeIndex
+                ]
+
+        Vertical ->
+            div
+                [ style "position" "relative"
+                , style "display" "block"
+                , style "float" "left"
+                , style "width" offsetStyle
+                , style "height" "100%"
+                , style "color" "white"
+                , style "background-color" "rgb(61, 61, 61)"
+                ]
+                [ draggableBorder
+                , slider history maybeIndex
+                , Html.map HistoryMsg (History.view maybeIndex history)
+                , playButton maybeIndex
+                ]
 
 
 draggableBorder : Html (Msg msg)
@@ -538,9 +646,33 @@ draggableBorder =
         []
 
 
-onMouseMove : (Int -> Msg msg) -> Attribute (Msg msg)
-onMouseMove toMsg =
-    on "mousemove" (Decode.map toMsg (Decode.field "pageX" Decode.int))
+draggableBorderHorizontal : Html (Msg msg)
+draggableBorderHorizontal =
+    div
+        [ style "position" "absolute"
+        , style "top" "0px"
+        , style "left" "0px"
+        , style "height" "5px"
+        , style "width" "100%"
+        , style "background-color" "black"
+        , style "cursor" "row-resize"
+        , onMouseDown (EnableSidePanelResizing True)
+        ]
+        []
+
+
+onMouseMove : Layout -> (Int -> Msg msg) -> Attribute (Msg msg)
+onMouseMove layout toMsg =
+    let
+        property =
+            case layout of
+                Horizontal ->
+                    "pageY"
+
+                Vertical ->
+                    "pageX"
+    in
+    on "mousemove" (Decode.map toMsg (Decode.field property Decode.int))
 
 
 slider : History model msg -> Maybe Int -> Html (Msg msg)
