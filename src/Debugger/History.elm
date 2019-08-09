@@ -379,13 +379,23 @@ type Msg
 view : Maybe Int -> History model msg -> Html Msg
 view maybeIndex { messageHierarchy, numMessages } =
     let
-        ( index, height ) =
+        ( selectedIndex, height ) =
             case maybeIndex of
                 Nothing ->
                     ( -1, "calc(100% - 48px)" )
 
                 Just i ->
                     ( i, "calc(100% - 78px)" )
+
+        foldHelper container ( index, views ) =
+            let
+                ( nextIndex, div ) =
+                    viewMessageContainer selectedIndex index messageHierarchy.openMultis container
+            in
+            ( nextIndex, div :: views )
+
+        ( _, messageList ) =
+            List.foldl foldHelper ( numMessages - 1, [] ) messageHierarchy.list
     in
     div
         [ id "elm-debugger-sidebar"
@@ -393,75 +403,30 @@ view maybeIndex { messageHierarchy, numMessages } =
         , style "overflow-y" "auto"
         , style "height" height
         ]
-        (styles :: List.map (viewMessageContainer messageHierarchy.openMultis) messageHierarchy.list)
-
-
-
--- VIEW SNAPSHOTS
-
-
-viewSnapshots : Int -> Array (Snapshot model msg) -> Html Msg
-viewSnapshots currentIndex snapshots =
-    let
-        highIndex =
-            maxSnapshotSize * Array.length snapshots
-    in
-    div [] <|
-        Tuple.second <|
-            Array.foldr (consSnapshot currentIndex) ( highIndex, [] ) snapshots
-
-
-consSnapshot : Int -> Snapshot model msg -> ( Int, List (Html Msg) ) -> ( Int, List (Html Msg) )
-consSnapshot currentIndex snapshot ( index, rest ) =
-    let
-        nextIndex =
-            index - maxSnapshotSize
-
-        currentIndexHelp =
-            if nextIndex <= currentIndex && currentIndex < index then
-                currentIndex
-
-            else
-                -1
-    in
-    ( index - maxSnapshotSize
-    , lazy3 viewSnapshot currentIndexHelp index snapshot :: rest
-    )
-
-
-viewSnapshot : Int -> Int -> Snapshot model msg -> Html Msg
-viewSnapshot currentIndex index { messages } =
-    div [] <|
-        Tuple.second <|
-            Array.foldl (consMsg currentIndex) ( index - 1, [] ) messages
+        (styles :: messageList)
 
 
 
 -- VIEW MESSAGE
 
 
-consMsg : Int -> msg -> ( Int, List (Html Msg) ) -> ( Int, List (Html Msg) )
-consMsg currentIndex msg ( index, rest ) =
-    ( index - 1
-    , lazy3 viewMessage currentIndex index msg :: rest
-    )
-
-
-viewMessageContainer : Set Int -> MsgContainer msg -> Html Msg
-viewMessageContainer openMultis container =
+viewMessageContainer : Int -> Int -> Set Int -> MsgContainer msg -> ( Int, Html Msg )
+viewMessageContainer selectedIndex index openMultis container =
     case container of
         Single _ msg ->
-            viewMessage 0 1 msg
+            ( index - 1
+            , viewMessage selectedIndex index msg
+            )
 
         Multi id prefix msgs ->
-            viewMultiContainer 0 1 openMultis id prefix msgs
+            viewMultiContainer selectedIndex index openMultis id prefix msgs
 
 
 viewMessage : Int -> Int -> msg -> Html Msg
-viewMessage currentIndex index msg =
+viewMessage selectedIndex currentIndex msg =
     let
         className =
-            if currentIndex == index then
+            if selectedIndex == currentIndex then
                 "elm-debugger-entry elm-debugger-entry-selected"
 
             else
@@ -472,9 +437,11 @@ viewMessage currentIndex index msg =
     in
     div
         [ class className
-        , onClick (SelectMsg index)
+        , onClick (SelectMsg currentIndex)
         ]
-        [ span
+        [ span [ class "elm-debugger-entry-arrow" ]
+            [ text "" ]
+        , span
             [ title messageName
             , class "elm-debugger-entry-content"
             ]
@@ -483,23 +450,34 @@ viewMessage currentIndex index msg =
         , span
             [ class "elm-debugger-entry-index"
             ]
-            [ text (String.fromInt index)
+            [ text (String.fromInt currentIndex)
             ]
         ]
 
 
-viewMultiContainer : Int -> Int -> Set Int -> Int -> String -> List (MsgContainer msg) -> Html Msg
-viewMultiContainer currentIndex index openMultis id prefix children =
+viewMultiContainer : Int -> Int -> Set Int -> Int -> String -> List (MsgContainer msg) -> ( Int, Html Msg )
+viewMultiContainer selectedIndex currentIndex openMultis id prefix children =
     let
         isOpen =
             Set.member id openMultis
+
+        foldHelper container ( childIndex, views ) =
+            let
+                ( nextChildIndex, div ) =
+                    viewMessageContainer selectedIndex childIndex openMultis container
+            in
+            ( nextChildIndex, div :: views )
+
+        ( nextIndex, messageList ) =
+            List.foldl foldHelper ( currentIndex, [] ) children
     in
-    div []
+    ( nextIndex
+    , div []
         [ div
             [ class "elm-debugger-entry"
             , onClick (ToggleMulti id)
             ]
-            [ span [] <|
+            [ span [ class "elm-debugger-entry-arrow" ] <|
                 if isOpen then
                     [ text "▾" ]
 
@@ -514,16 +492,21 @@ viewMultiContainer currentIndex index openMultis id prefix children =
             , span
                 [ class "elm-debugger-entry-index"
                 ]
-                [ text (String.fromInt index)
+                [ if isOpen then
+                    text ""
+
+                  else
+                    text (String.fromInt currentIndex)
                 ]
             ]
         , if isOpen then
             div [ style "margin-left" "12px" ]
-                (List.map (viewMessageContainer openMultis) children)
+                messageList
 
           else
             text ""
         ]
+    )
 
 
 
@@ -537,6 +520,8 @@ styles =
 .elm-debugger-entry {
   cursor: pointer;
   width: 100%;
+  box-sizing: border-box;
+  padding: 4px;
 }
 
 .elm-debugger-entry:hover {
@@ -547,11 +532,15 @@ styles =
   background-color: rgb(10, 10, 10);
 }
 
+.elm-debugger-entry-arrow {
+  display: inline-block;
+  width: 10px;
+}
+
 .elm-debugger-entry-content {
-  width: calc(100% - 8ch);
-  padding-top: 4px;
-  padding-bottom: 4px;
-  padding-left: 1ch;
+  width: calc(100% - 40px);
+  padding: 0 5px;
+  box-sizing: border-box;
   text-overflow: ellipsis;
   white-space: nowrap;
   overflow: hidden;
@@ -560,10 +549,7 @@ styles =
 
 .elm-debugger-entry-index {
   color: #666;
-  width: 5ch;
-  padding-top: 4px;
-  padding-bottom: 4px;
-  padding-right: 1ch;
+  width: 20px;
   text-align: right;
   display: block;
   float: right;
