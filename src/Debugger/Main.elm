@@ -12,6 +12,7 @@ import Debugger.History as History exposing (History)
 import Debugger.Metadata as Metadata exposing (Metadata)
 import Debugger.Overlay as Overlay
 import Debugger.Report as Report
+import Dict
 import Elm.Kernel.Debugger
 import Html exposing (..)
 import Html.Attributes exposing (..)
@@ -155,6 +156,7 @@ type Msg msg
     | Export
     | Upload String
     | OverlayMsg Overlay.Msg
+    | Log String msg
 
 
 type alias UserUpdate model msg =
@@ -164,6 +166,7 @@ type alias UserUpdate model msg =
 type ExpandoTarget
     = MessageExpando
     | ModelExpando
+    | LogExpando String
 
 
 wrapUpdate : UserUpdate model msg -> Msg msg -> Model model msg -> ( Model model msg, Cmd (Msg msg) )
@@ -205,7 +208,9 @@ wrapUpdate update msg model =
                     getLatestModel model.state
 
                 newHistory =
-                    History.add userMsg userModel model.history
+                    model.history
+                        |> History.add userMsg userModel
+                        |> History.clearLogs
 
                 ( newUserModel, userCmds ) =
                     update userMsg userModel
@@ -244,6 +249,11 @@ wrapUpdate update msg model =
 
                 ModelExpando ->
                     ( { model | modelExpando = Expando.update eMsg model.modelExpando }
+                    , Cmd.none
+                    )
+
+                LogExpando key ->
+                    ( model
                     , Cmd.none
                     )
 
@@ -291,6 +301,7 @@ wrapUpdate update msg model =
             in
             ( { model
                 | state = Paused index indexModel currentModel currentMsg
+                , history = History.clearLogs model.history
                 , modelExpando = Expando.merge indexModel model.modelExpando
                 , messageExpando = Maybe.map (Expando.merge indexMsg) model.messageExpando
               }
@@ -387,6 +398,11 @@ wrapUpdate update msg model =
 
                 Just rawHistory ->
                     loadNewHistory rawHistory update model
+
+        Log label value ->
+            ( { model | history = History.addLog label value model.history }
+            , Cmd.none
+            )
 
 
 
@@ -514,6 +530,19 @@ popoutView model =
 
         sidePanelOffset =
             String.fromInt model.sidePanelOffset ++ "px"
+
+        logExpandos =
+            Dict.foldr
+                (\label value ls -> logRenderer label value :: ls)
+                []
+                (History.getLogs 0 model.history)
+
+        logRenderer label value =
+            div []
+                [ text <| label ++ ": "
+                , Html.map (ExpandoMsg (LogExpando label)) <|
+                    Expando.view Nothing value
+                ]
     in
     node "body"
         (if model.sidePanelResizable then
@@ -554,6 +583,8 @@ popoutView model =
                         [ div [] [ text "Model:" ]
                         , Html.map (ExpandoMsg ModelExpando) <| Expando.view Nothing model.modelExpando
                         ]
+                    , div []
+                        logExpandos
                     ]
                 , viewSidebar model.state model.history model.layout sidePanelOffset
                 ]
@@ -582,6 +613,8 @@ popoutView model =
                         [ div [] [ text "Model:" ]
                         , Html.map (ExpandoMsg ModelExpando) <| Expando.view Nothing model.modelExpando
                         ]
+                    , div []
+                        logExpandos
                     ]
                 ]
         )
