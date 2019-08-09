@@ -315,16 +315,9 @@ get update index history =
                     Array.foldr (getHelp update) (Stepping (remainderBy maxSnapshotSize index) model) messages
 
 
-getRecent : History model msg -> ( model, msg )
-getRecent history =
-    case history.recent.messages of
-        [] ->
-            getRecent history
-
-        recentMsg :: _ ->
-            ( history.recent.model
-            , recentMsg
-            )
+getRecent : (msg -> model -> ( model, a )) -> History model msg -> ( model, msg )
+getRecent update history =
+    get update (history.numMessages - 1) history
 
 
 type GetResult model msg

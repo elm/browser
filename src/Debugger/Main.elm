@@ -294,7 +294,7 @@ wrapUpdate update msg model =
         Jump index ->
             let
                 ( currentModel, currentMsg ) =
-                    History.getRecent model.history
+                    History.getRecent update model.history
 
                 ( indexModel, indexMsg ) =
                     History.get update index model.history
