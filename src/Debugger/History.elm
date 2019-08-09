@@ -2,14 +2,11 @@ module Debugger.History exposing
     ( History
     , Msg(..)
     , add
-    , addLog
-    , clearLogs
     , decoder
     , empty
     , encode
     , get
     , getInitialModel
-    , getLogs
     , getRecent
     , openMultiContainer
     , size
@@ -19,7 +16,6 @@ module Debugger.History exposing
 import Array exposing (Array)
 import Debugger.Expando as Expando exposing (Expando)
 import Debugger.Metadata as Metadata
-import Dict exposing (Dict)
 import Elm.Kernel.Debugger
 import Html exposing (..)
 import Html.Attributes exposing (..)
@@ -48,7 +44,6 @@ type alias History model msg =
     , recent : RecentHistory model msg
     , numMessages : Int
     , messageHierarchy : MsgHierarchy msg
-    , logs : Dict String Expando
     }
 
 
@@ -79,7 +74,7 @@ type MsgContainer msg
 
 empty : model -> History model msg
 empty model =
-    History Array.empty (RecentHistory model [] 0) 0 emptyHierarchy Dict.empty
+    History Array.empty (RecentHistory model [] 0) 0 emptyHierarchy
 
 
 emptyHierarchy : MsgHierarchy msg
@@ -255,13 +250,13 @@ elmToJs =
 
 
 add : msg -> model -> History model msg -> History model msg
-add msg model { snapshots, recent, numMessages, messageHierarchy, logs } =
+add msg model { snapshots, recent, numMessages, messageHierarchy } =
     case addRecent msg model recent of
         ( Just snapshot, newRecent ) ->
-            History (Array.push snapshot snapshots) newRecent (numMessages + 1) (addToHierarchy msg messageHierarchy) logs
+            History (Array.push snapshot snapshots) newRecent (numMessages + 1) (addToHierarchy msg messageHierarchy)
 
         ( Nothing, newRecent ) ->
-            History snapshots newRecent (numMessages + 1) (addToHierarchy msg messageHierarchy) logs
+            History snapshots newRecent (numMessages + 1) (addToHierarchy msg messageHierarchy)
 
 
 addRecent :
@@ -279,12 +274,6 @@ addRecent msg newModel { model, messages, numMessages } =
         ( Nothing
         , RecentHistory model (msg :: messages) (numMessages + 1)
         )
-
-
-addLog : String -> a -> History model msg -> History model msg
-addLog label value { snapshots, recent, numMessages, messageHierarchy, logs } =
-    History snapshots recent numMessages messageHierarchy <|
-        Dict.insert label (Expando.init value) logs
 
 
 
@@ -337,16 +326,6 @@ getHelp update msg getResult =
 
             else
                 Stepping (n - 1) (Tuple.first (update msg model))
-
-
-getLogs : Int -> History model msg -> Dict String Expando
-getLogs index history =
-    history.logs
-
-
-clearLogs : History model msg -> History model msg
-clearLogs { snapshots, recent, numMessages, messageHierarchy, logs } =
-    History snapshots recent numMessages messageHierarchy Dict.empty
 
 
 undone : GetResult model msg -> ( model, msg )

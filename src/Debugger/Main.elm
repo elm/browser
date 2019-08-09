@@ -12,7 +12,7 @@ import Debugger.History as History exposing (History)
 import Debugger.Metadata as Metadata exposing (Metadata)
 import Debugger.Overlay as Overlay
 import Debugger.Report as Report
-import Dict
+import Dict exposing (Dict)
 import Elm.Kernel.Debugger
 import Html exposing (..)
 import Html.Attributes exposing (..)
@@ -49,6 +49,7 @@ type alias Model model msg =
     , state : State model msg
     , modelExpando : Expando
     , messageExpando : Maybe Expando
+    , logExpandoes : Dict String Expando
     , metadata : Result Metadata.Error Metadata
     , overlay : Overlay.State
     , popout : Popout
@@ -122,6 +123,7 @@ wrapInit metadata popout init flags =
       , state = Running userModel
       , modelExpando = Expando.init userModel
       , messageExpando = Nothing
+      , logExpandoes = Dict.empty
       , metadata = Metadata.decode metadata
       , overlay = Overlay.none
       , popout = popout
@@ -208,9 +210,7 @@ wrapUpdate update msg model =
                     getLatestModel model.state
 
                 newHistory =
-                    model.history
-                        |> History.add userMsg userModel
-                        |> History.clearLogs
+                    History.add userMsg userModel model.history
 
                 ( newUserModel, userCmds ) =
                     update userMsg userModel
@@ -225,6 +225,7 @@ wrapUpdate update msg model =
                         , state = Running newUserModel
                         , modelExpando = Expando.init newUserModel
                         , messageExpando = Just (Expando.init userMsg)
+                        , logExpandoes = Dict.empty
                       }
                     , Cmd.batch
                         [ commands
@@ -253,7 +254,16 @@ wrapUpdate update msg model =
                     )
 
                 LogExpando key ->
-                    ( model
+                    let
+                        updater maybeVal =
+                            case maybeVal of
+                                Just val ->
+                                    Just (Expando.update eMsg val)
+
+                                Nothing ->
+                                    Nothing
+                    in
+                    ( { model | logExpandoes = Dict.update key updater model.logExpandoes }
                     , Cmd.none
                     )
 
@@ -301,9 +311,9 @@ wrapUpdate update msg model =
             in
             ( { model
                 | state = Paused index indexModel currentModel currentMsg
-                , history = History.clearLogs model.history
                 , modelExpando = Expando.merge indexModel model.modelExpando
                 , messageExpando = Maybe.map (Expando.merge indexMsg) model.messageExpando
+                , logExpandoes = Dict.empty
               }
             , Cmd.none
             )
@@ -400,7 +410,7 @@ wrapUpdate update msg model =
                     loadNewHistory rawHistory update model
 
         Log label value ->
-            ( { model | history = History.addLog label value model.history }
+            ( { model | logExpandoes = Dict.insert label (Expando.init value) model.logExpandoes }
             , Cmd.none
             )
 
@@ -535,7 +545,7 @@ popoutView model =
             Dict.foldr
                 (\label value ls -> logRenderer label value :: ls)
                 []
-                (History.getLogs 0 model.history)
+                model.logExpandoes
 
         logRenderer label value =
             div []
