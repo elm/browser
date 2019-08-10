@@ -43,7 +43,7 @@ type alias History model msg =
     { snapshots : Array (Snapshot model msg)
     , recent : RecentHistory model msg
     , numMessages : Int
-    , messageHierarchy : MsgHierarchy msg
+    , messageHierarchy : MsgHierarchy
     }
 
 
@@ -60,16 +60,16 @@ type alias Snapshot model msg =
     }
 
 
-type alias MsgHierarchy msg =
+type alias MsgHierarchy =
     { nextMultiID : Int
     , openMultis : Set Int
-    , list : List (MsgContainer msg)
+    , list : List MsgContainer
     }
 
 
-type MsgContainer msg
-    = Single (List String) msg
-    | Multi Int String (List (MsgContainer msg))
+type MsgContainer
+    = Single Expando
+    | Multi Int String (List MsgContainer)
 
 
 empty : model -> History model msg
@@ -77,7 +77,7 @@ empty model =
     History Array.empty (RecentHistory model [] 0) 0 emptyHierarchy
 
 
-emptyHierarchy : MsgHierarchy msg
+emptyHierarchy : MsgHierarchy
 emptyHierarchy =
     { nextMultiID = 0
     , openMultis = Set.empty
@@ -100,70 +100,56 @@ getInitialModel { snapshots, recent } =
             recent.model
 
 
-addToHierarchy : msg -> MsgHierarchy msg -> MsgHierarchy msg
+addToHierarchy : msg -> MsgHierarchy -> MsgHierarchy
 addToHierarchy msg hierarchy =
-    let
-        messagePath =
-            Expando.messagePath msg
-    in
-    addToHierarchyWithPath msg (Expando.messagePath msg) hierarchy
+    addToHierarchyHelper (Expando.init msg) hierarchy
 
 
-addToHierarchyWithPath : msg -> List String -> MsgHierarchy msg -> MsgHierarchy msg
-addToHierarchyWithPath msg path hierarchy =
+addToHierarchyHelper : Expando -> MsgHierarchy -> MsgHierarchy
+addToHierarchyHelper expando hierarchy =
     case hierarchy.list of
         [] ->
             { hierarchy
                 | list =
-                    [ Single path msg ]
+                    [ Single expando ]
             }
 
-        (Single (lastPrefix :: lastRestPath) lastMsg) :: rest ->
-            case path of
-                prefix :: restPath ->
-                    if lastPrefix == prefix then
-                        let
-                            subHierarchy =
-                                addToHierarchyWithPath
-                                    msg
-                                    restPath
-                                    { nextMultiID = hierarchy.nextMultiID + 1
-                                    , openMultis = hierarchy.openMultis
-                                    , list =
-                                        [ Single lastRestPath lastMsg ]
-                                    }
-                        in
-                        { nextMultiID = subHierarchy.nextMultiID
-                        , openMultis = subHierarchy.openMultis
-                        , list =
-                            Multi hierarchy.nextMultiID prefix subHierarchy.list :: rest
-                        }
-
-                    else
-                        { hierarchy
-                            | list =
-                                Single path msg :: hierarchy.list
-                        }
-
-                _ ->
-                    { hierarchy
-                        | list =
-                            Single path msg :: hierarchy.list
+        (Single previousExpando) :: rest ->
+            case Expando.sharedPrefix previousExpando expando of
+                Just ( prefixName, previousChild, currentChild ) ->
+                    let
+                        subHierarchy =
+                            addToHierarchyHelper
+                                currentChild
+                                { nextMultiID = hierarchy.nextMultiID + 1
+                                , openMultis = hierarchy.openMultis
+                                , list =
+                                    [ Single previousChild ]
+                                }
+                    in
+                    { nextMultiID = subHierarchy.nextMultiID
+                    , openMultis = subHierarchy.openMultis
+                    , list =
+                        Multi hierarchy.nextMultiID prefixName subHierarchy.list :: rest
                     }
 
-        (Multi _ lastPrefix msgs) :: rest ->
-            case path of
-                prefix :: restPath ->
+                Nothing ->
+                    { hierarchy
+                        | list =
+                            Single expando :: hierarchy.list
+                    }
+
+        (Multi _ lastPrefix children) :: rest ->
+            case Expando.prefix expando of
+                Just ( prefix, child ) ->
                     if lastPrefix == prefix then
                         let
                             subHierarchy =
-                                addToHierarchyWithPath
-                                    msg
-                                    restPath
+                                addToHierarchyHelper
+                                    child
                                     { nextMultiID = hierarchy.nextMultiID + 1
                                     , openMultis = hierarchy.openMultis
-                                    , list =
-                                        msgs
+                                    , list = children
                                     }
                         in
                         { nextMultiID = subHierarchy.nextMultiID
@@ -175,23 +161,17 @@ addToHierarchyWithPath msg path hierarchy =
                     else
                         { hierarchy
                             | list =
-                                Single path msg :: hierarchy.list
+                                Single expando :: hierarchy.list
                         }
 
                 _ ->
                     { hierarchy
                         | list =
-                            Single path msg :: hierarchy.list
+                            Single expando :: hierarchy.list
                     }
 
-        _ ->
-            { hierarchy
-                | list =
-                    Single path msg :: hierarchy.list
-            }
 
-
-openMultiContainer : Int -> MsgHierarchy msg -> MsgHierarchy msg
+openMultiContainer : Int -> MsgHierarchy -> MsgHierarchy
 openMultiContainer id hierarchy =
     { hierarchy
         | openMultis =
@@ -382,10 +362,10 @@ view maybeIndex { messageHierarchy, numMessages } =
 -- VIEW MESSAGE
 
 
-viewMessageContainer : Int -> Int -> Set Int -> MsgContainer msg -> ( Int, Html Msg )
+viewMessageContainer : Int -> Int -> Set Int -> MsgContainer -> ( Int, Html Msg )
 viewMessageContainer selectedIndex index openMultis container =
     case container of
-        Single _ msg ->
+        Single msg ->
             ( index - 1
             , viewMessage selectedIndex index msg
             )
@@ -394,7 +374,7 @@ viewMessageContainer selectedIndex index openMultis container =
             viewMultiContainer selectedIndex index openMultis id prefix msgs
 
 
-viewMessage : Int -> Int -> msg -> Html Msg
+viewMessage : Int -> Int -> Expando -> Html Msg
 viewMessage selectedIndex currentIndex msg =
     let
         className =
@@ -405,7 +385,7 @@ viewMessage selectedIndex currentIndex msg =
                 "elm-debugger-entry"
 
         messageName =
-            Elm.Kernel.Debugger.messageToString msg
+            Expando.toString True msg
     in
     div
         [ class className
@@ -427,7 +407,7 @@ viewMessage selectedIndex currentIndex msg =
         ]
 
 
-viewMultiContainer : Int -> Int -> Set Int -> Int -> String -> List (MsgContainer msg) -> ( Int, Html Msg )
+viewMultiContainer : Int -> Int -> Set Int -> Int -> String -> List MsgContainer -> ( Int, Html Msg )
 viewMultiContainer selectedIndex currentIndex openMultis id prefix children =
     let
         isOpen =

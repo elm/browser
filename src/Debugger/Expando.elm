@@ -3,7 +3,9 @@ module Debugger.Expando exposing
     , Msg
     , init
     , merge
-    , messagePath
+    , prefix
+    , sharedPrefix
+    , toString
     , update
     , view
     )
@@ -111,24 +113,67 @@ initHelp isOuter expando =
 -- Message path
 
 
-messagePath : a -> List String
-messagePath value =
-    List.reverse (messagePathHelp [] (Elm.Kernel.Debugger.init value))
+sharedPrefix : Expando -> Expando -> Maybe ( String, Expando, Expando )
+sharedPrefix left right =
+    case ( left, right ) of
+        ( Constructor (Just leftName) _ (leftChild :: []), Constructor (Just rightName) _ (rightChild :: []) ) ->
+            if leftName == rightName then
+                Just ( leftName, leftChild, rightChild )
 
-
-messagePathHelp : List String -> Expando -> List String
-messagePathHelp path value =
-    case value of
-        Constructor (Just name) _ args ->
-            case args of
-                firstArg :: [] ->
-                    messagePathHelp (name :: path) firstArg
-
-                _ ->
-                    path
+            else
+                Nothing
 
         _ ->
-            path
+            Nothing
+
+
+prefix : Expando -> Maybe ( String, Expando )
+prefix expando =
+    case expando of
+        Constructor (Just name) _ (firstArg :: []) ->
+            Just ( name, firstArg )
+
+        _ ->
+            Nothing
+
+
+toString : Bool -> Expando -> String
+toString isOuter expando =
+    case expando of
+        S string ->
+            string
+
+        Primitive string ->
+            string
+
+        Sequence seqType bool expandoList ->
+            seqTypeToString (List.length expandoList) seqType
+
+        Dictionary bool expandoList ->
+            "Dict (" ++ String.fromInt (List.length expandoList) ++ ")"
+
+        Record bool expandoStringDict ->
+            "{...}"
+
+        Constructor stringMaybe bool expandoList ->
+            if List.isEmpty expandoList then
+                Maybe.withDefault "" stringMaybe
+
+            else
+                let
+                    childrenView =
+                        expandoList
+                            |> List.map (\arg -> toString False arg)
+                            |> String.join " "
+
+                    stringRep =
+                        Maybe.withDefault "" stringMaybe ++ " " ++ childrenView
+                in
+                if isOuter then
+                    stringRep
+
+                else
+                    "(" ++ stringRep ++ ")"
 
 
 
