@@ -61,7 +61,7 @@ equipped to detect these URL changes. If `Key` values were available in other
 kinds of programs, unsuspecting programmers would be sure to run into some
 [annoying bugs][bugs] and learn a bunch of techniques the hard way!
 
-[bugs]: https://github.com/elm/browser/blob/1.0.0/notes/navigation-in-elements.md
+[bugs]: https://github.com/elm/browser/blob/1.0.1/notes/navigation-in-elements.md
 
 -}
 type Key

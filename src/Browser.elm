@@ -1,9 +1,12 @@
-module Browser exposing
-    ( sandbox
-    , element
-    , document, Document
-    , application, UrlRequest(..)
-    )
+module Browser
+    exposing
+        ( sandbox
+        , element
+        , document
+        , Document
+        , application
+        , UrlRequest(..)
+        )
 
 {-| This module helps you set up an Elm `Program` with functions like
 [`sandbox`](#sandbox) and [`document`](#document).
@@ -36,7 +39,6 @@ import Dict
 import Elm.Kernel.Browser
 import Html exposing (Html)
 import Url
-
 
 
 -- SANDBOX
@@ -201,8 +203,7 @@ reading a calculus book from page 314, it might seem confusing. Same here!
 [bnp]: Browser-Navigation#pushUrl
 [bnl]: Browser-Navigation#load
 [url]: /packages/elm/url/latest/Url#Url
-[this]: https://github.com/elm/browser/blob/1.0.0/notes/navigation-in-elements.md
-
+[this]: https://github.com/elm/browser/blob/1.0.1/notes/navigation-in-elements.md
 -}
 application :
     { init : flags -> Url.Url -> Navigation.Key -> ( model, Cmd msg )
