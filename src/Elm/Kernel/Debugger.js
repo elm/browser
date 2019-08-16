@@ -1,7 +1,7 @@
 /*
 
 import Debugger.Expando as Expando exposing (S, Primitive, Sequence, Dictionary, Record, Constructor, ListSeq, SetSeq, ArraySeq)
-import Debugger.Main as Main exposing (getUserModel, wrapInit, wrapUpdate, wrapSubs, cornerView, popoutView, NoOp, Resize, UserMsg, Up, Down, Log, toBlockerType)
+import Debugger.Main as Main exposing (getUserModel, wrapInit, wrapUpdate, wrapSubs, cornerView, popoutView, NoOp, Resize, UserMsg, Up, Down, toBlockerType)
 import Debugger.Overlay as Overlay exposing (BlockNone, BlockMost)
 import Elm.Kernel.Browser exposing (makeAnimator)
 import Elm.Kernel.Debug exposing (crash)
@@ -200,15 +200,6 @@ function _Debugger_openWindow(popout)
 
  	popout.__sendToApp(A2(__Main_Resize, w, h));
 
-        var oldDebugLog = elm$core$Debug$log;
-	elm$core$Debug$log = F2(function(tag, value) {
-        setTimeout(function() {
-            popout.__sendToApp(A2(__Main_Log, tag, value));
-        }, 0);
-            
-            return value;
-        });
-    
 	// handle window close
 	window.addEventListener('unload', close);
 	debuggerWindow.addEventListener('unload', function() {
@@ -218,7 +209,6 @@ function _Debugger_openWindow(popout)
 	});
 
 	function close() {
-		elm$core$Debug$log = oldDebugLog;
 		popout.__doc = undefined;
 		popout.__sendToApp(__Main_NoOp);
 		debuggerWindow.close();
@@ -559,4 +549,3 @@ var _Debugger_mostEvents = [
 ];
 
 var _Debugger_allEvents = _Debugger_mostEvents.concat('wheel', 'scroll');
-

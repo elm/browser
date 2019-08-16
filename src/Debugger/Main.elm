@@ -49,7 +49,6 @@ type alias Model model msg =
     , state : State model msg
     , modelExpando : Expando
     , messageExpando : Maybe Expando
-    , logExpandoes : Dict String Expando
     , metadata : Result Metadata.Error Metadata
     , overlay : Overlay.State
     , popout : Popout
@@ -123,7 +122,6 @@ wrapInit metadata popout init flags =
       , state = Running userModel
       , modelExpando = Expando.init userModel
       , messageExpando = Nothing
-      , logExpandoes = Dict.empty
       , metadata = Metadata.decode metadata
       , overlay = Overlay.none
       , popout = popout
@@ -158,7 +156,6 @@ type Msg msg
     | Export
     | Upload String
     | OverlayMsg Overlay.Msg
-    | Log String msg
 
 
 type alias UserUpdate model msg =
@@ -168,7 +165,6 @@ type alias UserUpdate model msg =
 type ExpandoTarget
     = MessageExpando
     | ModelExpando
-    | LogExpando String
 
 
 wrapUpdate : UserUpdate model msg -> Msg msg -> Model model msg -> ( Model model msg, Cmd (Msg msg) )
@@ -225,7 +221,6 @@ wrapUpdate update msg model =
                         , state = Running newUserModel
                         , modelExpando = Expando.init newUserModel
                         , messageExpando = Just (Expando.init userMsg)
-                        , logExpandoes = Dict.empty
                       }
                     , Cmd.batch
                         [ commands
@@ -250,20 +245,6 @@ wrapUpdate update msg model =
 
                 ModelExpando ->
                     ( { model | modelExpando = Expando.update eMsg model.modelExpando }
-                    , Cmd.none
-                    )
-
-                LogExpando key ->
-                    let
-                        updater maybeVal =
-                            case maybeVal of
-                                Just val ->
-                                    Just (Expando.update eMsg val)
-
-                                Nothing ->
-                                    Nothing
-                    in
-                    ( { model | logExpandoes = Dict.update key updater model.logExpandoes }
                     , Cmd.none
                     )
 
@@ -313,7 +294,6 @@ wrapUpdate update msg model =
                 | state = Paused index indexModel currentModel currentMsg
                 , modelExpando = Expando.merge indexModel model.modelExpando
                 , messageExpando = Maybe.map (Expando.merge indexMsg) model.messageExpando
-                , logExpandoes = Dict.empty
               }
             , Cmd.none
             )
@@ -408,11 +388,6 @@ wrapUpdate update msg model =
 
                 Just rawHistory ->
                     loadNewHistory rawHistory update model
-
-        Log label value ->
-            ( { model | logExpandoes = Dict.insert label (Expando.init value) model.logExpandoes }
-            , Cmd.none
-            )
 
 
 
@@ -540,19 +515,6 @@ popoutView model =
 
         sidePanelOffset =
             String.fromInt model.sidePanelOffset ++ "px"
-
-        logExpandos =
-            Dict.foldr
-                (\label value ls -> logRenderer label value :: ls)
-                []
-                model.logExpandoes
-
-        logRenderer label value =
-            div []
-                [ text <| label ++ ": "
-                , Html.map (ExpandoMsg (LogExpando label)) <|
-                    Expando.view Nothing value
-                ]
     in
     node "body"
         (if model.sidePanelResizable then
@@ -593,8 +555,6 @@ popoutView model =
                         [ div [] [ text "Model:" ]
                         , Html.map (ExpandoMsg ModelExpando) <| Expando.view Nothing model.modelExpando
                         ]
-                    , div []
-                        logExpandos
                     ]
                 , viewSidebar model.state model.history model.layout sidePanelOffset
                 ]
@@ -623,8 +583,6 @@ popoutView model =
                         [ div [] [ text "Model:" ]
                         , Html.map (ExpandoMsg ModelExpando) <| Expando.view Nothing model.modelExpando
                         ]
-                    , div []
-                        logExpandos
                     ]
                 ]
         )
