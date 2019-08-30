@@ -7,6 +7,7 @@ module Debugger.History exposing
     , get
     , getInitialModel
     , getRecent
+    , idForMessageIndex
     , size
     , view
     )
@@ -308,7 +309,8 @@ viewMessage currentIndex index msg =
             Elm.Kernel.Debugger.messageToString msg
     in
     div
-        [ class className
+        [ id (idForMessageIndex index)
+        , class className
         , onClick index
         ]
         [ span [ class "elm-debugger-entry-arrow" ]
@@ -325,6 +327,11 @@ viewMessage currentIndex index msg =
             [ text (String.fromInt index)
             ]
         ]
+
+
+idForMessageIndex : Int -> String
+idForMessageIndex index =
+    "msg-" ++ String.fromInt index
 
 
 

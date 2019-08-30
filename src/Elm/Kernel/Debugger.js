@@ -240,6 +240,22 @@ function _Debugger_scroll(popout)
 }
 
 
+var _Debugger_scrollTo = F2(function(id, popout)
+{
+	return __Scheduler_binding(function(callback)
+	{
+		if (popout.__doc)
+		{
+			var msg = popout.__doc.getElementById(id);
+			if (msg)
+			{
+				msg.scrollIntoView();
+			}
+		}
+		callback(__Scheduler_succeed(__Utils_Tuple0));
+	});
+});
+
 
 // UPLOAD
 

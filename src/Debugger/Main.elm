@@ -147,6 +147,7 @@ type Msg msg
     | ExpandoMsg ExpandoTarget Expando.Msg
     | Resume
     | Jump Int
+    | SliderJump Int
     | Open
     | Up
     | Down
@@ -278,6 +279,15 @@ wrapUpdate update msg model =
             , Cmd.none
             )
 
+        SliderJump index ->
+            let
+                ( modelAfterJump, jumpCmds ) =
+                    wrapUpdate update (Jump index) model
+            in
+            ( modelAfterJump
+            , scrollTo (History.idForMessageIndex index) model.popout
+            )
+
         Open ->
             ( model
             , Task.perform (\_ -> NoOp) (Elm.Kernel.Debugger.open model.popout)
@@ -383,6 +393,11 @@ wrapUpdate update msg model =
 scroll : Popout -> Cmd (Msg msg)
 scroll popout =
     Task.perform (always NoOp) (Elm.Kernel.Debugger.scroll popout)
+
+
+scrollTo : String -> Popout -> Cmd (Msg msg)
+scrollTo id popout =
+    Task.perform (always NoOp) (Elm.Kernel.Debugger.scrollTo id popout)
 
 
 upload : Popout -> Cmd (Msg msg)
@@ -702,7 +717,7 @@ slider history maybeIndex =
             , Html.Attributes.min "0"
             , Html.Attributes.max (String.fromInt lastIndex)
             , value (String.fromInt selectedIndex)
-            , onInput (String.toInt >> Maybe.withDefault lastIndex >> Jump)
+            , onInput (String.toInt >> Maybe.withDefault lastIndex >> SliderJump)
             ]
             []
         ]
