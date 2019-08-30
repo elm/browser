@@ -7,6 +7,7 @@ module Debugger.Main exposing
     , wrapUpdate
     )
 
+import Bitwise
 import Debugger.Expando as Expando exposing (Expando)
 import Debugger.History as History exposing (History)
 import Debugger.Metadata as Metadata exposing (Metadata)
@@ -17,7 +18,7 @@ import Elm.Kernel.Debugger
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (on, onClick, onInput, onMouseDown, onMouseUp)
-import Json.Decode as Decode
+import Json.Decode as Decode exposing (Decoder)
 import Json.Encode as Encode
 import Task exposing (Task)
 
@@ -151,7 +152,7 @@ type Msg msg
     | Up
     | Down
     | EnableSidePanelResizing Bool
-    | ResizeSidePanel Int
+    | ResizeSidePanel MouseProperties
     | Import
     | Export
     | Upload String
@@ -336,30 +337,36 @@ wrapUpdate update msg model =
             , Cmd.none
             )
 
-        ResizeSidePanel mousePosition ->
-            let
-                minPanelSize =
-                    150
+        ResizeSidePanel mouseProperties ->
+            if mouseProperties.buttonIsPressed then
+                let
+                    minPanelSize =
+                        150
 
-                dimensionSize =
-                    case model.layout of
-                        Horizontal ->
-                            model.windowHeight
+                    dimensionSize =
+                        case model.layout of
+                            Horizontal ->
+                                model.windowHeight
 
-                        Vertical ->
-                            model.windowWidth
+                            Vertical ->
+                                model.windowWidth
 
-                upperBound =
-                    dimensionSize - minPanelSize
-            in
-            ( { model
-                | sidePanelOffset =
-                    mousePosition
-                        |> Basics.max minPanelSize
-                        |> Basics.min upperBound
-              }
-            , Cmd.none
-            )
+                    upperBound =
+                        dimensionSize - minPanelSize
+                in
+                ( { model
+                    | sidePanelOffset =
+                        mouseProperties.offset
+                            |> Basics.max minPanelSize
+                            |> Basics.min upperBound
+                  }
+                , Cmd.none
+                )
+
+            else
+                ( { model | sidePanelResizable = False }
+                , Cmd.none
+                )
 
         Import ->
             withGoodMetadata model <|
@@ -662,18 +669,34 @@ draggableBorderHorizontal =
         []
 
 
-onMouseMove : Layout -> (Int -> Msg msg) -> Attribute (Msg msg)
+onMouseMove : Layout -> (MouseProperties -> Msg msg) -> Attribute (Msg msg)
 onMouseMove layout toMsg =
+    on "mousemove" (Decode.map toMsg (mouseMoveDecoder layout))
+
+
+type alias MouseProperties =
+    { offset : Int
+    , buttonIsPressed : Bool
+    }
+
+
+mouseMoveDecoder : Layout -> Decoder MouseProperties
+mouseMoveDecoder layout =
     let
-        property =
+        offsetFieldName =
             case layout of
                 Horizontal ->
                     "pageY"
 
                 Vertical ->
                     "pageX"
+
+        primaryButtonDetector value =
+            Bitwise.and value 1 == 1
     in
-    on "mousemove" (Decode.map toMsg (Decode.field property Decode.int))
+    Decode.map2 MouseProperties
+        (Decode.field offsetFieldName Decode.int)
+        (Decode.field "buttons" (Decode.map primaryButtonDetector Decode.int))
 
 
 slider : History model msg -> Maybe Int -> Html (Msg msg)
