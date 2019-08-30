@@ -76,7 +76,7 @@ type Layout
 
 type State model msg
     = Running model
-    | Paused Int model model msg
+    | Paused Int model model msg (History model msg)
 
 
 getLatestModel : State model msg -> model
@@ -85,7 +85,7 @@ getLatestModel state =
         Running model ->
             model
 
-        Paused _ _ model _ ->
+        Paused _ _ model _ _ ->
             model
 
 
@@ -95,7 +95,7 @@ getCurrentModel state =
         Running model ->
             model
 
-        Paused _ model _ _ ->
+        Paused _ model _ _ _ ->
             model
 
 
@@ -105,8 +105,18 @@ isPaused state =
         Running _ ->
             False
 
-        Paused _ _ _ _ ->
+        Paused _ _ _ _ _ ->
             True
+
+
+cacheHistory : Model model msg -> History model msg
+cacheHistory model =
+    case model.state of
+        Running _ ->
+            model.history
+
+        Paused _ _ _ _ cachedHistory ->
+            cachedHistory
 
 
 
@@ -229,10 +239,10 @@ wrapUpdate update msg model =
                         ]
                     )
 
-                Paused index indexModel _ _ ->
+                Paused index indexModel _ _ cachedHistory ->
                     ( { model
                         | history = newHistory
-                        , state = Paused index indexModel newUserModel userMsg
+                        , state = Paused index indexModel newUserModel userMsg cachedHistory
                       }
                     , commands
                     )
@@ -254,7 +264,7 @@ wrapUpdate update msg model =
                 Running _ ->
                     ( model, Cmd.none )
 
-                Paused _ _ userModel userMsg ->
+                Paused _ _ userModel userMsg _ ->
                     ( { model
                         | state = Running userModel
                         , modelExpando = Expando.merge userModel model.modelExpando
@@ -272,7 +282,7 @@ wrapUpdate update msg model =
                     History.get update index model.history
             in
             ( { model
-                | state = Paused index indexModel currentModel currentMsg
+                | state = Paused index indexModel currentModel currentMsg (cacheHistory model)
                 , modelExpando = Expando.merge indexModel model.modelExpando
                 , messageExpando = Maybe.map (Expando.merge indexMsg) model.messageExpando
               }
@@ -297,7 +307,7 @@ wrapUpdate update msg model =
             let
                 index =
                     case model.state of
-                        Paused i _ _ _ ->
+                        Paused i _ _ _ _ ->
                             i
 
                         Running _ ->
@@ -314,7 +324,7 @@ wrapUpdate update msg model =
                 Running _ ->
                     ( model, Cmd.none )
 
-                Paused index _ userModel userMsg ->
+                Paused index _ userModel userMsg _ ->
                     if index == History.size model.history - 1 then
                         wrapUpdate update Resume model
 
@@ -597,8 +607,16 @@ viewSidebar state history layout offsetStyle =
                 Running _ ->
                     Nothing
 
-                Paused index _ _ _ ->
+                Paused index _ _ _ _ ->
                     Just index
+
+        historyToRender =
+            case state of
+                Running _ ->
+                    history
+
+                Paused _ _ _ _ cachedHistory ->
+                    cachedHistory
     in
     case layout of
         Horizontal ->
@@ -611,8 +629,8 @@ viewSidebar state history layout offsetStyle =
                 , style "background-color" "rgb(61, 61, 61)"
                 ]
                 [ draggableBorderHorizontal
-                , slider history maybeIndex
-                , Html.map Jump (History.view maybeIndex history)
+                , slider historyToRender maybeIndex
+                , Html.map Jump (History.view maybeIndex historyToRender)
                 , playButton maybeIndex
                 ]
 
@@ -627,8 +645,8 @@ viewSidebar state history layout offsetStyle =
                 , style "background-color" "rgb(61, 61, 61)"
                 ]
                 [ draggableBorder
-                , slider history maybeIndex
-                , Html.map Jump (History.view maybeIndex history)
+                , slider historyToRender maybeIndex
+                , Html.map Jump (History.view maybeIndex historyToRender)
                 , playButton maybeIndex
                 ]
 
