@@ -145,7 +145,6 @@ type Msg msg
     | Resize Int Int
     | UserMsg msg
     | ExpandoMsg ExpandoTarget Expando.Msg
-    | HistoryMsg History.Msg
     | Resume
     | Jump Int
     | Open
@@ -246,26 +245,6 @@ wrapUpdate update msg model =
 
                 ModelExpando ->
                     ( { model | modelExpando = Expando.update eMsg model.modelExpando }
-                    , Cmd.none
-                    )
-
-        HistoryMsg historyMsg ->
-            case historyMsg of
-                History.SelectMsg idx ->
-                    wrapUpdate update (Jump idx) model
-
-                History.ToggleMulti id ->
-                    let
-                        currentHistory =
-                            model.history
-                    in
-                    ( { model
-                        | history =
-                            { currentHistory
-                                | messageHierarchy =
-                                    History.openMultiContainer id currentHistory.messageHierarchy
-                            }
-                      }
                     , Cmd.none
                     )
 
@@ -618,7 +597,7 @@ viewSidebar state history layout offsetStyle =
                 ]
                 [ draggableBorderHorizontal
                 , slider history maybeIndex
-                , Html.map HistoryMsg (History.view maybeIndex history)
+                , Html.map Jump (History.view maybeIndex history)
                 , playButton maybeIndex
                 ]
 
@@ -634,7 +613,7 @@ viewSidebar state history layout offsetStyle =
                 ]
                 [ draggableBorder
                 , slider history maybeIndex
-                , Html.map HistoryMsg (History.view maybeIndex history)
+                , Html.map Jump (History.view maybeIndex history)
                 , playButton maybeIndex
                 ]
 

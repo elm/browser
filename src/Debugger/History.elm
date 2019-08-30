@@ -1,6 +1,5 @@
 module Debugger.History exposing
     ( History
-    , Msg(..)
     , add
     , decoder
     , empty
@@ -8,7 +7,6 @@ module Debugger.History exposing
     , get
     , getInitialModel
     , getRecent
-    , openMultiContainer
     , size
     , view
     )
@@ -43,7 +41,6 @@ type alias History model msg =
     { snapshots : Array (Snapshot model msg)
     , recent : RecentHistory model msg
     , numMessages : Int
-    , messageHierarchy : MsgHierarchy
     }
 
 
@@ -60,29 +57,9 @@ type alias Snapshot model msg =
     }
 
 
-type alias MsgHierarchy =
-    { nextMultiID : Int
-    , openMultis : Set Int
-    , list : List MsgContainer
-    }
-
-
-type MsgContainer
-    = Single Expando
-    | Multi Int String (List MsgContainer)
-
-
 empty : model -> History model msg
 empty model =
-    History Array.empty (RecentHistory model [] 0) 0 emptyHierarchy
-
-
-emptyHierarchy : MsgHierarchy
-emptyHierarchy =
-    { nextMultiID = 0
-    , openMultis = Set.empty
-    , list = []
-    }
+    History Array.empty (RecentHistory model [] 0) 0
 
 
 size : History model msg -> Int
@@ -98,89 +75,6 @@ getInitialModel { snapshots, recent } =
 
         Nothing ->
             recent.model
-
-
-addToHierarchy : msg -> MsgHierarchy -> MsgHierarchy
-addToHierarchy msg hierarchy =
-    addToHierarchyHelper (Expando.init msg) hierarchy
-
-
-addToHierarchyHelper : Expando -> MsgHierarchy -> MsgHierarchy
-addToHierarchyHelper expando hierarchy =
-    case hierarchy.list of
-        [] ->
-            { hierarchy
-                | list =
-                    [ Single expando ]
-            }
-
-        (Single previousExpando) :: rest ->
-            case Expando.sharedPrefix previousExpando expando of
-                Just ( prefixName, previousChild, currentChild ) ->
-                    let
-                        subHierarchy =
-                            addToHierarchyHelper
-                                currentChild
-                                { nextMultiID = hierarchy.nextMultiID + 1
-                                , openMultis = hierarchy.openMultis
-                                , list =
-                                    [ Single previousChild ]
-                                }
-                    in
-                    { nextMultiID = subHierarchy.nextMultiID
-                    , openMultis = subHierarchy.openMultis
-                    , list =
-                        Multi hierarchy.nextMultiID prefixName subHierarchy.list :: rest
-                    }
-
-                Nothing ->
-                    { hierarchy
-                        | list =
-                            Single expando :: hierarchy.list
-                    }
-
-        (Multi _ lastPrefix children) :: rest ->
-            case Expando.prefix expando of
-                Just ( prefix, child ) ->
-                    if lastPrefix == prefix then
-                        let
-                            subHierarchy =
-                                addToHierarchyHelper
-                                    child
-                                    { nextMultiID = hierarchy.nextMultiID + 1
-                                    , openMultis = hierarchy.openMultis
-                                    , list = children
-                                    }
-                        in
-                        { nextMultiID = subHierarchy.nextMultiID
-                        , openMultis = subHierarchy.openMultis
-                        , list =
-                            Multi hierarchy.nextMultiID lastPrefix subHierarchy.list :: rest
-                        }
-
-                    else
-                        { hierarchy
-                            | list =
-                                Single expando :: hierarchy.list
-                        }
-
-                _ ->
-                    { hierarchy
-                        | list =
-                            Single expando :: hierarchy.list
-                    }
-
-
-openMultiContainer : Int -> MsgHierarchy -> MsgHierarchy
-openMultiContainer id hierarchy =
-    { hierarchy
-        | openMultis =
-            if Set.member id hierarchy.openMultis then
-                Set.remove id hierarchy.openMultis
-
-            else
-                Set.insert id hierarchy.openMultis
-    }
 
 
 
@@ -230,13 +124,13 @@ elmToJs =
 
 
 add : msg -> model -> History model msg -> History model msg
-add msg model { snapshots, recent, numMessages, messageHierarchy } =
+add msg model { snapshots, recent, numMessages } =
     case addRecent msg model recent of
         ( Just snapshot, newRecent ) ->
-            History (Array.push snapshot snapshots) newRecent (numMessages + 1) (addToHierarchy msg messageHierarchy)
+            History (Array.push snapshot snapshots) newRecent (numMessages + 1)
 
         ( Nothing, newRecent ) ->
-            History snapshots newRecent (numMessages + 1) (addToHierarchy msg messageHierarchy)
+            History snapshots newRecent (numMessages + 1)
 
 
 addRecent :
@@ -323,15 +217,10 @@ undone getResult =
 -- VIEW
 
 
-type Msg
-    = SelectMsg Int
-    | ToggleMulti Int
-
-
-view : Maybe Int -> History model msg -> Html Msg
-view maybeIndex { messageHierarchy, numMessages } =
+view : Maybe Int -> History model msg -> Html Int
+view maybeIndex { snapshots, recent, numMessages } =
     let
-        ( selectedIndex, height ) =
+        ( index, height ) =
             case maybeIndex of
                 Nothing ->
                     ( -1, "calc(100% - 48px)" )
@@ -339,15 +228,11 @@ view maybeIndex { messageHierarchy, numMessages } =
                 Just i ->
                     ( i, "calc(100% - 78px)" )
 
-        foldHelper container ( index, views ) =
-            let
-                ( nextIndex, div ) =
-                    viewMessageContainer selectedIndex index messageHierarchy.openMultis container
-            in
-            ( nextIndex, div :: views )
+        oldStuff =
+            lazy2 viewSnapshots index snapshots
 
-        ( _, messageList ) =
-            List.foldl foldHelper ( numMessages - 1, [] ) messageHierarchy.list
+        ( _, newStuff ) =
+            List.foldl (consMsg index) ( numMessages - 1, [] ) recent.messages
     in
     div
         [ id "elm-debugger-sidebar"
@@ -355,41 +240,76 @@ view maybeIndex { messageHierarchy, numMessages } =
         , style "overflow-y" "auto"
         , style "height" height
         ]
-        (styles :: messageList)
+        (styles :: oldStuff :: newStuff)
+
+
+
+-- VIEW SNAPSHOTS
+
+
+viewSnapshots : Int -> Array (Snapshot model msg) -> Html Int
+viewSnapshots currentIndex snapshots =
+    let
+        highIndex =
+            maxSnapshotSize * Array.length snapshots
+    in
+    div [] <|
+        Tuple.second <|
+            Array.foldr (consSnapshot currentIndex) ( highIndex, [] ) snapshots
+
+
+consSnapshot : Int -> Snapshot model msg -> ( Int, List (Html Int) ) -> ( Int, List (Html Int) )
+consSnapshot currentIndex snapshot ( index, rest ) =
+    let
+        nextIndex =
+            index - maxSnapshotSize
+
+        currentIndexHelp =
+            if nextIndex <= currentIndex && currentIndex < index then
+                currentIndex
+
+            else
+                -1
+    in
+    ( index - maxSnapshotSize
+    , lazy3 viewSnapshot currentIndexHelp index snapshot :: rest
+    )
+
+
+viewSnapshot : Int -> Int -> Snapshot model msg -> Html Int
+viewSnapshot currentIndex index { messages } =
+    div [] <|
+        Tuple.second <|
+            Array.foldl (consMsg currentIndex) ( index - 1, [] ) messages
 
 
 
 -- VIEW MESSAGE
 
 
-viewMessageContainer : Int -> Int -> Set Int -> MsgContainer -> ( Int, Html Msg )
-viewMessageContainer selectedIndex index openMultis container =
-    case container of
-        Single msg ->
-            ( index - 1
-            , viewMessage selectedIndex index msg
-            )
-
-        Multi id prefix msgs ->
-            viewMultiContainer selectedIndex index openMultis id prefix msgs
+consMsg : Int -> msg -> ( Int, List (Html Int) ) -> ( Int, List (Html Int) )
+consMsg currentIndex msg ( index, rest ) =
+    ( index - 1
+    , lazy3 viewMessage currentIndex index msg :: rest
+    )
 
 
-viewMessage : Int -> Int -> Expando -> Html Msg
-viewMessage selectedIndex currentIndex msg =
+viewMessage : Int -> Int -> msg -> Html Int
+viewMessage currentIndex index msg =
     let
         className =
-            if selectedIndex == currentIndex then
+            if index == currentIndex then
                 "elm-debugger-entry elm-debugger-entry-selected"
 
             else
                 "elm-debugger-entry"
 
         messageName =
-            Expando.toString True msg
+            Elm.Kernel.Debugger.messageToString msg
     in
     div
         [ class className
-        , onClick (SelectMsg currentIndex)
+        , onClick index
         ]
         [ span [ class "elm-debugger-entry-arrow" ]
             [ text "" ]
@@ -402,63 +322,9 @@ viewMessage selectedIndex currentIndex msg =
         , span
             [ class "elm-debugger-entry-index"
             ]
-            [ text (String.fromInt currentIndex)
+            [ text (String.fromInt index)
             ]
         ]
-
-
-viewMultiContainer : Int -> Int -> Set Int -> Int -> String -> List MsgContainer -> ( Int, Html Msg )
-viewMultiContainer selectedIndex currentIndex openMultis id prefix children =
-    let
-        isOpen =
-            Set.member id openMultis
-
-        foldHelper container ( childIndex, views ) =
-            let
-                ( nextChildIndex, div ) =
-                    viewMessageContainer selectedIndex childIndex openMultis container
-            in
-            ( nextChildIndex, div :: views )
-
-        ( nextIndex, messageList ) =
-            List.foldl foldHelper ( currentIndex, [] ) children
-    in
-    ( nextIndex
-    , div []
-        [ div
-            [ class "elm-debugger-entry"
-            , onClick (ToggleMulti id)
-            ]
-            [ span [ class "elm-debugger-entry-arrow" ] <|
-                if isOpen then
-                    [ text "▾" ]
-
-                else
-                    [ text "▸" ]
-            , span
-                [ title prefix
-                , class "elm-debugger-entry-content"
-                ]
-                [ text prefix
-                ]
-            , span
-                [ class "elm-debugger-entry-index"
-                ]
-                [ if isOpen then
-                    text ""
-
-                  else
-                    text (String.fromInt currentIndex)
-                ]
-            ]
-        , if isOpen then
-            div [ style "margin-left" "12px" ]
-                messageList
-
-          else
-            text ""
-        ]
-    )
 
 
 
