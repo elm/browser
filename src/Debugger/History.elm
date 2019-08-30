@@ -221,16 +221,16 @@ undone getResult =
 view : Maybe Int -> History model msg -> Html Int
 view maybeIndex { snapshots, recent, numMessages } =
     let
-        ( index, height ) =
+        ( renderAllMessages, index, height ) =
             case maybeIndex of
                 Nothing ->
-                    ( -1, "calc(100% - 48px)" )
+                    ( False, -1, "calc(100% - 48px)" )
 
                 Just i ->
-                    ( i, "calc(100% - 78px)" )
+                    ( True, i, "calc(100% - 78px)" )
 
         oldStuff =
-            lazy2 viewSnapshots index snapshots
+            lazy3 viewSnapshots renderAllMessages index snapshots
 
         ( _, newStuff ) =
             List.foldl (consMsg index) ( numMessages - 1, [] ) recent.messages
@@ -248,15 +248,22 @@ view maybeIndex { snapshots, recent, numMessages } =
 -- VIEW SNAPSHOTS
 
 
-viewSnapshots : Int -> Array (Snapshot model msg) -> Html Int
-viewSnapshots currentIndex snapshots =
+viewSnapshots : Bool -> Int -> Array (Snapshot model msg) -> Html Int
+viewSnapshots renderAllMessages currentIndex snapshots =
     let
         highIndex =
             maxSnapshotSize * Array.length snapshots
+
+        snapshotsToRender =
+            if renderAllMessages then
+                snapshots
+
+            else
+                Array.slice -2 (Array.length snapshots) snapshots
     in
     div [] <|
         Tuple.second <|
-            Array.foldr (consSnapshot currentIndex) ( highIndex, [] ) snapshots
+            Array.foldr (consSnapshot currentIndex) ( highIndex, [] ) snapshotsToRender
 
 
 consSnapshot : Int -> Snapshot model msg -> ( Int, List (Html Int) ) -> ( Int, List (Html Int) )
