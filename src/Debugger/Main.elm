@@ -220,7 +220,7 @@ wrapUpdate update msg model =
                     ( { model
                         | history = newHistory
                         , state = Running newUserModel
-                        , modelExpando = Expando.init newUserModel
+                        , modelExpando = Expando.merge newUserModel model.modelExpando
                         , messageExpando = Just (Expando.init userMsg)
                       }
                     , Cmd.batch
