@@ -229,11 +229,17 @@ view maybeIndex { snapshots, recent, numMessages } =
                 Just i ->
                     ( True, i, "calc(100% - 78px)" )
 
-        oldStuff =
-            lazy3 viewSnapshots renderAllMessages index snapshots
+        highIndex =
+            maxSnapshotSize * Array.length snapshots
 
-        ( _, newStuff ) =
-            List.foldl (consMsg index) ( numMessages - 1, [] ) recent.messages
+        oldStuff =
+            lazy2 viewAllSnapshots index snapshots
+
+        newStuff =
+            recent.messages
+                |> List.foldr (consMsg index) ( highIndex, [] )
+                |> Tuple.second
+                |> div []
     in
     div
         [ id "elm-debugger-sidebar"
@@ -241,54 +247,46 @@ view maybeIndex { snapshots, recent, numMessages } =
         , style "overflow-y" "auto"
         , style "height" height
         ]
-        (styles :: oldStuff :: newStuff)
+        [ styles
+        , newStuff
+        , oldStuff
+        ]
 
 
 
 -- VIEW SNAPSHOTS
 
 
-viewSnapshots : Bool -> Int -> Array (Snapshot model msg) -> Html Int
-viewSnapshots renderAllMessages currentIndex snapshots =
-    let
-        highIndex =
-            maxSnapshotSize * Array.length snapshots
-
-        snapshotsToRender =
-            if renderAllMessages then
-                snapshots
-
-            else
-                Array.slice -2 (Array.length snapshots) snapshots
-    in
+viewAllSnapshots : Int -> Array (Snapshot model msg) -> Html Int
+viewAllSnapshots selectedIndex snapshots =
     div [] <|
         Tuple.second <|
-            Array.foldr (consSnapshot currentIndex) ( highIndex, [] ) snapshotsToRender
+            Array.foldl (consSnapshot selectedIndex) ( 0, [] ) snapshots
 
 
 consSnapshot : Int -> Snapshot model msg -> ( Int, List (Html Int) ) -> ( Int, List (Html Int) )
-consSnapshot currentIndex snapshot ( index, rest ) =
+consSnapshot selectedIndex snapshot ( index, rest ) =
     let
         nextIndex =
-            index - maxSnapshotSize
+            index + maxSnapshotSize
 
-        currentIndexHelp =
-            if nextIndex <= currentIndex && currentIndex < index then
-                currentIndex
+        selectedIndexHelp =
+            if nextIndex > selectedIndex && selectedIndex >= index then
+                selectedIndex
 
             else
                 -1
     in
-    ( index - maxSnapshotSize
-    , lazy3 viewSnapshot currentIndexHelp index snapshot :: rest
+    ( nextIndex
+    , lazy3 viewSnapshot selectedIndexHelp index snapshot :: rest
     )
 
 
 viewSnapshot : Int -> Int -> Snapshot model msg -> Html Int
-viewSnapshot currentIndex index { messages } =
+viewSnapshot selectedIndex index { messages } =
     div [] <|
         Tuple.second <|
-            Array.foldl (consMsg currentIndex) ( index - 1, [] ) messages
+            Array.foldr (consMsg selectedIndex) ( index, [] ) messages
 
 
 
@@ -297,7 +295,7 @@ viewSnapshot currentIndex index { messages } =
 
 consMsg : Int -> msg -> ( Int, List (Html Int) ) -> ( Int, List (Html Int) )
 consMsg currentIndex msg ( index, rest ) =
-    ( index - 1
+    ( index + 1
     , lazy3 viewMessage currentIndex index msg :: rest
     )
 
@@ -306,7 +304,7 @@ viewMessage : Int -> Int -> msg -> Html Int
 viewMessage currentIndex index msg =
     let
         className =
-            if index == currentIndex then
+            if currentIndex == index then
                 "elm-debugger-entry elm-debugger-entry-selected"
 
             else

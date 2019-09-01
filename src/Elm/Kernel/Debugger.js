@@ -230,9 +230,9 @@ function _Debugger_scroll(popout)
 		if (popout.__doc)
 		{
 			var msgs = popout.__doc.getElementById('elm-debugger-sidebar');
-			if (msgs)
+			if (msgs && msgs.scrollTop !== 0)
 			{
-				msgs.scrollTop = msgs.scrollHeight;
+				msgs.scrollTop = 0;
 			}
 		}
 		callback(__Scheduler_succeed(__Utils_Tuple0));
