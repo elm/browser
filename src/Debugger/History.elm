@@ -353,7 +353,7 @@ styles =
   cursor: pointer;
   width: 100%;
   box-sizing: border-box;
-  padding: 4px;
+  padding: 8px;
 }
 
 .elm-debugger-entry:hover {
@@ -362,11 +362,6 @@ styles =
 
 .elm-debugger-entry-selected, .elm-debugger-entry-selected:hover {
   background-color: rgb(10, 10, 10);
-}
-
-.elm-debugger-entry-arrow {
-  display: inline-block;
-  width: 10px;
 }
 
 .elm-debugger-entry-content {
@@ -381,7 +376,7 @@ styles =
 
 .elm-debugger-entry-index {
   color: #666;
-  width: 20px;
+  width: 40px;
   text-align: right;
   display: block;
   float: right;
