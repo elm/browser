@@ -320,9 +320,7 @@ viewMessage currentIndex index msg =
         , class className
         , onClick index
         ]
-        [ span [ class "elm-debugger-entry-arrow" ]
-            [ text "" ]
-        , span
+        [ span
             [ title messageName
             , class "elm-debugger-entry-content"
             ]
