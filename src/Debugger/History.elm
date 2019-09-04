@@ -233,7 +233,11 @@ view maybeIndex { snapshots, recent, numMessages } =
             maxSnapshotSize * Array.length snapshots
 
         oldStuff =
-            lazy2 viewAllSnapshots index snapshots
+            if renderAllMessages then
+                lazy3 viewAllSnapshots index 0 snapshots
+
+            else
+                lazy3 viewRecentSnapshots index recent.numMessages snapshots
 
         newStuff =
             recent.messages
@@ -257,11 +261,39 @@ view maybeIndex { snapshots, recent, numMessages } =
 -- VIEW SNAPSHOTS
 
 
-viewAllSnapshots : Int -> Array (Snapshot model msg) -> Html Int
-viewAllSnapshots selectedIndex snapshots =
+viewAllSnapshots : Int -> Int -> Array (Snapshot model msg) -> Html Int
+viewAllSnapshots selectedIndex startIndex snapshots =
     div [] <|
         Tuple.second <|
-            Array.foldl (consSnapshot selectedIndex) ( 0, [] ) snapshots
+            Array.foldl (consSnapshot selectedIndex) ( startIndex, [] ) snapshots
+
+
+viewRecentSnapshots : Int -> Int -> Array (Snapshot model msg) -> Html Int
+viewRecentSnapshots selectedIndex recentMessagesNum snapshots =
+    let
+        arrayLength =
+            Array.length snapshots
+
+        messagesToFill =
+            maxSnapshotSize - recentMessagesNum
+
+        startingIndex =
+            (arrayLength * maxSnapshotSize) - maxSnapshotSize - messagesToFill
+
+        snapshotsToRender =
+            case ( Array.get (arrayLength - 1) snapshots, Array.get (arrayLength - 2) snapshots ) of
+                ( Just recentSnapshot, Just fillerSnapshot ) ->
+                    Array.fromList
+                        [ recentSnapshot
+                        , { model = fillerSnapshot.model
+                          , messages = Array.slice 0 messagesToFill fillerSnapshot.messages
+                          }
+                        ]
+
+                _ ->
+                    snapshots
+    in
+    viewAllSnapshots selectedIndex startingIndex snapshotsToRender
 
 
 consSnapshot : Int -> Snapshot model msg -> ( Int, List (Html Int) ) -> ( Int, List (Html Int) )
