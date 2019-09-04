@@ -19,6 +19,7 @@ import Elm.Kernel.Debugger
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onClick)
+import Html.Keyed
 import Html.Lazy exposing (..)
 import Json.Decode as Decode
 import Json.Encode as Encode
@@ -233,7 +234,7 @@ view maybeIndex { snapshots, recent, numMessages } =
             maxSnapshotSize * Array.length snapshots
 
         oldStuff =
-            if renderAllMessages then
+            if renderAllMessages || Array.length snapshots < 2 then
                 lazy3 viewAllSnapshots index 0 snapshots
 
             else
@@ -243,7 +244,7 @@ view maybeIndex { snapshots, recent, numMessages } =
             recent.messages
                 |> List.foldr (consMsg index) ( highIndex, [] )
                 |> Tuple.second
-                |> div []
+                |> Html.Keyed.node "div" []
     in
     div
         [ id "elm-debugger-sidebar"
@@ -281,13 +282,13 @@ viewRecentSnapshots selectedIndex recentMessagesNum snapshots =
             (arrayLength * maxSnapshotSize) - maxSnapshotSize - messagesToFill
 
         snapshotsToRender =
-            case ( Array.get (arrayLength - 1) snapshots, Array.get (arrayLength - 2) snapshots ) of
-                ( Just recentSnapshot, Just fillerSnapshot ) ->
+            case ( Array.get (arrayLength - 2) snapshots, Array.get (arrayLength - 1) snapshots ) of
+                ( Just fillerSnapshot, Just recentSnapshot ) ->
                     Array.fromList
-                        [ recentSnapshot
-                        , { model = fillerSnapshot.model
+                        [ { model = fillerSnapshot.model
                           , messages = Array.slice 0 messagesToFill fillerSnapshot.messages
                           }
+                        , recentSnapshot
                         ]
 
                 _ ->
@@ -300,7 +301,7 @@ consSnapshot : Int -> Snapshot model msg -> ( Int, List (Html Int) ) -> ( Int, L
 consSnapshot selectedIndex snapshot ( index, rest ) =
     let
         nextIndex =
-            index + maxSnapshotSize
+            index + Array.length snapshot.messages
 
         selectedIndexHelp =
             if nextIndex > selectedIndex && selectedIndex >= index then
@@ -316,7 +317,7 @@ consSnapshot selectedIndex snapshot ( index, rest ) =
 
 viewSnapshot : Int -> Int -> Snapshot model msg -> Html Int
 viewSnapshot selectedIndex index { messages } =
-    div [] <|
+    Html.Keyed.node "div" [] <|
         Tuple.second <|
             Array.foldr (consMsg selectedIndex) ( index, [] ) messages
 
@@ -325,10 +326,10 @@ viewSnapshot selectedIndex index { messages } =
 -- VIEW MESSAGE
 
 
-consMsg : Int -> msg -> ( Int, List (Html Int) ) -> ( Int, List (Html Int) )
+consMsg : Int -> msg -> ( Int, List ( String, Html Int ) ) -> ( Int, List ( String, Html Int ) )
 consMsg currentIndex msg ( index, rest ) =
     ( index + 1
-    , lazy3 viewMessage currentIndex index msg :: rest
+    , ( String.fromInt index, lazy3 viewMessage currentIndex index msg ) :: rest
     )
 
 
