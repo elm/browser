@@ -32,7 +32,7 @@ import Set exposing (Set)
 
 maxSnapshotSize : Int
 maxSnapshotSize =
-    64
+    31
 
 
 
