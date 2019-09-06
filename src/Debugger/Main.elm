@@ -523,6 +523,28 @@ popoutView model =
 
         sidePanelOffset =
             String.fromInt model.sidePanelOffset ++ "px"
+
+        expandoContent =
+            [ div []
+                [ div [] [ text "Message:" ]
+                , Html.map MessageExpandoMsg <| Expando.view Nothing model.messageExpando
+                ]
+            , div []
+                [ div [] [ text "Model:" ]
+                , Html.map ModelExpandoMsg <| Expando.view Nothing model.modelExpando
+                ]
+            ]
+
+        maybeIndex =
+            case model.state of
+                Running _ ->
+                    Nothing
+
+                Paused index _ _ _ _ ->
+                    Just index
+
+        historyToRender =
+            cachedHistory model
     in
     node "body"
         (if model.sidePanelResizable then
@@ -550,20 +572,12 @@ popoutView model =
                     , style "overflow" "auto"
                     , style "cursor" "default"
                     ]
-                    [ div []
-                        [ div [] [ text "Message:" ]
-                        , Html.map MessageExpandoMsg <| Expando.view Nothing model.messageExpando
-                        ]
-                    , div []
-                        [ div [] [ text "Model:" ]
-                        , Html.map ModelExpandoMsg <| Expando.view Nothing model.modelExpando
-                        ]
-                    ]
-                , viewSidebar model.state model.history model.layout sidePanelOffset
+                    expandoContent
+                , viewSidebarHorizontal maybeIndex historyToRender sidePanelOffset
                 ]
 
             Vertical ->
-                [ viewSidebar model.state model.history model.layout sidePanelOffset
+                [ viewSidebar maybeIndex historyToRender sidePanelOffset
                 , div
                     [ style "display" "block"
                     , style "float" "left"
@@ -573,61 +587,27 @@ popoutView model =
                     , style "overflow" "auto"
                     , style "cursor" "default"
                     ]
-                    [ div []
-                        [ div [] [ text "Message:" ]
-                        , Html.map MessageExpandoMsg <| Expando.view Nothing model.messageExpando
-                        ]
-                    , div []
-                        [ div [] [ text "Model:" ]
-                        , Html.map ModelExpandoMsg <| Expando.view Nothing model.modelExpando
-                        ]
-                    ]
+                    expandoContent
                 ]
         )
 
 
-viewSidebar : State model msg -> History model msg -> Layout -> String -> Html (Msg msg)
-viewSidebar state history layout offsetStyle =
-    let
-        ( maybeIndex, historyToRender ) =
-            case state of
-                Running _ ->
-                    ( Nothing, history )
-
-                Paused index _ _ _ pausedHistory ->
-                    ( Just index, pausedHistory )
-    in
-    case layout of
-        Horizontal ->
-            div
-                [ style "position" "relative"
-                , style "display" "block"
-                , style "width" "100%"
-                , style "height" <| "calc(100% - " ++ offsetStyle ++ ")"
-                , style "color" "white"
-                , style "background-color" "rgb(61, 61, 61)"
-                ]
-                [ draggableBorderHorizontal
-                , slider historyToRender maybeIndex
-                , Html.map Jump (History.view maybeIndex historyToRender)
-                , playButton maybeIndex
-                ]
-
-        Vertical ->
-            div
-                [ style "position" "relative"
-                , style "display" "block"
-                , style "float" "left"
-                , style "width" offsetStyle
-                , style "height" "100%"
-                , style "color" "white"
-                , style "background-color" "rgb(61, 61, 61)"
-                ]
-                [ draggableBorder
-                , slider historyToRender maybeIndex
-                , Html.map Jump (History.view maybeIndex historyToRender)
-                , playButton maybeIndex
-                ]
+viewSidebar : Maybe Int -> History model msg -> String -> Html (Msg msg)
+viewSidebar maybeIndex history offsetStyle =
+    div
+        [ style "position" "relative"
+        , style "display" "block"
+        , style "float" "left"
+        , style "width" offsetStyle
+        , style "height" "100%"
+        , style "color" "white"
+        , style "background-color" "rgb(61, 61, 61)"
+        ]
+        [ draggableBorder
+        , slider history maybeIndex
+        , Html.map Jump (History.view maybeIndex history)
+        , playButton maybeIndex
+        ]
 
 
 draggableBorder : Html (Msg msg)
@@ -643,6 +623,23 @@ draggableBorder =
         , onMouseDown (EnableSidePanelResizing True)
         ]
         []
+
+
+viewSidebarHorizontal : Maybe Int -> History model msg -> String -> Html (Msg msg)
+viewSidebarHorizontal maybeIndex history offsetStyle =
+    div
+        [ style "position" "relative"
+        , style "display" "block"
+        , style "width" "100%"
+        , style "height" <| "calc(100% - " ++ offsetStyle ++ ")"
+        , style "color" "white"
+        , style "background-color" "rgb(61, 61, 61)"
+        ]
+        [ draggableBorderHorizontal
+        , slider history maybeIndex
+        , Html.map Jump (History.view maybeIndex history)
+        , playButton maybeIndex
+        ]
 
 
 draggableBorderHorizontal : Html (Msg msg)
