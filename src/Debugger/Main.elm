@@ -305,31 +305,31 @@ wrapUpdate update msg model =
 
         Up ->
             let
-                index =
+                ( index, history ) =
                     case model.state of
-                        Paused i _ _ _ _ ->
-                            i
+                        Paused i _ _ _ cachedHistory ->
+                            ( i + 1, cachedHistory )
 
                         Running _ ->
-                            History.size model.history
+                            ( 0, model.history )
             in
-            if index > 0 then
-                wrapUpdate update (Jump (index - 1)) model
+            if index < History.size history then
+                wrapUpdate update (Jump index) model
 
             else
-                ( model, Cmd.none )
+                wrapUpdate update Resume model
 
         Down ->
             case model.state of
                 Running _ ->
-                    ( model, Cmd.none )
+                    wrapUpdate update (Jump (History.size model.history - 1)) model
 
                 Paused index _ userModel userMsg _ ->
-                    if index == History.size model.history - 1 then
-                        wrapUpdate update Resume model
+                    if index > 0 then
+                        wrapUpdate update (Jump (index - 1)) model
 
                     else
-                        wrapUpdate update (Jump (index + 1)) model
+                        ( model, Cmd.none )
 
         EnableSidePanelResizing enabled ->
             ( { model | sidePanelResizable = enabled }
