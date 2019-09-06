@@ -222,7 +222,7 @@ undone getResult =
 view : Maybe Int -> History model msg -> Html Int
 view maybeIndex { snapshots, recent, numMessages } =
     let
-        ( renderAllMessages, index, height ) =
+        ( isPaused, index, height ) =
             case maybeIndex of
                 Nothing ->
                     ( False, -1, "calc(100% - 48px)" )
@@ -233,8 +233,11 @@ view maybeIndex { snapshots, recent, numMessages } =
         highIndex =
             maxSnapshotSize * Array.length snapshots
 
+        onlyRenderRecentMessages =
+            isPaused || Array.length snapshots < 2
+
         oldStuff =
-            if renderAllMessages || Array.length snapshots < 2 then
+            if onlyRenderRecentMessages then
                 lazy3 viewAllSnapshots index 0 snapshots
 
             else
@@ -252,10 +255,16 @@ view maybeIndex { snapshots, recent, numMessages } =
         , style "overflow-y" "auto"
         , style "height" height
         ]
-        [ styles
-        , newStuff
-        , oldStuff
-        ]
+        (styles
+            :: newStuff
+            :: oldStuff
+            :: (if onlyRenderRecentMessages then
+                    []
+
+                else
+                    [ showMoreButton (numMessages - 1 - maxSnapshotSize * 2) ]
+               )
+        )
 
 
 
@@ -362,6 +371,29 @@ viewMessage currentIndex index msg =
             ]
             [ text (String.fromInt index)
             ]
+        ]
+
+
+showMoreButton : Int -> Html Int
+showMoreButton nextIndex =
+    let
+        labelText =
+            "View more messages"
+    in
+    div
+        [ class "elm-debugger-entry"
+        , onClick nextIndex
+        ]
+        [ span
+            [ title labelText
+            , class "elm-debugger-entry-content"
+            ]
+            [ text labelText
+            ]
+        , span
+            [ class "elm-debugger-entry-index"
+            ]
+            []
         ]
 
 
