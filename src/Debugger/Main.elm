@@ -291,7 +291,7 @@ wrapUpdate update msg model =
 
         SliderJump index ->
             let
-                ( modelAfterJump, jumpCmds ) =
+                ( modelAfterJump, _ ) =
                     wrapUpdate update (Jump index) model
             in
             ( modelAfterJump
@@ -304,20 +304,20 @@ wrapUpdate update msg model =
             )
 
         Up ->
-            let
-                ( index, history ) =
-                    case model.state of
-                        Paused i _ _ _ cachedHistory ->
-                            ( i + 1, cachedHistory )
+            case model.state of
+                Paused i _ _ _ cachedHistory ->
+                    let
+                        targetIndex =
+                            i + 1
+                    in
+                    if targetIndex < History.size cachedHistory then
+                        wrapUpdate update (SliderJump targetIndex) model
 
-                        Running _ ->
-                            ( 0, model.history )
-            in
-            if index < History.size history then
-                wrapUpdate update (Jump index) model
+                    else
+                        wrapUpdate update Resume model
 
-            else
-                wrapUpdate update Resume model
+                Running _ ->
+                    ( model, Cmd.none )
 
         Down ->
             case model.state of
@@ -326,7 +326,7 @@ wrapUpdate update msg model =
 
                 Paused index _ userModel userMsg _ ->
                     if index > 0 then
-                        wrapUpdate update (Jump (index - 1)) model
+                        wrapUpdate update (SliderJump (index - 1)) model
 
                     else
                         ( model, Cmd.none )

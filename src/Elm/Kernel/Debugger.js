@@ -249,7 +249,7 @@ var _Debugger_scrollTo = F2(function(id, popout)
 			var msg = popout.__doc.getElementById(id);
 			if (msg)
 			{
-				msg.scrollIntoView();
+				msg.scrollIntoView(false);
 			}
 		}
 		callback(__Scheduler_succeed(__Utils_Tuple0));
