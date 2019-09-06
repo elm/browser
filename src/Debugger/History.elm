@@ -230,9 +230,6 @@ view maybeIndex { snapshots, recent, numMessages } =
                 Just i ->
                     ( True, i, "calc(100% - 78px)" )
 
-        highIndex =
-            maxSnapshotSize * Array.length snapshots
-
         onlyRenderRecentMessages =
             isPaused || Array.length snapshots < 2
 
@@ -243,9 +240,12 @@ view maybeIndex { snapshots, recent, numMessages } =
             else
                 lazy3 viewRecentSnapshots index recent.numMessages snapshots
 
+        recentMessageStartIndex =
+            maxSnapshotSize * Array.length snapshots
+
         newStuff =
             recent.messages
-                |> List.foldr (consMsg index) ( highIndex, [] )
+                |> List.foldr (consMsg index) ( recentMessageStartIndex, [] )
                 |> Tuple.second
                 |> Html.Keyed.node "div" []
     in
@@ -262,7 +262,7 @@ view maybeIndex { snapshots, recent, numMessages } =
                     []
 
                 else
-                    [ showMoreButton (numMessages - 1 - maxSnapshotSize * 2) ]
+                    [ showMoreButton numMessages ]
                )
         )
 
@@ -375,10 +375,13 @@ viewMessage currentIndex index msg =
 
 
 showMoreButton : Int -> Html Int
-showMoreButton nextIndex =
+showMoreButton numMessages =
     let
         labelText =
             "View more messages"
+
+        nextIndex =
+            numMessages - 1 - maxSnapshotSize * 2
     in
     div
         [ class "elm-debugger-entry"
