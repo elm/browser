@@ -23,8 +23,8 @@ import Json.Encode as Encode
 import Task exposing (Task)
 
 
-
--- VIEW
+minimumSidePanelSize =
+    150
 
 
 getUserModel : Model model msg -> model
@@ -49,7 +49,7 @@ type alias Model model msg =
     { history : History model msg
     , state : State model msg
     , modelExpando : Expando
-    , messageExpando : Maybe Expando
+    , messageExpando : Expando
     , metadata : Result Metadata.Error Metadata
     , overlay : Overlay.State
     , popout : Popout
@@ -109,14 +109,14 @@ isPaused state =
             True
 
 
-cacheHistory : Model model msg -> History model msg
-cacheHistory model =
+cachedHistory : Model model msg -> History model msg
+cachedHistory model =
     case model.state of
         Running _ ->
             model.history
 
-        Paused _ _ _ _ cachedHistory ->
-            cachedHistory
+        Paused _ _ _ _ history ->
+            history
 
 
 
@@ -132,7 +132,7 @@ wrapInit metadata popout init flags =
     ( { history = History.empty userModel
       , state = Running userModel
       , modelExpando = Expando.init userModel
-      , messageExpando = Nothing
+      , messageExpando = Expando.init ()
       , metadata = Metadata.decode metadata
       , overlay = Overlay.none
       , popout = popout
@@ -154,7 +154,8 @@ type Msg msg
     = NoOp
     | Resize Int Int
     | UserMsg msg
-    | ExpandoMsg ExpandoTarget Expando.Msg
+    | MessageExpandoMsg Expando.Msg
+    | ModelExpandoMsg Expando.Msg
     | Resume
     | Jump Int
     | SliderJump Int
@@ -171,11 +172,6 @@ type Msg msg
 
 type alias UserUpdate model msg =
     msg -> model -> ( model, Cmd msg )
-
-
-type ExpandoTarget
-    = MessageExpando
-    | ModelExpando
 
 
 wrapUpdate : UserUpdate model msg -> Msg msg -> Model model msg -> ( Model model msg, Cmd (Msg msg) )
@@ -231,7 +227,7 @@ wrapUpdate update msg model =
                         | history = newHistory
                         , state = Running newUserModel
                         , modelExpando = Expando.merge newUserModel model.modelExpando
-                        , messageExpando = Just (Expando.init userMsg)
+                        , messageExpando = Expando.merge userMsg model.messageExpando
                       }
                     , Cmd.batch
                         [ commands
@@ -239,25 +235,23 @@ wrapUpdate update msg model =
                         ]
                     )
 
-                Paused index indexModel _ _ cachedHistory ->
+                Paused index indexModel _ _ history ->
                     ( { model
                         | history = newHistory
-                        , state = Paused index indexModel newUserModel userMsg cachedHistory
+                        , state = Paused index indexModel newUserModel userMsg history
                       }
                     , commands
                     )
 
-        ExpandoMsg target eMsg ->
-            case target of
-                MessageExpando ->
-                    ( { model | messageExpando = Maybe.map (Expando.update eMsg) model.messageExpando }
-                    , Cmd.none
-                    )
+        MessageExpandoMsg eMsg ->
+            ( { model | messageExpando = Expando.update eMsg model.messageExpando }
+            , Cmd.none
+            )
 
-                ModelExpando ->
-                    ( { model | modelExpando = Expando.update eMsg model.modelExpando }
-                    , Cmd.none
-                    )
+        ModelExpandoMsg eMsg ->
+            ( { model | modelExpando = Expando.update eMsg model.modelExpando }
+            , Cmd.none
+            )
 
         Resume ->
             case model.state of
@@ -267,24 +261,30 @@ wrapUpdate update msg model =
                 Paused _ _ userModel userMsg _ ->
                     ( { model
                         | state = Running userModel
+                        , messageExpando = Expando.merge userMsg model.messageExpando
                         , modelExpando = Expando.merge userModel model.modelExpando
-                        , messageExpando = Maybe.map (Expando.merge userMsg) model.messageExpando
                       }
                     , scroll model.popout
                     )
 
         Jump index ->
             let
-                ( currentModel, currentMsg ) =
-                    History.getRecent update model.history
+                currentMsg =
+                    History.getRecentMsg model.history
+
+                currentModel =
+                    getLatestModel model.state
 
                 ( indexModel, indexMsg ) =
                     History.get update index model.history
+
+                history =
+                    cachedHistory model
             in
             ( { model
-                | state = Paused index indexModel currentModel currentMsg (cacheHistory model)
+                | state = Paused index indexModel currentModel currentMsg history
                 , modelExpando = Expando.merge indexModel model.modelExpando
-                , messageExpando = Maybe.map (Expando.merge indexMsg) model.messageExpando
+                , messageExpando = Expando.merge indexMsg model.messageExpando
               }
             , Cmd.none
             )
@@ -300,17 +300,17 @@ wrapUpdate update msg model =
 
         Open ->
             ( model
-            , Task.perform (\_ -> NoOp) (Elm.Kernel.Debugger.open model.popout)
+            , Task.perform (always NoOp) (Elm.Kernel.Debugger.open model.popout)
             )
 
         Up ->
             case model.state of
-                Paused i _ _ _ cachedHistory ->
+                Paused i _ _ _ history ->
                     let
                         targetIndex =
                             i + 1
                     in
-                    if targetIndex < History.size cachedHistory then
+                    if targetIndex < History.size history then
                         wrapUpdate update (SliderJump targetIndex) model
 
                     else
@@ -324,7 +324,7 @@ wrapUpdate update msg model =
                 Running _ ->
                     wrapUpdate update (Jump (History.size model.history - 1)) model
 
-                Paused index _ userModel userMsg _ ->
+                Paused index _ _ _ _ ->
                     if index > 0 then
                         wrapUpdate update (SliderJump (index - 1)) model
 
@@ -339,9 +339,6 @@ wrapUpdate update msg model =
         ResizeSidePanel mouseProperties ->
             if mouseProperties.buttonIsPressed then
                 let
-                    minPanelSize =
-                        150
-
                     dimensionSize =
                         case model.layout of
                             Horizontal ->
@@ -351,12 +348,12 @@ wrapUpdate update msg model =
                                 model.windowWidth
 
                     upperBound =
-                        dimensionSize - minPanelSize
+                        dimensionSize - minimumSidePanelSize
                 in
                 ( { model
                     | sidePanelOffset =
                         mouseProperties.offset
-                            |> Basics.max minPanelSize
+                            |> Basics.max minimumSidePanelSize
                             |> Basics.min upperBound
                   }
                 , Cmd.none
@@ -477,7 +474,7 @@ loadNewHistory rawHistory update model =
                 | history = newHistory
                 , state = Running latestUserModel
                 , modelExpando = Expando.init latestUserModel
-                , messageExpando = Nothing
+                , messageExpando = Expando.init (History.getRecentMsg newHistory)
                 , overlay = Overlay.none
               }
             , Cmd.none
@@ -553,18 +550,13 @@ popoutView model =
                     , style "overflow" "auto"
                     , style "cursor" "default"
                     ]
-                    [ case model.messageExpando of
-                        Just messageExpandoModel ->
-                            div []
-                                [ div [] [ text "Message:" ]
-                                , Html.map (ExpandoMsg MessageExpando) <| Expando.view Nothing messageExpandoModel
-                                ]
-
-                        Nothing ->
-                            text ""
+                    [ div []
+                        [ div [] [ text "Message:" ]
+                        , Html.map MessageExpandoMsg <| Expando.view Nothing model.messageExpando
+                        ]
                     , div []
                         [ div [] [ text "Model:" ]
-                        , Html.map (ExpandoMsg ModelExpando) <| Expando.view Nothing model.modelExpando
+                        , Html.map ModelExpandoMsg <| Expando.view Nothing model.modelExpando
                         ]
                     ]
                 , viewSidebar model.state model.history model.layout sidePanelOffset
@@ -581,18 +573,13 @@ popoutView model =
                     , style "overflow" "auto"
                     , style "cursor" "default"
                     ]
-                    [ case model.messageExpando of
-                        Just messageExpandoModel ->
-                            div []
-                                [ div [] [ text "Message:" ]
-                                , Html.map (ExpandoMsg MessageExpando) <| Expando.view Nothing messageExpandoModel
-                                ]
-
-                        Nothing ->
-                            text ""
+                    [ div []
+                        [ div [] [ text "Message:" ]
+                        , Html.map MessageExpandoMsg <| Expando.view Nothing model.messageExpando
+                        ]
                     , div []
                         [ div [] [ text "Model:" ]
-                        , Html.map (ExpandoMsg ModelExpando) <| Expando.view Nothing model.modelExpando
+                        , Html.map ModelExpandoMsg <| Expando.view Nothing model.modelExpando
                         ]
                     ]
                 ]
@@ -602,21 +589,13 @@ popoutView model =
 viewSidebar : State model msg -> History model msg -> Layout -> String -> Html (Msg msg)
 viewSidebar state history layout offsetStyle =
     let
-        maybeIndex =
+        ( maybeIndex, historyToRender ) =
             case state of
                 Running _ ->
-                    Nothing
+                    ( Nothing, history )
 
-                Paused index _ _ _ _ ->
-                    Just index
-
-        historyToRender =
-            case state of
-                Running _ ->
-                    history
-
-                Paused _ _ _ _ cachedHistory ->
-                    cachedHistory
+                Paused index _ _ _ pausedHistory ->
+                    ( Just index, pausedHistory )
     in
     case layout of
         Horizontal ->

@@ -6,7 +6,7 @@ module Debugger.History exposing
     , encode
     , get
     , getInitialModel
-    , getRecent
+    , getRecentMsg
     , idForMessageIndex
     , size
     , view
@@ -172,17 +172,23 @@ get update index history =
     else
         case Array.get (index // maxSnapshotSize) history.snapshots of
             Nothing ->
+                -- Debug.crash "UI should only let you ask for real indexes!"
                 get update index history
 
-            -- Debug.crash "UI should only let you ask for real indexes!"
             Just { model, messages } ->
                 undone <|
                     Array.foldr (getHelp update) (Stepping (remainderBy maxSnapshotSize index) model) messages
 
 
-getRecent : (msg -> model -> ( model, a )) -> History model msg -> ( model, msg )
-getRecent update history =
-    get update (history.numMessages - 1) history
+getRecentMsg : History model msg -> msg
+getRecentMsg history =
+    case history.recent.messages of
+        [] ->
+            -- Debug.crash "Cannot provide most recent message!"
+            getRecentMsg history
+
+        first :: _ ->
+            first
 
 
 type GetResult model msg
@@ -222,16 +228,16 @@ undone getResult =
 view : Maybe Int -> History model msg -> Html Int
 view maybeIndex { snapshots, recent, numMessages } =
     let
-        ( isPaused, index, height ) =
+        ( index, height ) =
             case maybeIndex of
                 Nothing ->
-                    ( False, -1, "calc(100% - 48px)" )
+                    ( -1, "calc(100% - 48px)" )
 
                 Just i ->
-                    ( True, i, "calc(100% - 78px)" )
+                    ( i, "calc(100% - 78px)" )
 
         onlyRenderRecentMessages =
-            isPaused || Array.length snapshots < 2
+            index /= -1 || Array.length snapshots < 2
 
         oldStuff =
             if onlyRenderRecentMessages then
@@ -241,7 +247,7 @@ view maybeIndex { snapshots, recent, numMessages } =
                 lazy3 viewRecentSnapshots index recent.numMessages snapshots
 
         recentMessageStartIndex =
-            maxSnapshotSize * Array.length snapshots
+            numMessages - recent.numMessages
 
         newStuff =
             recent.messages
