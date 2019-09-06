@@ -32,6 +32,16 @@ import Set exposing (Set)
 
 maxSnapshotSize : Int
 maxSnapshotSize =
+    -- NOTE: While the app is running we display (maxSnapshotSize * 2) messages
+    -- in the message panel. We want to keep this number relatively low to reduce
+    -- the number of DOM nodes the browser have to deal with. However, we want
+    -- this number to be high to retain as few model snapshots as possible to
+    -- reduce memory usage.
+    --
+    -- 31 is selected because 62 messages fills up the height of a 27 inch monitor,
+    -- with the current style, while avoiding a tree representation in Elm arrays.
+    --
+    -- Performance and memory use seems good.
     31
 
 
@@ -217,11 +227,11 @@ undone getResult =
             ( model, msg )
 
         Stepping _ _ ->
+            -- Debug.crash "Bug in History.get"
             undone getResult
 
 
 
--- Debug.crash "Bug in History.get"
 -- VIEW
 
 

@@ -183,13 +183,13 @@ update : Msg -> Expando -> Expando
 update msg value =
     case value of
         S _ ->
+            -- Debug.crash "nothing changes a primitive"
             value
 
-        -- Debug.crash "nothing changes a primitive"
         Primitive _ ->
+            -- Debug.crash "nothing changes a primitive"
             value
 
-        -- Debug.crash "nothing changes a primitive"
         Sequence seqType isClosed valueList ->
             case msg of
                 Toggle ->
@@ -200,13 +200,13 @@ update msg value =
                         updateIndex index (update subMsg) valueList
 
                 Index _ _ _ ->
+                    -- Debug.crash "no redirected indexes on sequences"
                     value
 
-                -- Debug.crash "no redirected indexes on sequences"
                 Field _ _ ->
+                    -- Debug.crash "no field on sequences"
                     value
 
-        -- Debug.crash "no field on sequences"
         Dictionary isClosed keyValuePairs ->
             case msg of
                 Toggle ->
@@ -215,9 +215,9 @@ update msg value =
                 Index redirect index subMsg ->
                     case redirect of
                         None ->
+                            -- Debug.crash "must have redirect for dictionaries"
                             value
 
-                        -- Debug.crash "must have redirect for dictionaries"
                         Key ->
                             Dictionary isClosed <|
                                 updateIndex index (\( k, v ) -> ( update subMsg k, v )) keyValuePairs
@@ -227,18 +227,18 @@ update msg value =
                                 updateIndex index (\( k, v ) -> ( k, update subMsg v )) keyValuePairs
 
                 Field _ _ ->
+                    -- Debug.crash "no field for dictionaries"
                     value
 
-        -- Debug.crash "no field for dictionaries"
         Record isClosed valueDict ->
             case msg of
                 Toggle ->
                     Record (not isClosed) valueDict
 
                 Index _ _ _ ->
+                    -- Debug.crash "no index for records"
                     value
 
-                -- Debug.crash "no index for records"
                 Field field subMsg ->
                     Record isClosed (Dict.update field (updateField subMsg) valueDict)
 
@@ -252,15 +252,12 @@ update msg value =
                         updateIndex index (update subMsg) valueList
 
                 Index _ _ _ ->
+                    -- Debug.crash "no redirected indexes on sequences"
                     value
 
-                -- Debug.crash "no redirected indexes on sequences"
                 Field _ _ ->
+                    -- Debug.crash "no field for constructors"
                     value
-
-
-
--- Debug.crash "no field for constructors"
 
 
 updateIndex : Int -> (a -> a) -> List a -> List a
@@ -281,9 +278,9 @@ updateField : Msg -> Maybe Expando -> Maybe Expando
 updateField msg maybeExpando =
     case maybeExpando of
         Nothing ->
+            -- Debug.crash "key does not exist"
             maybeExpando
 
-        -- Debug.crash "key does not exist"
         Just expando ->
             Just (update msg expando)
 

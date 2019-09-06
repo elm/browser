@@ -1,6 +1,8 @@
 module Debugger.Main exposing
     ( cornerView
     , getUserModel
+    , initialWindowHeight
+    , initialWindowWidth
     , popoutView
     , wrapInit
     , wrapSubs
@@ -23,13 +25,23 @@ import Json.Encode as Encode
 import Task exposing (Task)
 
 
-minimumSidePanelSize =
+
+-- CONSTANTS
+
+
+minimumPanelSize : Int
+minimumPanelSize =
     150
 
 
-getUserModel : Model model msg -> model
-getUserModel model =
-    getCurrentModel model.state
+initialWindowWidth : Int
+initialWindowWidth =
+    900
+
+
+initialWindowHeight : Int
+initialWindowHeight =
+    360
 
 
 
@@ -53,8 +65,7 @@ type alias Model model msg =
     , metadata : Result Metadata.Error Metadata
     , overlay : Overlay.State
     , popout : Popout
-    , sidePanelResizable : Bool
-    , sidePanelOffset : Int
+    , messagePanelResizable : Bool
     , layout : Layout
     , windowWidth : Int
     , windowHeight : Int
@@ -66,8 +77,13 @@ type Popout
 
 
 type Layout
-    = Vertical
-    | Horizontal
+    = Vertical Int
+    | Horizontal Int
+
+
+getUserModel : Model model msg -> model
+getUserModel model =
+    getCurrentModel model.state
 
 
 
@@ -136,11 +152,10 @@ wrapInit metadata popout init flags =
       , metadata = Metadata.decode metadata
       , overlay = Overlay.none
       , popout = popout
-      , sidePanelResizable = False
-      , sidePanelOffset = 300
-      , layout = Vertical
-      , windowWidth = 0
-      , windowHeight = 0
+      , messagePanelResizable = False
+      , layout = Vertical 300
+      , windowWidth = initialWindowWidth
+      , windowHeight = initialWindowHeight
       }
     , Cmd.map UserMsg userCommands
     )
@@ -181,28 +196,24 @@ wrapUpdate update msg model =
             ( model, Cmd.none )
 
         Resize width height ->
-            let
-                newLayout =
-                    if width < height then
-                        Horizontal
-
-                    else
-                        Vertical
-            in
             ( { model
                 | windowWidth = width
                 , windowHeight = height
-                , layout = newLayout
-                , sidePanelOffset =
-                    case ( model.layout, newLayout ) of
-                        ( Horizontal, Vertical ) ->
-                            300
+                , layout =
+                    case model.layout of
+                        Horizontal offset ->
+                            if width < height then
+                                model.layout
 
-                        ( Vertical, Horizontal ) ->
-                            height // 2
+                            else
+                                Vertical 300
 
-                        otherwise ->
-                            model.sidePanelOffset
+                        Vertical offset ->
+                            if width < height then
+                                Horizontal (height // 2)
+
+                            else
+                                model.layout
               }
             , Cmd.none
             )
@@ -268,33 +279,12 @@ wrapUpdate update msg model =
                     )
 
         Jump index ->
-            let
-                currentMsg =
-                    History.getRecentMsg model.history
-
-                currentModel =
-                    getLatestModel model.state
-
-                ( indexModel, indexMsg ) =
-                    History.get update index model.history
-
-                history =
-                    cachedHistory model
-            in
-            ( { model
-                | state = Paused index indexModel currentModel currentMsg history
-                , modelExpando = Expando.merge indexModel model.modelExpando
-                , messageExpando = Expando.merge indexMsg model.messageExpando
-              }
+            ( jumpUpdate update index model
             , Cmd.none
             )
 
         SliderJump index ->
-            let
-                ( modelAfterJump, _ ) =
-                    wrapUpdate update (Jump index) model
-            in
-            ( modelAfterJump
+            ( jumpUpdate update index model
             , scrollTo (History.idForMessageIndex index) model.popout
             )
 
@@ -332,35 +322,35 @@ wrapUpdate update msg model =
                         ( model, Cmd.none )
 
         EnableSidePanelResizing enabled ->
-            ( { model | sidePanelResizable = enabled }
+            ( { model | messagePanelResizable = enabled }
             , Cmd.none
             )
 
         ResizeSidePanel mouseProperties ->
             if mouseProperties.buttonIsPressed then
                 let
-                    dimensionSize =
+                    updatedLayout =
                         case model.layout of
-                            Horizontal ->
-                                model.windowHeight
+                            Horizontal _ ->
+                                Horizontal <|
+                                    Basics.clamp
+                                        minimumPanelSize
+                                        (model.windowHeight - minimumPanelSize)
+                                        mouseProperties.pageY
 
-                            Vertical ->
-                                model.windowWidth
-
-                    upperBound =
-                        dimensionSize - minimumSidePanelSize
+                            Vertical _ ->
+                                Vertical <|
+                                    Basics.clamp
+                                        minimumPanelSize
+                                        (model.windowWidth - minimumPanelSize)
+                                        mouseProperties.pageX
                 in
-                ( { model
-                    | sidePanelOffset =
-                        mouseProperties.offset
-                            |> Basics.max minimumSidePanelSize
-                            |> Basics.min upperBound
-                  }
+                ( { model | layout = updatedLayout }
                 , Cmd.none
                 )
 
             else
-                ( { model | sidePanelResizable = False }
+                ( { model | messagePanelResizable = False }
                 , Cmd.none
                 )
 
@@ -391,6 +381,28 @@ wrapUpdate update msg model =
 
                 Just rawHistory ->
                     loadNewHistory rawHistory update model
+
+
+jumpUpdate : UserUpdate model msg -> Int -> Model model msg -> Model model msg
+jumpUpdate update index model =
+    let
+        history =
+            cachedHistory model
+
+        currentMsg =
+            History.getRecentMsg history
+
+        currentModel =
+            getLatestModel model.state
+
+        ( indexModel, indexMsg ) =
+            History.get update index history
+    in
+    { model
+        | state = Paused index indexModel currentModel currentMsg history
+        , modelExpando = Expando.merge indexModel model.modelExpando
+        , messageExpando = Expando.merge indexMsg model.messageExpando
+    }
 
 
 
@@ -521,9 +533,6 @@ popoutView model =
             , style "overflow" "auto"
             ]
 
-        sidePanelOffset =
-            String.fromInt model.sidePanelOffset ++ "px"
-
         expandoContent =
             [ div []
                 [ div [] [ text "Message:" ]
@@ -547,9 +556,9 @@ popoutView model =
             cachedHistory model
     in
     node "body"
-        (if model.sidePanelResizable then
+        (if model.messagePanelResizable then
             List.append bodyAttributes
-                [ onMouseMove model.layout ResizeSidePanel
+                [ onResizeSidePanel
                 , onMouseUp (EnableSidePanelResizing False)
 
                 -- Disable highlighting when dragging
@@ -563,26 +572,34 @@ popoutView model =
             bodyAttributes
         )
         (case model.layout of
-            Horizontal ->
+            Horizontal offset ->
+                let
+                    offsetPxStr =
+                        String.fromInt offset ++ "px"
+                in
                 [ div
                     [ style "display" "block"
                     , style "width" "100%"
-                    , style "height" sidePanelOffset
+                    , style "height" offsetPxStr
                     , style "margin" "0"
                     , style "overflow" "auto"
                     , style "cursor" "default"
                     ]
                     expandoContent
-                , viewSidebarHorizontal maybeIndex historyToRender sidePanelOffset
+                , viewSidebarHorizontal maybeIndex historyToRender offsetPxStr
                 ]
 
-            Vertical ->
-                [ viewSidebar maybeIndex historyToRender sidePanelOffset
+            Vertical offset ->
+                let
+                    offsetPxStr =
+                        String.fromInt offset ++ "px"
+                in
+                [ viewSidebar maybeIndex historyToRender offsetPxStr
                 , div
                     [ style "display" "block"
                     , style "float" "left"
                     , style "height" "100%"
-                    , style "width" <| "calc(100% - " ++ sidePanelOffset ++ ")"
+                    , style "width" <| "calc(100% - " ++ offsetPxStr ++ ")"
                     , style "margin" "0"
                     , style "overflow" "auto"
                     , style "cursor" "default"
@@ -657,33 +674,27 @@ draggableBorderHorizontal =
         []
 
 
-onMouseMove : Layout -> (MouseProperties -> Msg msg) -> Attribute (Msg msg)
-onMouseMove layout toMsg =
-    on "mousemove" (Decode.map toMsg (mouseMoveDecoder layout))
-
-
 type alias MouseProperties =
-    { offset : Int
+    { pageX : Int
+    , pageY : Int
     , buttonIsPressed : Bool
     }
 
 
-mouseMoveDecoder : Layout -> Decoder MouseProperties
-mouseMoveDecoder layout =
+onResizeSidePanel : Attribute (Msg msg)
+onResizeSidePanel =
+    on "mousemove" (Decode.map ResizeSidePanel mouseMoveDecoder)
+
+
+mouseMoveDecoder : Decoder MouseProperties
+mouseMoveDecoder =
     let
-        offsetFieldName =
-            case layout of
-                Horizontal ->
-                    "pageY"
-
-                Vertical ->
-                    "pageX"
-
         primaryButtonDetector value =
             Bitwise.and value 1 == 1
     in
-    Decode.map2 MouseProperties
-        (Decode.field offsetFieldName Decode.int)
+    Decode.map3 MouseProperties
+        (Decode.field "pageX" Decode.int)
+        (Decode.field "pageY" Decode.int)
         (Decode.field "buttons" (Decode.map primaryButtonDetector Decode.int))
 
 

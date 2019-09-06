@@ -1,7 +1,7 @@
 /*
 
 import Debugger.Expando as Expando exposing (S, Primitive, Sequence, Dictionary, Record, Constructor, ListSeq, SetSeq, ArraySeq)
-import Debugger.Main as Main exposing (getUserModel, wrapInit, wrapUpdate, wrapSubs, cornerView, popoutView, NoOp, Resize, UserMsg, Up, Down, toBlockerType)
+import Debugger.Main as Main exposing (getUserModel, wrapInit, wrapUpdate, wrapSubs, cornerView, popoutView, NoOp, Resize, UserMsg, Up, Down, toBlockerType, initialWindowWidth, initialWindowHeight)
 import Debugger.Overlay as Overlay exposing (BlockNone, BlockMost)
 import Elm.Kernel.Browser exposing (makeAnimator)
 import Elm.Kernel.Debug exposing (crash)
@@ -182,7 +182,11 @@ function _Debugger_open(popout)
 
 function _Debugger_openWindow(popout)
 {
-	var w = 900, h = 360, x = screen.width - w, y = screen.height - h;
+	var w = __Main_initialWindowWidth,
+		h = __Main_initialWindowHeight,
+	 	x = screen.width - w,
+		y = screen.height - h;
+
 	var debuggerWindow = window.open('', '', 'width=' + w + ',height=' + h + ',left=' + x + ',top=' + y);
 	var doc = debuggerWindow.document;
 	doc.title = 'Elm Debugger';
