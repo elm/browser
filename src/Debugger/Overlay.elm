@@ -363,26 +363,25 @@ viewMention tags verbed =
 
 
 viewBadMetadata : Metadata.Error -> List (Html msg)
-viewBadMetadata { message, problems } =
-    [ p []
-        [ text "The "
-        , viewCode message
-        , text " type of your program cannot be reliably serialized for history files."
-        ]
-    , p [] [ text "Functions cannot be serialized, nor can values that contain functions. This is a problem in these places:" ]
-    , ul [] (List.map viewProblemType problems)
-    , p []
-        [ text goodNews1
-        , a [ href "https://guide.elm-lang.org/types/union_types.html" ] [ text "union types" ]
-        , text ", in your messages. From there, your "
-        , viewCode "update"
-        , text goodNews2
-        ]
-    ]
+viewBadMetadata {message, problems} =
+  [ p []
+      [ text "The "
+      , viewCode message
+      , text " type of your program cannot be reliably serialized for history files."
+      ]
+  , p [] [ text "Functions cannot be serialized, nor can values that contain functions. This is a problem in these places:" ]
+  , ul [] (List.map viewProblemType problems)
+  , p []
+      [ text goodNews1
+      , a [ href "https://guide.elm-lang.org/types/custom_types.html" ] [ text "custom types" ]
+      , text ", in your messages. From there, your "
+      , viewCode "update"
+      , text goodNews2
+      ]
+  ]
 
 
-goodNews1 =
-    """
+goodNews1 = """
 The good news is that having values like this in your message type is not
 so great in the long run. You are better off using simpler data, like
 """
