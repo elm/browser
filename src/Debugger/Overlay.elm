@@ -454,37 +454,53 @@ viewButtons buttons =
 -- VIEW MINI CONTROLS
 
 
+miniControlsStyle : String
+miniControlsStyle =
+    """
+#elm-debugger-mini-controls {
+    position: fixed;
+    bottom: 0;
+    right: 6px;
+    border-radius: 4px;
+    background-color: rgb(61, 61, 61);
+    color: white;
+    font-family: monospace;
+    pointer-events: auto;
+    z-index: 2147483647;
+}
+
+#elm-debugger-mini-controls > div:nth-child(1) {
+    padding: 6px;
+    cursor: pointer;
+    text-align: center;
+    min-width: 24ch;
+}
+
+#elm-debugger-mini-controls > div:nth-child(2) {
+    padding: 4px 0;
+    font-size: 0.8em;
+    text-align: center;
+    background-color: rgb(50, 50, 50);
+}
+  """
+
+
 viewMiniControls : Config msg -> Int -> Html msg
 viewMiniControls config numMsgs =
-  div
-    [ style "position" "fixed"
-    , style "bottom" "0"
-    , style "right" "6px"
-    , style "border-radius" "4px"
-    , style "background-color" "rgb(61, 61, 61)"
-    , style "color" "white"
-    , style "font-family" "monospace"
-    , style "pointer-events" "auto"
-    , style "z-index" "2147483647"
-    ]
-    [ div
-        [ style "padding" "6px"
-        , style "cursor" "pointer"
-        , style "text-align" "center"
-        , style "min-width" "24ch"
-        , onClick config.open
+    div
+        []
+        [ node "style" [] [ text miniControlsStyle ]
+        , div
+            [ id "elm-debugger-mini-controls" ]
+            [ div
+                [ onClick config.open ]
+                [ text ("Explore History (" ++ String.fromInt numMsgs ++ ")") ]
+            , viewImportExport
+                []
+                config.importHistory
+                config.exportHistory
+            ]
         ]
-        [ text ("Explore History (" ++ String.fromInt numMsgs ++ ")")
-        ]
-    , viewImportExport
-        [ style "padding" "4px 0"
-        , style "font-size" "0.8em"
-        , style "text-align" "center"
-        , style "background-color" "rgb(50, 50, 50)"
-        ]
-        config.importHistory
-        config.exportHistory
-    ]
 
 
 viewImportExport : List (Attribute msg) -> msg -> msg -> Html msg
