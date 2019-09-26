@@ -2,7 +2,7 @@ effect module Browser.Events where { subscription = MySub } exposing
   ( onAnimationFrame, onAnimationFrameDelta
   , onKeyPress, onKeyDown, onKeyUp
   , onClick, onMouseMove, onMouseDown, onMouseUp
-  , onResize, onVisibilityChange, Visibility(..)
+  , onResize, onScroll, onVisibilityChange, Visibility(..)
   )
 
 
@@ -25,7 +25,7 @@ If there is something else you need, use [ports][] to do it in JavaScript!
 @docs onClick, onMouseMove, onMouseDown, onMouseUp
 
 # Window
-@docs onResize, onVisibilityChange, Visibility
+@docs onResize, onScroll, onVisibilityChange, Visibility
 
 -}
 
@@ -182,6 +182,21 @@ onResize func =
       Decode.map2 func
         (Decode.field "innerWidth" Decode.int)
         (Decode.field "innerHeight" Decode.int)
+
+
+{-| Subscribe to scrolling of the document.
+
+**Note:** This is equivalent to getting events from [`document.onscroll`][scroll].
+
+[scroll]: https://developer.mozilla.org/en-US/docs/Web/API/GlobalEventHandlers/onscroll
+-}
+onScroll : (Float -> Float -> msg) -> Sub msg
+onScroll func =
+  on Window "scroll" <|
+    Decode.at [ "target", "defaultView" ] <|
+      Decode.map2 func
+        (Decode.field "scrollX" Decode.float)
+        (Decode.field "scrollY" Decode.float)
 
 
 {-| Subscribe to any visibility changes, like if the user switches to a
