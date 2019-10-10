@@ -135,7 +135,8 @@ view config isPaused isOpen numMsgs state =
       else
         if isPaused then
           div
-            [ style "width" "100%"
+            [ class "__elm__internal__debugger__"
+            , style "width" "100%"
             , style "height" "100%"
             , style "cursor" "pointer"
             , style "text-align" "center"
