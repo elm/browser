@@ -238,13 +238,7 @@ undone getResult =
 view : Maybe Int -> History model msg -> Html Int
 view maybeIndex { snapshots, recent, numMessages } =
     let
-        ( index, height ) =
-            case maybeIndex of
-                Nothing ->
-                    ( -1, "calc(100% - 48px)" )
-
-                Just i ->
-                    ( i, "calc(100% - 78px)" )
+        index = Maybe.withDefault -1 maybeIndex
 
         onlyRenderRecentMessages =
             index /= -1 || Array.length snapshots < 2
@@ -269,7 +263,7 @@ view maybeIndex { snapshots, recent, numMessages } =
         [ id "elm-debugger-sidebar"
         , style "width" "100%"
         , style "overflow-y" "auto"
-        , style "height" height
+        , style "height" "calc(100% - 72px)"
         ]
         (styles
             :: newStuff

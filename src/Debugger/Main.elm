@@ -1,13 +1,14 @@
 module Debugger.Main exposing
-    ( cornerView
-    , getUserModel
-    , initialWindowHeight
-    , initialWindowWidth
-    , popoutView
-    , wrapInit
-    , wrapSubs
-    , wrapUpdate
-    )
+  ( cornerView
+  , getUserModel
+  , initialWindowHeight
+  , initialWindowWidth
+  , popoutView
+  , wrapInit
+  , wrapSubs
+  , wrapUpdate
+  )
+
 
 import Bitwise
 import Debugger.Expando as Expando exposing (Expando)
@@ -18,11 +19,13 @@ import Debugger.Report as Report
 import Dict exposing (Dict)
 import Elm.Kernel.Debugger
 import Html exposing (..)
-import Html.Attributes exposing (..)
+import Html.Attributes as A exposing (..)
 import Html.Events exposing (on, onClick, onInput, onMouseDown, onMouseUp)
+import Html.Lazy exposing (lazy)
 import Json.Decode as Decode exposing (Decoder)
 import Json.Encode as Encode
 import Task exposing (Task)
+import VirtualDom
 
 
 
@@ -31,17 +34,17 @@ import Task exposing (Task)
 
 minimumPanelSize : Int
 minimumPanelSize =
-    150
+  150
 
 
 initialWindowWidth : Int
 initialWindowWidth =
-    900
+  900
 
 
 initialWindowHeight : Int
 initialWindowHeight =
-    360
+  360
 
 
 
@@ -50,7 +53,7 @@ initialWindowHeight =
 
 wrapSubs : (model -> Sub msg) -> Model model msg -> Sub (Msg msg)
 wrapSubs subscriptions model =
-    Sub.map UserMsg (subscriptions (getLatestModel model.state))
+  Sub.map UserMsg (subscriptions (getLatestModel model.state))
 
 
 
@@ -58,32 +61,34 @@ wrapSubs subscriptions model =
 
 
 type alias Model model msg =
-    { history : History model msg
-    , state : State model msg
-    , modelExpando : Expando
-    , messageExpando : Expando
-    , metadata : Result Metadata.Error Metadata
-    , overlay : Overlay.State
-    , popout : Popout
-    , messagePanelResizable : Bool
-    , layout : Layout
-    , windowWidth : Int
-    , windowHeight : Int
-    }
+  { history : History model msg
+  , state : State model msg
+  , expandoModel : Expando
+  , expandoMsg : Expando
+  , metadata : Result Metadata.Error Metadata
+  , overlay : Overlay.State
+  , popout : Popout
+  , layout : Layout
+  }
 
 
 type Popout
-    = Popout Popout
+  = Popout Popout
 
 
 type Layout
-    = Vertical Int
-    | Horizontal Int
+  = Vertical DragStatus Float
+  | Horizontal DragStatus Float
+
+
+type DragStatus
+  = Static
+  | Moving
 
 
 getUserModel : Model model msg -> model
 getUserModel model =
-    getCurrentModel model.state
+  getCurrentModel model.state
 
 
 
@@ -91,48 +96,48 @@ getUserModel model =
 
 
 type State model msg
-    = Running model
-    | Paused Int model model msg (History model msg)
+  = Running model
+  | Paused Int model model msg (History model msg)
 
 
 getLatestModel : State model msg -> model
 getLatestModel state =
-    case state of
-        Running model ->
-            model
+  case state of
+    Running model ->
+      model
 
-        Paused _ _ model _ _ ->
-            model
+    Paused _ _ model _ _ ->
+      model
 
 
 getCurrentModel : State model msg -> model
 getCurrentModel state =
-    case state of
-        Running model ->
-            model
+  case state of
+    Running model ->
+      model
 
-        Paused _ model _ _ _ ->
-            model
+    Paused _ model _ _ _ ->
+      model
 
 
 isPaused : State model msg -> Bool
 isPaused state =
-    case state of
-        Running _ ->
-            False
+  case state of
+    Running _ ->
+      False
 
-        Paused _ _ _ _ _ ->
-            True
+    Paused _ _ _ _ _ ->
+      True
 
 
 cachedHistory : Model model msg -> History model msg
 cachedHistory model =
-    case model.state of
-        Running _ ->
-            model.history
+  case model.state of
+    Running _ ->
+      model.history
 
-        Paused _ _ _ _ history ->
-            history
+    Paused _ _ _ _ history ->
+      history
 
 
 
@@ -141,24 +146,20 @@ cachedHistory model =
 
 wrapInit : Encode.Value -> Popout -> (flags -> ( model, Cmd msg )) -> flags -> ( Model model msg, Cmd (Msg msg) )
 wrapInit metadata popout init flags =
-    let
-        ( userModel, userCommands ) =
-            init flags
-    in
-    ( { history = History.empty userModel
-      , state = Running userModel
-      , modelExpando = Expando.init userModel
-      , messageExpando = Expando.init ()
-      , metadata = Metadata.decode metadata
-      , overlay = Overlay.none
-      , popout = popout
-      , messagePanelResizable = False
-      , layout = Vertical 300
-      , windowWidth = initialWindowWidth
-      , windowHeight = initialWindowHeight
-      }
-    , Cmd.map UserMsg userCommands
-    )
+  let
+    (userModel, userCommands) = init flags
+  in
+  ( { history = History.empty userModel
+    , state = Running userModel
+    , expandoModel = Expando.init userModel
+    , expandoMsg = Expando.init ()
+    , metadata = Metadata.decode metadata
+    , overlay = Overlay.none
+    , popout = popout
+    , layout = Horizontal Static 0.3
+    }
+  , Cmd.map UserMsg userCommands
+  )
 
 
 
@@ -167,22 +168,24 @@ wrapInit metadata popout init flags =
 
 type Msg msg
     = NoOp
-    | Resize Int Int
     | UserMsg msg
-    | MessageExpandoMsg Expando.Msg
-    | ModelExpandoMsg Expando.Msg
+    | TweakExpandoMsg Expando.Msg
+    | TweakExpandoModel Expando.Msg
     | Resume
     | Jump Int
     | SliderJump Int
     | Open
     | Up
     | Down
-    | EnableSidePanelResizing Bool
-    | ResizeSidePanel MouseProperties
     | Import
     | Export
     | Upload String
     | OverlayMsg Overlay.Msg
+    --
+    | SwapLayout
+    | DragStart
+    | Drag DragInfo
+    | DragEnd
 
 
 type alias UserUpdate model msg =
@@ -191,196 +194,137 @@ type alias UserUpdate model msg =
 
 wrapUpdate : UserUpdate model msg -> Msg msg -> Model model msg -> ( Model model msg, Cmd (Msg msg) )
 wrapUpdate update msg model =
-    case msg of
-        NoOp ->
+  case msg of
+    NoOp ->
+      ( model, Cmd.none )
+
+    UserMsg userMsg ->
+        let
+          userModel = getLatestModel model.state
+          newHistory = History.add userMsg userModel model.history
+          ( newUserModel, userCmds ) = update userMsg userModel
+          commands = Cmd.map UserMsg userCmds
+        in
+        case model.state of
+          Running _ ->
+            ( { model
+                | history = newHistory
+                , state = Running newUserModel
+                , expandoModel = Expando.merge newUserModel model.expandoModel
+                , expandoMsg = Expando.merge userMsg model.expandoMsg
+              }
+            , Cmd.batch [ commands, scroll model.popout ]
+            )
+
+          Paused index indexModel _ _ history ->
+            ( { model
+                | history = newHistory
+                , state = Paused index indexModel newUserModel userMsg history
+              }
+            , commands
+            )
+
+    TweakExpandoMsg eMsg ->
+      ( { model | expandoMsg = Expando.update eMsg model.expandoMsg }
+      , Cmd.none
+      )
+
+    TweakExpandoModel eMsg ->
+      ( { model | expandoModel = Expando.update eMsg model.expandoModel }
+      , Cmd.none
+      )
+
+    Resume ->
+        case model.state of
+            Running _ ->
+                ( model, Cmd.none )
+
+            Paused _ _ userModel userMsg _ ->
+                ( { model
+                    | state = Running userModel
+                    , expandoMsg = Expando.merge userMsg model.expandoMsg
+                    , expandoModel = Expando.merge userModel model.expandoModel
+                  }
+                , scroll model.popout
+                )
+
+    Jump index ->
+      ( jumpUpdate update index model
+      , Cmd.none
+      )
+
+    SliderJump index ->
+      ( jumpUpdate update index model
+      , scrollTo (History.idForMessageIndex index) model.popout
+      )
+
+    Open ->
+      ( model
+      , Task.perform (always NoOp) (Elm.Kernel.Debugger.open model.popout)
+      )
+
+    Up ->
+      case model.state of
+        Running _ ->
+          ( model, Cmd.none )
+
+        Paused i _ _ _ history ->
+          let
+            targetIndex = i + 1
+          in
+          if targetIndex < History.size history then
+              wrapUpdate update (SliderJump targetIndex) model
+          else
+              wrapUpdate update Resume model
+
+    Down ->
+      case model.state of
+        Running _ ->
+          wrapUpdate update (Jump (History.size model.history - 1)) model
+
+        Paused index _ _ _ _ ->
+          if index > 0 then
+            wrapUpdate update (SliderJump (index - 1)) model
+          else
             ( model, Cmd.none )
 
-        Resize width height ->
-            ( { model
-                | windowWidth = width
-                , windowHeight = height
-                , layout =
-                    case model.layout of
-                        Horizontal offset ->
-                            if width < height then
-                                model.layout
+    Import ->
+      withGoodMetadata model <|
+        \_ -> ( model, upload model.popout )
 
-                            else
-                                Vertical 300
+    Export ->
+      withGoodMetadata model <|
+        \metadata -> ( model, download metadata model.history )
 
-                        Vertical offset ->
-                            if width < height then
-                                Horizontal (height // 2)
+    Upload jsonString ->
+      withGoodMetadata model <|
+        \metadata ->
+          case Overlay.assessImport metadata jsonString of
+            Err newOverlay ->
+              ( { model | overlay = newOverlay }, Cmd.none )
 
-                            else
-                                model.layout
-              }
-            , Cmd.none
-            )
+            Ok rawHistory ->
+              loadNewHistory rawHistory update model
 
-        UserMsg userMsg ->
-            let
-                userModel =
-                    getLatestModel model.state
+    OverlayMsg overlayMsg ->
+      case Overlay.close overlayMsg model.overlay of
+        Nothing ->
+          ( { model | overlay = Overlay.none }, Cmd.none )
 
-                newHistory =
-                    History.add userMsg userModel model.history
+        Just rawHistory ->
+          loadNewHistory rawHistory update model
 
-                ( newUserModel, userCmds ) =
-                    update userMsg userModel
+    SwapLayout ->
+      ( { model | layout = swapLayout model.layout }, Cmd.none )
 
-                commands =
-                    Cmd.map UserMsg userCmds
-            in
-            case model.state of
-                Running _ ->
-                    ( { model
-                        | history = newHistory
-                        , state = Running newUserModel
-                        , modelExpando = Expando.merge newUserModel model.modelExpando
-                        , messageExpando = Expando.merge userMsg model.messageExpando
-                      }
-                    , Cmd.batch
-                        [ commands
-                        , scroll model.popout
-                        ]
-                    )
+    DragStart ->
+      ( { model | layout = setDragStatus Moving model.layout }, Cmd.none )
 
-                Paused index indexModel _ _ history ->
-                    ( { model
-                        | history = newHistory
-                        , state = Paused index indexModel newUserModel userMsg history
-                      }
-                    , commands
-                    )
+    Drag info ->
+      ( { model | layout = drag info model.layout }, Cmd.none )
 
-        MessageExpandoMsg eMsg ->
-            ( { model | messageExpando = Expando.update eMsg model.messageExpando }
-            , Cmd.none
-            )
-
-        ModelExpandoMsg eMsg ->
-            ( { model | modelExpando = Expando.update eMsg model.modelExpando }
-            , Cmd.none
-            )
-
-        Resume ->
-            case model.state of
-                Running _ ->
-                    ( model, Cmd.none )
-
-                Paused _ _ userModel userMsg _ ->
-                    ( { model
-                        | state = Running userModel
-                        , messageExpando = Expando.merge userMsg model.messageExpando
-                        , modelExpando = Expando.merge userModel model.modelExpando
-                      }
-                    , scroll model.popout
-                    )
-
-        Jump index ->
-            ( jumpUpdate update index model
-            , Cmd.none
-            )
-
-        SliderJump index ->
-            ( jumpUpdate update index model
-            , scrollTo (History.idForMessageIndex index) model.popout
-            )
-
-        Open ->
-            ( model
-            , Task.perform (always NoOp) (Elm.Kernel.Debugger.open model.popout)
-            )
-
-        Up ->
-            case model.state of
-                Paused i _ _ _ history ->
-                    let
-                        targetIndex =
-                            i + 1
-                    in
-                    if targetIndex < History.size history then
-                        wrapUpdate update (SliderJump targetIndex) model
-
-                    else
-                        wrapUpdate update Resume model
-
-                Running _ ->
-                    ( model, Cmd.none )
-
-        Down ->
-            case model.state of
-                Running _ ->
-                    wrapUpdate update (Jump (History.size model.history - 1)) model
-
-                Paused index _ _ _ _ ->
-                    if index > 0 then
-                        wrapUpdate update (SliderJump (index - 1)) model
-
-                    else
-                        ( model, Cmd.none )
-
-        EnableSidePanelResizing enabled ->
-            ( { model | messagePanelResizable = enabled }
-            , Cmd.none
-            )
-
-        ResizeSidePanel mouseProperties ->
-            if mouseProperties.buttonIsPressed then
-                let
-                    updatedLayout =
-                        case model.layout of
-                            Horizontal _ ->
-                                Horizontal <|
-                                    Basics.clamp
-                                        minimumPanelSize
-                                        (model.windowHeight - minimumPanelSize)
-                                        mouseProperties.pageY
-
-                            Vertical _ ->
-                                Vertical <|
-                                    Basics.clamp
-                                        minimumPanelSize
-                                        (model.windowWidth - minimumPanelSize)
-                                        mouseProperties.pageX
-                in
-                ( { model | layout = updatedLayout }
-                , Cmd.none
-                )
-
-            else
-                ( { model | messagePanelResizable = False }
-                , Cmd.none
-                )
-
-        Import ->
-            withGoodMetadata model <|
-                \_ ->
-                    ( model, upload model.popout )
-
-        Export ->
-            withGoodMetadata model <|
-                \metadata ->
-                    ( model, download metadata model.history )
-
-        Upload jsonString ->
-            withGoodMetadata model <|
-                \metadata ->
-                    case Overlay.assessImport metadata jsonString of
-                        Err newOverlay ->
-                            ( { model | overlay = newOverlay }, Cmd.none )
-
-                        Ok rawHistory ->
-                            loadNewHistory rawHistory update model
-
-        OverlayMsg overlayMsg ->
-            case Overlay.close overlayMsg model.overlay of
-                Nothing ->
-                    ( { model | overlay = Overlay.none }, Cmd.none )
-
-                Just rawHistory ->
-                    loadNewHistory rawHistory update model
+    DragEnd ->
+      ( { model | layout = setDragStatus Static model.layout }, Cmd.none )
 
 
 jumpUpdate : UserUpdate model msg -> Int -> Model model msg -> Model model msg
@@ -400,9 +344,37 @@ jumpUpdate update index model =
     in
     { model
         | state = Paused index indexModel currentModel currentMsg history
-        , modelExpando = Expando.merge indexModel model.modelExpando
-        , messageExpando = Expando.merge indexMsg model.messageExpando
+        , expandoModel = Expando.merge indexModel model.expandoModel
+        , expandoMsg = Expando.merge indexMsg model.expandoMsg
     }
+
+
+
+-- LAYOUT HELPERS
+
+
+swapLayout : Layout -> Layout
+swapLayout layout =
+  case layout of
+    Horizontal s f -> Vertical s f
+    Vertical s f -> Horizontal s f
+
+
+setDragStatus : DragStatus -> Layout -> Layout
+setDragStatus status layout =
+  case layout of
+    Horizontal _ fraction -> Horizontal status fraction
+    Vertical   _ fraction -> Vertical   status fraction
+
+
+drag : DragInfo -> Layout -> Layout
+drag info layout =
+  case layout of
+    Horizontal status _ ->
+      Horizontal status (info.x / info.width)
+
+    Vertical status _ ->
+      Vertical status (info.y / info.height)
 
 
 
@@ -411,33 +383,30 @@ jumpUpdate update index model =
 
 scroll : Popout -> Cmd (Msg msg)
 scroll popout =
-    Task.perform (always NoOp) (Elm.Kernel.Debugger.scroll popout)
+  Task.perform (always NoOp) (Elm.Kernel.Debugger.scroll popout)
 
 
 scrollTo : String -> Popout -> Cmd (Msg msg)
 scrollTo id popout =
-    Task.perform (always NoOp) (Elm.Kernel.Debugger.scrollTo id popout)
+  Task.perform (always NoOp) (Elm.Kernel.Debugger.scrollTo id popout)
 
 
 upload : Popout -> Cmd (Msg msg)
 upload popout =
-    Task.perform Upload (Elm.Kernel.Debugger.upload popout)
+  Task.perform Upload (Elm.Kernel.Debugger.upload popout)
 
 
 download : Metadata -> History model msg -> Cmd (Msg msg)
 download metadata history =
-    let
-        historyLength =
-            History.size history
-
-        json =
-            Encode.object
-                [ ( "metadata", Metadata.encode metadata )
-                , ( "history", History.encode history )
-                ]
-                |> Elm.Kernel.Json.unwrap
-    in
-    Task.perform (\_ -> NoOp) (Elm.Kernel.Debugger.download historyLength json)
+  let
+    historyLength = History.size history
+  in
+  Task.perform (\_ -> NoOp) <| Elm.Kernel.Debugger.download historyLength <|
+    Elm.Kernel.Json.unwrap <|
+      Encode.object
+        [ ( "metadata", Metadata.encode metadata )
+        , ( "history", History.encode history )
+        ]
 
 
 
@@ -449,21 +418,17 @@ withGoodMetadata :
     -> (Metadata -> ( Model model msg, Cmd (Msg msg) ))
     -> ( Model model msg, Cmd (Msg msg) )
 withGoodMetadata model func =
-    case model.metadata of
-        Ok metadata ->
-            func metadata
+  case model.metadata of
+    Ok metadata ->
+      func metadata
 
-        Err error ->
-            ( { model | overlay = Overlay.badMetadata error }
-            , Cmd.none
-            )
+    Err error ->
+      ( { model | overlay = Overlay.badMetadata error }
+      , Cmd.none
+      )
 
 
-loadNewHistory :
-    Encode.Value
-    -> UserUpdate model msg
-    -> Model model msg
-    -> ( Model model msg, Cmd (Msg msg) )
+loadNewHistory : Encode.Value -> UserUpdate model msg -> Model model msg -> ( Model model msg, Cmd (Msg msg) )
 loadNewHistory rawHistory update model =
     let
         initialUserModel =
@@ -485,8 +450,8 @@ loadNewHistory rawHistory update model =
             ( { model
                 | history = newHistory
                 , state = Running latestUserModel
-                , modelExpando = Expando.init latestUserModel
-                , messageExpando = Expando.init (History.getRecentMsg newHistory)
+                , expandoModel = Expando.init latestUserModel
+                , expandoMsg = Expando.init (History.getRecentMsg newHistory)
                 , overlay = Overlay.none
               }
             , Cmd.none
@@ -499,22 +464,22 @@ loadNewHistory rawHistory update model =
 
 cornerView : Model model msg -> Html (Msg msg)
 cornerView model =
-    Overlay.view
-        { resume = Resume
-        , open = Open
-        , importHistory = Import
-        , exportHistory = Export
-        , wrap = OverlayMsg
-        }
-        (isPaused model.state)
-        (Elm.Kernel.Debugger.isOpen model.popout)
-        (History.size model.history)
-        model.overlay
+  Overlay.view
+    { resume = Resume
+    , open = Open
+    , importHistory = Import
+    , exportHistory = Export
+    , wrap = OverlayMsg
+    }
+    (isPaused model.state)
+    (Elm.Kernel.Debugger.isOpen model.popout)
+    (History.size model.history)
+    model.overlay
 
 
 toBlockerType : Model model msg -> Overlay.BlockerType
 toBlockerType model =
-    Overlay.toBlockerType (isPaused model.state) model.overlay
+  Overlay.toBlockerType (isPaused model.state) model.overlay
 
 
 
@@ -523,270 +488,311 @@ toBlockerType model =
 
 popoutView : Model model msg -> Html (Msg msg)
 popoutView model =
-    let
-        bodyAttributes =
-            [ style "margin" "0"
-            , style "padding" "0"
-            , style "width" "100%"
-            , style "height" "100%"
-            , style "font-family" "monospace"
-            , style "overflow" "auto"
-            ]
+  let
+    maybeIndex =
+      case model.state of
+        Running _            -> Nothing
+        Paused index _ _ _ _ -> Just index
 
-        expandoContent =
-            [ div []
-                [ div [] [ text "Message:" ]
-                , Html.map MessageExpandoMsg <| Expando.view Nothing model.messageExpando
-                ]
-            , div []
-                [ div [] [ text "Model:" ]
-                , Html.map ModelExpandoMsg <| Expando.view Nothing model.modelExpando
-                ]
-            ]
-
-        maybeIndex =
-            case model.state of
-                Running _ ->
-                    Nothing
-
-                Paused index _ _ _ _ ->
-                    Just index
-
-        historyToRender =
-            cachedHistory model
-    in
-    node "body"
-        (if model.messagePanelResizable then
-            List.append bodyAttributes
-                [ onResizeSidePanel
-                , onMouseUp (EnableSidePanelResizing False)
-
-                -- Disable highlighting when dragging
-                , style "-webkit-user-select" "none"
-                , style "-moz-user-select" "none"
-                , style "-ms-user-select" "none"
-                , style "user-select" "none"
-                ]
-
-         else
-            bodyAttributes
-        )
-        (case model.layout of
-            Horizontal offset ->
-                let
-                    offsetPxStr =
-                        String.fromInt offset ++ "px"
-                in
-                [ div
-                    [ style "display" "block"
-                    , style "width" "100%"
-                    , style "height" offsetPxStr
-                    , style "margin" "0"
-                    , style "overflow" "auto"
-                    , style "cursor" "default"
-                    ]
-                    expandoContent
-                , viewSidebarHorizontal maybeIndex historyToRender offsetPxStr
-                ]
-
-            Vertical offset ->
-                let
-                    offsetPxStr =
-                        String.fromInt offset ++ "px"
-                in
-                [ viewSidebar maybeIndex historyToRender offsetPxStr
-                , div
-                    [ style "display" "block"
-                    , style "float" "left"
-                    , style "height" "100%"
-                    , style "width" <| "calc(100% - " ++ offsetPxStr ++ ")"
-                    , style "margin" "0"
-                    , style "overflow" "auto"
-                    , style "cursor" "default"
-                    ]
-                    expandoContent
-                ]
-        )
+    historyToRender = cachedHistory model
+  in
+  node "body"
+    (
+      toDragListeners model.layout
+      ++
+      [ style "margin" "0"
+      , style "padding" "0"
+      , style "width" "100%"
+      , style "height" "100%"
+      , style "font-family" "monospace"
+      , style "display" "flex"
+      , style "flex-direction" (toFlexDirection model.layout)
+      ]
+    )
+    [ viewHistory maybeIndex historyToRender model.layout
+    , viewDragZone model.layout
+    , viewExpando model.expandoMsg model.expandoModel model.layout
+    ]
 
 
-viewSidebar : Maybe Int -> History model msg -> String -> Html (Msg msg)
-viewSidebar maybeIndex history offsetStyle =
-    div
-        [ style "position" "relative"
-        , style "display" "block"
-        , style "float" "left"
-        , style "width" offsetStyle
-        , style "height" "100%"
-        , style "color" "white"
-        , style "background-color" "rgb(61, 61, 61)"
-        ]
-        [ draggableBorder
-        , slider history maybeIndex
-        , Html.map Jump (History.view maybeIndex history)
-        , playButton maybeIndex
-        ]
+toFlexDirection : Layout -> String
+toFlexDirection layout =
+  case layout of
+    Horizontal _ _ -> "row"
+    Vertical   _ _ -> "column-reverse"
 
 
-draggableBorder : Html (Msg msg)
-draggableBorder =
-    div
+
+-- DRAG LISTENERS
+
+
+toDragListeners : Layout -> List (Attribute (Msg msg))
+toDragListeners layout =
+  case getDragStatus layout of
+    Static -> []
+    Moving -> [ onMouseMove, onMouseUp DragEnd ]
+
+
+getDragStatus : Layout -> DragStatus
+getDragStatus layout =
+  case layout of
+    Horizontal status _ -> status
+    Vertical   status _ -> status
+
+
+type alias DragInfo =
+  { x : Float
+  , y : Float
+  , down : Bool
+  , width : Float
+  , height : Float
+  }
+
+
+onMouseMove : Attribute (Msg msg)
+onMouseMove =
+  on "mousemove" <| Decode.map Drag <|
+    Decode.map5 DragInfo
+      (Decode.field "pageX" Decode.float)
+      (Decode.field "pageY" Decode.float)
+      (Decode.field "buttons" (Decode.map (\v -> v == 1) Decode.int))
+      (decodeDimension "innerWidth")
+      (decodeDimension "innerHeight")
+
+
+decodeDimension : String -> Decoder Float
+decodeDimension field =
+  Decode.at [ "currentTarget", "ownerDocument", "defaultView", field ] Decode.float
+
+
+
+-- VIEW DRAG ZONE
+
+
+viewDragZone : Layout -> Html (Msg msg)
+viewDragZone layout =
+  case layout of
+    Horizontal _ fraction ->
+      div
         [ style "position" "absolute"
-        , style "top" "0px"
-        , style "right" "0px"
+        , style "top" "0"
+        , style "left" (toPercent fraction)
+        , style "margin-left" "-5px"
+        , style "width" "10px"
         , style "height" "100%"
-        , style "width" "5px"
-        , style "background-color" "black"
         , style "cursor" "col-resize"
-        , onMouseDown (EnableSidePanelResizing True)
+        , onMouseDown DragStart
         ]
         []
 
-
-viewSidebarHorizontal : Maybe Int -> History model msg -> String -> Html (Msg msg)
-viewSidebarHorizontal maybeIndex history offsetStyle =
-    div
-        [ style "position" "relative"
-        , style "display" "block"
-        , style "width" "100%"
-        , style "height" <| "calc(100% - " ++ offsetStyle ++ ")"
-        , style "color" "white"
-        , style "background-color" "rgb(61, 61, 61)"
-        ]
-        [ draggableBorderHorizontal
-        , slider history maybeIndex
-        , Html.map Jump (History.view maybeIndex history)
-        , playButton maybeIndex
-        ]
-
-
-draggableBorderHorizontal : Html (Msg msg)
-draggableBorderHorizontal =
-    div
+    Vertical _ fraction ->
+      div
         [ style "position" "absolute"
-        , style "top" "0px"
-        , style "left" "0px"
-        , style "height" "5px"
+        , style "top" (toPercent fraction)
+        , style "left" "0"
+        , style "margin-top" "-5px"
         , style "width" "100%"
-        , style "background-color" "black"
+        , style "height" "10px"
         , style "cursor" "row-resize"
-        , onMouseDown (EnableSidePanelResizing True)
+        , onMouseDown DragStart
         ]
         []
 
 
-type alias MouseProperties =
-    { pageX : Int
-    , pageY : Int
-    , buttonIsPressed : Bool
-    }
+
+-- LAYOUT HELPERS
 
 
-onResizeSidePanel : Attribute (Msg msg)
-onResizeSidePanel =
-    on "mousemove" (Decode.map ResizeSidePanel mouseMoveDecoder)
+toPercent : Float -> String
+toPercent fraction =
+  String.fromFloat (100 * fraction) ++ "%"
 
 
-mouseMoveDecoder : Decoder MouseProperties
-mouseMoveDecoder =
-    let
-        primaryButtonDetector value =
-            Bitwise.and value 1 == 1
-    in
-    Decode.map3 MouseProperties
-        (Decode.field "pageX" Decode.int)
-        (Decode.field "pageY" Decode.int)
-        (Decode.field "buttons" (Decode.map primaryButtonDetector Decode.int))
+toMouseBlocker : Layout -> String
+toMouseBlocker layout =
+  case getDragStatus layout of
+    Static -> "auto"
+    Moving -> "none"
 
 
-slider : History model msg -> Maybe Int -> Html (Msg msg)
-slider history maybeIndex =
-    let
-        lastIndex =
-            History.size history - 1
 
-        selectedIndex =
-            Maybe.withDefault lastIndex maybeIndex
-    in
-    div
-        [ style "width" "100%"
-        , style "height" "24px"
-        , style "text-align" "center"
-        , style "background-color" "rgb(50, 50, 50)"
-        , style "padding" "0 20px"
-        , style "box-sizing" "border-box"
+-- VIEW HISTORY
+
+
+viewHistory : Maybe Int -> History model msg -> Layout -> Html (Msg msg)
+viewHistory maybeIndex history layout =
+  let
+    (w,h) = toHistoryPercents layout
+    block = toMouseBlocker layout
+  in
+  div
+    [ style "width" w
+    , style "height" h
+    , style "display" "flex"
+    , style "flex-direction" "column"
+    , style "color" "#DDDDDD"
+    , style "background-color" "rgb(61, 61, 61)"
+    , style "pointer-events" block
+    , style "user-select" block
+    ]
+    [ viewHistorySlider history maybeIndex
+    , Html.map Jump (History.view maybeIndex history)
+    , lazy viewHistoryOptions layout
+    ]
+
+
+toHistoryPercents : Layout -> (String, String)
+toHistoryPercents layout =
+  case layout of
+    Horizontal _ f -> ( toPercent f, "100%" )
+    Vertical   _ f -> ( "100%", toPercent (1 - f) )
+
+
+viewHistorySlider : History model msg -> Maybe Int -> Html (Msg msg)
+viewHistorySlider history maybeIndex =
+  let
+    lastIndex = History.size history - 1
+    selectedIndex = Maybe.withDefault lastIndex maybeIndex
+  in
+  div
+    [ style "display" "flex"
+    , style "flex-direction" "row"
+    , style "align-items" "center"
+    , style "width" "100%"
+    , style "height" "36px"
+    , style "background-color" "rgb(50, 50, 50)"
+    ]
+    [ lazy viewPlayButton (isPlaying maybeIndex)
+    , input
+        [ type_ "range"
+        , style "width" "calc(100% - 56px)"
+        , style "height" "36px"
+        , style "margin" "0 10px"
+        , A.min "0"
+        , A.max (String.fromInt lastIndex)
+        , value (String.fromInt selectedIndex)
+        , onInput (String.toInt >> Maybe.withDefault lastIndex >> SliderJump)
         ]
-        [ input
-            [ type_ "range"
-            , style "width" "100%"
-            , style "height" "24px"
-            , Html.Attributes.min "0"
-            , Html.Attributes.max (String.fromInt lastIndex)
-            , value (String.fromInt selectedIndex)
-            , onInput (String.toInt >> Maybe.withDefault lastIndex >> SliderJump)
-            ]
-            []
+        []
+    ]
+
+
+viewPlayButton : Bool -> Html (Msg msg)
+viewPlayButton playing =
+  button
+    [ style "background" "#1293D8"
+    , style "border" "none"
+    , style "color" "white"
+    , style "cursor" "pointer"
+    , style "width" "36px"
+    , style "height" "36px"
+    , onClick Resume
+    ]
+    [ if playing
+      then icon "M2 2h4v12h-4v-12z M10 2h4v12h-4v-12z"
+      else icon "M2 2l12 7l-12 7z"
+    ]
+
+
+isPlaying : Maybe Int -> Bool
+isPlaying maybeIndex =
+  case maybeIndex of
+    Nothing -> True
+    Just _ -> False
+
+
+viewHistoryOptions : Layout -> Html (Msg msg)
+viewHistoryOptions layout =
+  div
+    [ style "width" "100%"
+    , style "height" "36px"
+    , style "display" "flex"
+    , style "flex-direction" "row"
+    , style "align-items" "center"
+    , style "justify-content" "space-between"
+    , style "background-color" "rgb(50, 50, 50)"
+    ]
+    [ viewHistoryButton "Swap Layout" SwapLayout (toHistoryIcon layout)
+    , div
+        [ style "display" "flex"
+        , style "flex-direction" "row"
+        , style "align-items" "center"
+        , style "justify-content" "space-between"
         ]
-
-
-playButton : Maybe Int -> Html (Msg msg)
-playButton maybeIndex =
-    div
-        [ style "width" "100%"
-        , style "text-align" "center"
-        , style "background-color" "rgb(50, 50, 50)"
+        [ viewHistoryButton "Import" Import "M5 1a1 1 0 0 1 0 2h-2a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1a1 1 0 0 1 2 0a3 3 0 0 1-3 3h-10a3 3 0 0 1-3-3v-8a3 3 0 0 1 3-3z M10 2a1 1 0 0 0 -2 0v6a1 1 0 0 0 1 1h6a1 1 0 0 0 0-2h-3.586l4.293-4.293a1 1 0 0 0-1.414-1.414l-4.293 4.293z"
+        , viewHistoryButton "Export" Export "M5 1a1 1 0 0 1 0 2h-2a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1 a1 1 0 0 1 2 0a3 3 0 0 1-3 3h-10a3 3 0 0 1-3-3v-8a3 3 0 0 1 3-3z M9 3a1 1 0 1 1 0-2h6a1 1 0 0 1 1 1v6a1 1 0 1 1-2 0v-3.586l-5.293 5.293 a1 1 0 0 1-1.414-1.414l5.293 -5.293z"
         ]
-        [ viewResumeButton maybeIndex
-        , div
-            [ style "width" "100%"
-            , style "height" "24px"
-            , style "line-height" "24px"
-            , style "font-size" "12px"
-            ]
-            [ viewTextButton Import "Import"
-            , text " / "
-            , viewTextButton Export "Export"
-            ]
-        ]
+    ]
 
 
-viewTextButton : msg -> String -> Html msg
-viewTextButton msg label =
-    span
-        [ onClick msg
-        , style "cursor" "pointer"
-        ]
-        [ text label ]
+viewHistoryButton : String -> msg -> String -> Html msg
+viewHistoryButton label msg path =
+  button
+    [ style "display" "flex"
+    , style "flex-direction" "row"
+    , style "align-items" "center"
+    , style "background" "none"
+    , style "border" "none"
+    , style "color" "inherit"
+    , style "cursor" "pointer"
+    , onClick msg
+    ]
+    [ icon path
+    , span [ style "padding-left" "6px" ] [ text label ]
+    ]
 
 
-viewResumeButton : Maybe Int -> Html (Msg msg)
-viewResumeButton maybeIndex =
-    case maybeIndex of
-        Nothing ->
-            text ""
+icon : String -> Html msg
+icon path =
+  VirtualDom.nodeNS "http://www.w3.org/2000/svg" "svg"
+    [ VirtualDom.attribute "viewBox" "0 0 16 16"
+    , VirtualDom.attribute "xmlns" "http://www.w3.org/2000/svg"
+    , VirtualDom.attribute "fill" "currentColor"
+    , VirtualDom.attribute "width" "16px"
+    , VirtualDom.attribute "height" "16px"
+    ]
+    [ VirtualDom.nodeNS "http://www.w3.org/2000/svg" "path"
+        [ VirtualDom.attribute "d" path ]
+        []
+    ]
 
-        Just _ ->
-            div
-                [ onClick Resume
-                , class "elm-debugger-resume"
-                ]
-                [ text "Resume"
-                , Html.node "style" [] [ text resumeStyle ]
-                ]
+
+toHistoryIcon : Layout -> String
+toHistoryIcon layout =
+  case layout of
+    Horizontal _ _ -> "M13 1a3 3 0 0 1 3 3v8a3 3 0 0 1-3 3h-10a3 3 0 0 1-3-3v-8a3 3 0 0 1 3-3z M13 3h-10a1 1 0 0 0-1 1v5h12v-5a1 1 0 0 0-1-1z M14 10h-12v2a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1z"
+    Vertical _ _   -> "M0 4a3 3 0 0 1 3-3h10a3 3 0 0 1 3 3v8a3 3 0 0 1-3 3h-10a3 3 0 0 1-3-3z M2 4v8a1 1 0 0 0 1 1h2v-10h-2a1 1 0 0 0-1 1z M6 3v10h7a1 1 0 0 0 1-1v-8a1 1 0 0 0-1-1z"
 
 
-resumeStyle : String
-resumeStyle =
-    """
 
-.elm-debugger-resume {
-  width: 100%;
-  height: 30px;
-  line-height: 30px;
-  cursor: pointer;
-}
+-- VIEW EXPANDO
 
-.elm-debugger-resume:hover {
-  background-color: rgb(41, 41, 41);
-}
 
-"""
+viewExpando : Expando -> Expando -> Layout -> Html (Msg msg)
+viewExpando expandoMsg expandoModel layout =
+  let
+    (w,h) = toExpandoPercents layout
+    block = toMouseBlocker layout
+  in
+  div
+    [ style "display" "block"
+    , style "width" ("calc(" ++ w ++ " - 4em)")
+    , style "height" ("calc(" ++ h ++ " - 4em)")
+    , style "padding" "2em"
+    , style "margin" "0"
+    , style "overflow" "auto"
+    , style "pointer-events" block
+    , style "user-select" block
+    ]
+    [ div [ style "color" "#ccc" ] [ text "-- MESSAGE" ]
+    , Html.map TweakExpandoMsg <| Expando.view Nothing expandoMsg
+    , div [ style "color" "#ccc" ] [ text "-- MODEL" ]
+    , Html.map TweakExpandoModel <| Expando.view Nothing expandoModel
+    ]
+
+
+toExpandoPercents : Layout -> (String, String)
+toExpandoPercents layout =
+  case layout of
+    Horizontal _ f -> ( toPercent (1 - f), "100%" )
+    Vertical   _ f -> ( "100%", toPercent f )
