@@ -10,7 +10,6 @@ module Debugger.Overlay exposing
     , none
     , toBlockerType
     , view
-    , viewImportExport
     )
 
 import Debugger.Metadata as Metadata exposing (Metadata)
@@ -492,47 +491,31 @@ viewButtons buttons =
 
 viewMiniControls : Config msg -> Int -> Html msg
 viewMiniControls config numMsgs =
+    let
+        dimensions =
+            if numMsgs < 100 then
+                "4ch"
+            else if numMsgs < 1000 then
+                "5ch"
+            else
+                "6ch"
+    in
     div
         [ style "position" "fixed"
-        , style "bottom" "0"
-        , style "right" "6px"
-        , style "border-radius" "4px"
-        , style "background-color" "rgb(61, 61, 61)"
+        , style "bottom" "2em"
+        , style "right" "2em"
+        , style "width" dimensions
+        , style "height" dimensions
+        , style "background-color" "#1293D8"
         , style "color" "white"
         , style "font-family" "monospace"
         , style "pointer-events" "auto"
         , style "z-index" "2147483647"
+        , style "display" "flex"
+        , style "justify-content" "center"
+        , style "align-items" "center"
+        , style "cursor" "pointer"
+        , onClick config.open
         ]
-        [ div
-            [ style "padding" "6px"
-            , style "cursor" "pointer"
-            , style "text-align" "center"
-            , style "min-width" "24ch"
-            , onClick config.open
-            ]
-            [ text ("Explore History (" ++ String.fromInt numMsgs ++ ")")
-            ]
-        , viewImportExport
-            [ style "padding" "4px 0"
-            , style "font-size" "0.8em"
-            , style "text-align" "center"
-            , style "background-color" "rgb(50, 50, 50)"
-            ]
-            config.importHistory
-            config.exportHistory
+        [ text (String.fromInt numMsgs)
         ]
-
-
-viewImportExport : List (Attribute msg) -> msg -> msg -> Html msg
-viewImportExport props importMsg exportMsg =
-    div
-        props
-        [ button importMsg "Import"
-        , text " / "
-        , button exportMsg "Export"
-        ]
-
-
-button : msg -> String -> Html msg
-button msg label =
-    span [ onClick msg, style "cursor" "pointer" ] [ text label ]
