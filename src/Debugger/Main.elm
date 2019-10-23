@@ -44,7 +44,7 @@ initialWindowWidth =
 
 initialWindowHeight : Int
 initialWindowHeight =
-  360
+  420
 
 
 
@@ -782,11 +782,14 @@ viewExpando expandoMsg expandoModel layout =
     , style "margin" "0"
     , style "overflow" "auto"
     , style "pointer-events" block
+    , style "-webkit-user-select" block
+    , style "-moz-user-select" block
+    , style "-ms-user-select" block
     , style "user-select" block
     ]
-    [ div [ style "color" "#ccc" ] [ text "-- MESSAGE" ]
+    [ div [ style "color" "#ccc", style "padding" "0 0 1em 0" ] [ text "-- MESSAGE" ]
     , Html.map TweakExpandoMsg <| Expando.view Nothing expandoMsg
-    , div [ style "color" "#ccc" ] [ text "-- MODEL" ]
+    , div [ style "color" "#ccc", style "padding" "1em 0" ] [ text "-- MODEL" ]
     , Html.map TweakExpandoModel <| Expando.view Nothing expandoModel
     ]
 
