@@ -194,8 +194,8 @@ function _Debugger_openWindow(popout)
 	// handle arrow keys
 	doc.addEventListener('keydown', function(event) {
 		event.metaKey && event.which === 82 && window.location.reload();
-		event.which === 38 && (popout.__sendToApp(__Main_Up), event.preventDefault());
-		event.which === 40 && (popout.__sendToApp(__Main_Down), event.preventDefault());
+		event.key === 'Up'   && (popout.__sendToApp(__Main_Up  ), event.preventDefault());
+		event.key === 'Down' && (popout.__sendToApp(__Main_Down), event.preventDefault());
 	});
 
 	// handle window close
@@ -253,6 +253,7 @@ var _Debugger_scrollTo = F2(function(id, popout)
 		callback(__Scheduler_succeed(__Utils_Tuple0));
 	});
 });
+
 
 
 // UPLOAD
