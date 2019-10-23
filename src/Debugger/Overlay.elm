@@ -19,6 +19,8 @@ import Html.Attributes exposing (..)
 import Html.Events exposing (onClick)
 import Json.Decode as Decode
 import Json.Encode as Encode
+import VirtualDom as V
+
 
 
 type State
@@ -491,31 +493,65 @@ viewButtons buttons =
 
 viewMiniControls : Config msg -> Int -> Html msg
 viewMiniControls config numMsgs =
-    let
-        dimensions =
-            if numMsgs < 100 then
-                "4ch"
-            else if numMsgs < 1000 then
-                "5ch"
-            else
-                "6ch"
-    in
-    div
-        [ style "position" "fixed"
-        , style "bottom" "2em"
-        , style "right" "2em"
-        , style "width" dimensions
-        , style "height" dimensions
-        , style "background-color" "#1293D8"
-        , style "color" "white"
-        , style "font-family" "monospace"
-        , style "pointer-events" "auto"
-        , style "z-index" "2147483647"
-        , style "display" "flex"
-        , style "justify-content" "center"
-        , style "align-items" "center"
-        , style "cursor" "pointer"
-        , onClick config.open
+  let
+    string = String.fromInt numMsgs
+    width = String.fromInt (2 + String.length string)
+  in
+  div
+    [ style "position" "fixed"
+    , style "bottom" "2em"
+    , style "right" "2em"
+    , style "width" ("calc(42px + " ++ width ++ "ch)")
+    , style "height" "36px"
+    , style "background-color" "#1293D8"
+    , style "color" "white"
+    , style "font-family" "monospace"
+    , style "pointer-events" "auto"
+    , style "z-index" "2147483647"
+    , style "display" "flex"
+    , style "justify-content" "center"
+    , style "align-items" "center"
+    , style "cursor" "pointer"
+    , onClick config.open
+    ]
+    [ elmLogo
+    , span
+        [ style "padding-left" "calc(1ch + 6px)"
+        , style "padding-right" "1ch"
         ]
-        [ text (String.fromInt numMsgs)
+        [ text string ]
+    ]
+
+
+elmLogo : Html msg
+elmLogo =
+  V.nodeNS "http://www.w3.org/2000/svg" "svg"
+    [ V.attribute "viewBox" "-300 -300 600 600"
+    , V.attribute "xmlns" "http://www.w3.org/2000/svg"
+    , V.attribute "fill" "currentColor"
+    , V.attribute "width" "24px"
+    , V.attribute "height" "24px"
+    ]
+    [ V.nodeNS "http://www.w3.org/2000/svg" "g"
+        [ V.attribute "transform" "scale(1 -1)"
         ]
+        [ viewShape 0 -210 0 "-280,-90 0,190 280,-90"
+        , viewShape -210 0 90 "-280,-90 0,190 280,-90"
+        , viewShape 207 207 45 "-198,-66 0,132 198,-66"
+        , viewShape 150 0 0 "-130,0 0,-130 130,0 0,130"
+        , viewShape -89 239 0 "-191,61 69,61 191,-61 -69,-61"
+        , viewShape 0 106 180 "-130,-44 0,86  130,-44"
+        , viewShape 256 -150 270 "-130,-44 0,86  130,-44"
+        ]
+    ]
+
+
+viewShape : Float -> Float -> Float -> String -> Html msg
+viewShape x y angle coordinates =
+  V.nodeNS "http://www.w3.org/2000/svg" "polygon"
+    [ V.attribute "points" coordinates
+    , V.attribute "transform" <|
+        "translate(" ++ String.fromFloat x ++ " " ++ String.fromFloat y
+        ++ ") rotate(" ++ String.fromFloat -angle ++ ")"
+    ]
+    []
