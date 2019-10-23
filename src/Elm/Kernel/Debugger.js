@@ -1,7 +1,7 @@
 /*
 
 import Debugger.Expando as Expando exposing (S, Primitive, Sequence, Dictionary, Record, Constructor, ListSeq, SetSeq, ArraySeq)
-import Debugger.Main as Main exposing (getUserModel, wrapInit, wrapUpdate, wrapSubs, cornerView, popoutView, NoOp, Resize, UserMsg, Up, Down, toBlockerType, initialWindowWidth, initialWindowHeight)
+import Debugger.Main as Main exposing (getUserModel, wrapInit, wrapUpdate, wrapSubs, cornerView, popoutView, NoOp, UserMsg, Up, Down, toBlockerType, initialWindowWidth, initialWindowHeight)
 import Debugger.Overlay as Overlay exposing (BlockNone, BlockMost)
 import Elm.Kernel.Browser exposing (makeAnimator)
 import Elm.Kernel.Debug exposing (crash)
@@ -197,12 +197,6 @@ function _Debugger_openWindow(popout)
 		event.which === 38 && (popout.__sendToApp(__Main_Up), event.preventDefault());
 		event.which === 40 && (popout.__sendToApp(__Main_Down), event.preventDefault());
 	});
-
- 	debuggerWindow.addEventListener('resize', function(event) {
- 		popout.__sendToApp(A2(__Main_Resize, debuggerWindow.innerWidth, debuggerWindow.innerHeight));
- 	});
-
- 	popout.__sendToApp(A2(__Main_Resize, w, h));
 
 	// handle window close
 	window.addEventListener('unload', close);
