@@ -77,8 +77,8 @@ type Popout
 
 
 type Layout
-  = Vertical DragStatus Float
-  | Horizontal DragStatus Float
+  = Vertical DragStatus Float Float
+  | Horizontal DragStatus Float Float
 
 
 type DragStatus
@@ -156,7 +156,7 @@ wrapInit metadata popout init flags =
     , metadata = Metadata.decode metadata
     , overlay = Overlay.none
     , popout = popout
-    , layout = Horizontal Static 0.3
+    , layout = Horizontal Static 0.3 0.5
     }
   , Cmd.map UserMsg userCommands
   )
@@ -356,25 +356,25 @@ jumpUpdate update index model =
 swapLayout : Layout -> Layout
 swapLayout layout =
   case layout of
-    Horizontal s f -> Vertical s f
-    Vertical s f -> Horizontal s f
+    Horizontal s x y -> Vertical s x y
+    Vertical s x y -> Horizontal s x y
 
 
 setDragStatus : DragStatus -> Layout -> Layout
 setDragStatus status layout =
   case layout of
-    Horizontal _ fraction -> Horizontal status fraction
-    Vertical   _ fraction -> Vertical   status fraction
+    Horizontal _ x y -> Horizontal status x y
+    Vertical   _ x y -> Vertical   status x y
 
 
 drag : DragInfo -> Layout -> Layout
 drag info layout =
   case layout of
-    Horizontal status _ ->
-      Horizontal status (info.x / info.width)
+    Horizontal status _ y ->
+      Horizontal status (info.x / info.width) y
 
-    Vertical status _ ->
-      Vertical status (info.y / info.height)
+    Vertical status x _ ->
+      Vertical status x (info.y / info.height)
 
 
 
@@ -518,8 +518,8 @@ popoutView model =
 toFlexDirection : Layout -> String
 toFlexDirection layout =
   case layout of
-    Horizontal _ _ -> "row"
-    Vertical   _ _ -> "column-reverse"
+    Horizontal _ _ _ -> "row"
+    Vertical   _ _ _ -> "column-reverse"
 
 
 
@@ -536,8 +536,8 @@ toDragListeners layout =
 getDragStatus : Layout -> DragStatus
 getDragStatus layout =
   case layout of
-    Horizontal status _ -> status
-    Vertical   status _ -> status
+    Horizontal status _ _ -> status
+    Vertical   status _ _ -> status
 
 
 type alias DragInfo =
@@ -572,11 +572,11 @@ decodeDimension field =
 viewDragZone : Layout -> Html (Msg msg)
 viewDragZone layout =
   case layout of
-    Horizontal _ fraction ->
+    Horizontal _ x _ ->
       div
         [ style "position" "absolute"
         , style "top" "0"
-        , style "left" (toPercent fraction)
+        , style "left" (toPercent x)
         , style "margin-left" "-5px"
         , style "width" "10px"
         , style "height" "100%"
@@ -585,10 +585,10 @@ viewDragZone layout =
         ]
         []
 
-    Vertical _ fraction ->
+    Vertical _ _ y ->
       div
         [ style "position" "absolute"
-        , style "top" (toPercent fraction)
+        , style "top" (toPercent y)
         , style "left" "0"
         , style "margin-top" "-5px"
         , style "width" "100%"
@@ -644,8 +644,8 @@ viewHistory maybeIndex history layout =
 toHistoryPercents : Layout -> (String, String)
 toHistoryPercents layout =
   case layout of
-    Horizontal _ f -> ( toPercent f, "100%" )
-    Vertical   _ f -> ( "100%", toPercent (1 - f) )
+    Horizontal _ x _ -> ( toPercent x, "100%" )
+    Vertical   _ _ y -> ( "100%", toPercent (1 - y) )
 
 
 viewHistorySlider : History model msg -> Maybe Int -> Html (Msg msg)
@@ -760,8 +760,8 @@ icon path =
 toHistoryIcon : Layout -> String
 toHistoryIcon layout =
   case layout of
-    Horizontal _ _ -> "M13 1a3 3 0 0 1 3 3v8a3 3 0 0 1-3 3h-10a3 3 0 0 1-3-3v-8a3 3 0 0 1 3-3z M13 3h-10a1 1 0 0 0-1 1v5h12v-5a1 1 0 0 0-1-1z M14 10h-12v2a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1z"
-    Vertical _ _   -> "M0 4a3 3 0 0 1 3-3h10a3 3 0 0 1 3 3v8a3 3 0 0 1-3 3h-10a3 3 0 0 1-3-3z M2 4v8a1 1 0 0 0 1 1h2v-10h-2a1 1 0 0 0-1 1z M6 3v10h7a1 1 0 0 0 1-1v-8a1 1 0 0 0-1-1z"
+    Horizontal _ _ _ -> "M13 1a3 3 0 0 1 3 3v8a3 3 0 0 1-3 3h-10a3 3 0 0 1-3-3v-8a3 3 0 0 1 3-3z M13 3h-10a1 1 0 0 0-1 1v5h12v-5a1 1 0 0 0-1-1z M14 10h-12v2a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1z"
+    Vertical   _ _ _ -> "M0 4a3 3 0 0 1 3-3h10a3 3 0 0 1 3 3v8a3 3 0 0 1-3 3h-10a3 3 0 0 1-3-3z M2 4v8a1 1 0 0 0 1 1h2v-10h-2a1 1 0 0 0-1 1z M6 3v10h7a1 1 0 0 0 1-1v-8a1 1 0 0 0-1-1z"
 
 
 
@@ -797,5 +797,10 @@ viewExpando expandoMsg expandoModel layout =
 toExpandoPercents : Layout -> (String, String)
 toExpandoPercents layout =
   case layout of
-    Horizontal _ f -> ( toPercent (1 - f), "100%" )
-    Vertical   _ f -> ( "100%", toPercent f )
+    Horizontal _ x _ -> ( toPercent (1 - x), "100%" )
+    Vertical   _ _ y -> ( "100%", toPercent y )
+
+
+-- No case/let/if in parentheses. Always new top-level function.
+-- No case/let/if within a let. Always new top-level function.
+-- Replace "creating variable to use in different branches" with "same function call in different branches"
