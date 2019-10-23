@@ -156,10 +156,16 @@ view config isPaused isOpen numMsgs state =
 
             else if isPaused then
                 div
-                    [ style "width" "100%"
-                    , style "height" "100%"
+                    [ id "elm-debugger-overlay"
+                    , style "position" "fixed"
+                    , style "top" "0"
+                    , style "left" "0"
+                    , style "width" "100vw"
+                    , style "height" "100vh"
                     , style "cursor" "pointer"
-                    , style "text-align" "center"
+                    , style "display" "flex"
+                    , style "align-items" "center"
+                    , style "justify-content" "center"
                     , style "pointer-events" "auto"
                     , style "background-color" "rgba(200, 200, 200, 0.7)"
                     , style "color" "white"
@@ -167,16 +173,7 @@ view config isPaused isOpen numMsgs state =
                     , style "z-index" "2147483646"
                     , onClick config.resume
                     ]
-                    [ div
-                        [ style "position" "absolute"
-                        , style "top" "calc(50% - 40px)"
-                        , style "font-size" "80px"
-                        , style "line-height" "80px"
-                        , style "height" "80px"
-                        , style "width" "100%"
-                        ]
-                        [ text "Click to Resume"
-                        ]
+                    [ span [ style "font-size" "80px" ] [ text "Click to Resume" ]
                     , viewMiniControls config numMsgs
                     ]
 
@@ -213,8 +210,8 @@ viewMessage config title details buttons =
         , style "position" "fixed"
         , style "top" "0"
         , style "left" "0"
-        , style "width" "100%"
-        , style "height" "100%"
+        , style "width" "100vw"
+        , style "height" "100vh"
         , style "color" "white"
         , style "pointer-events" "none"
         , style "font-family" "'Trebuchet MS', 'Lucida Grande', 'Bitstream Vera Sans', 'Helvetica Neue', sans-serif"
@@ -223,7 +220,7 @@ viewMessage config title details buttons =
         [ div
             [ style "position" "absolute"
             , style "width" "600px"
-            , style "height" "100%"
+            , style "height" "100vh"
             , style "padding-left" "calc(50% - 300px)"
             , style "padding-right" "calc(50% - 300px)"
             , style "background-color" "rgba(200, 200, 200, 0.7)"
@@ -242,7 +239,7 @@ viewMessage config title details buttons =
                 [ id "elm-debugger-details"
                 , style "padding" " 8px 20px"
                 , style "overflow-y" "auto"
-                , style "max-height" "calc(100% - 156px)"
+                , style "max-height" "calc(100vh - 156px)"
                 , style "background-color" "rgb(61, 61, 61)"
                 ]
                 details
@@ -388,8 +385,7 @@ so great in the long run. You are better off using simpler data, like
 """
 
 
-goodNews2 =
-    """
+goodNews2 = """
 function can pattern match on that data and call whatever functions, JSON
 decoders, etc. you need. This makes the code much more explicit and easy to
 follow for other readers (or you in a few months!)
@@ -398,54 +394,39 @@ follow for other readers (or you in a few months!)
 
 viewProblemType : Metadata.ProblemType -> Html msg
 viewProblemType { name, problems } =
-    li []
-        [ viewCode name
-        , text (" can contain " ++ addCommas (List.map problemToString problems) ++ ".")
-        ]
+  li []
+    [ viewCode name
+    , text (" can contain " ++ addCommas (List.map problemToString problems) ++ ".")
+    ]
 
 
 problemToString : Metadata.Problem -> String
 problemToString problem =
-    case problem of
-        Metadata.Function ->
-            "functions"
-
-        Metadata.Decoder ->
-            "JSON decoders"
-
-        Metadata.Task ->
-            "tasks"
-
-        Metadata.Process ->
-            "processes"
-
-        Metadata.Socket ->
-            "web sockets"
-
-        Metadata.Request ->
-            "HTTP requests"
-
-        Metadata.Program ->
-            "programs"
-
-        Metadata.VirtualDom ->
-            "virtual DOM values"
+  case problem of
+    Metadata.Function   -> "functions"
+    Metadata.Decoder    -> "JSON decoders"
+    Metadata.Task       -> "tasks"
+    Metadata.Process    -> "processes"
+    Metadata.Socket     -> "web sockets"
+    Metadata.Request    -> "HTTP requests"
+    Metadata.Program    -> "programs"
+    Metadata.VirtualDom -> "virtual DOM values"
 
 
 addCommas : List String -> String
 addCommas items =
-    case items of
-        [] ->
-            ""
+  case items of
+    [] ->
+      ""
 
-        [ item ] ->
-            item
+    [item] ->
+      item
 
-        [ item1, item2 ] ->
-            item1 ++ " and " ++ item2
+    [item1,item2] ->
+      item1 ++ " and " ++ item2
 
-        lastItem :: otherItems ->
-            String.join ", " (otherItems ++ [ " and " ++ lastItem ])
+    lastItem :: otherItems ->
+      String.join ", " (otherItems ++ [ " and " ++ lastItem ])
 
 
 
@@ -453,38 +434,34 @@ addCommas items =
 
 
 type Buttons
-    = Accept String
-    | Choose String String
+  = Accept String
+  | Choose String String
 
 
 viewButtons : Buttons -> Html Msg
 viewButtons buttons =
-    let
-        btn msg string =
-            Html.button
-                [ style "margin-right" "20px"
-                , onClick msg
-                ]
-                [ text string ]
+  let
+    btn msg string =
+      Html.button [ style "margin-right" "20px", onClick msg ] [ text string ]
 
-        buttonNodes =
-            case buttons of
-                Accept proceed ->
-                    [ btn Proceed proceed
-                    ]
+    buttonNodes =
+      case buttons of
+        Accept proceed ->
+          [ btn Proceed proceed
+          ]
 
-                Choose cancel proceed ->
-                    [ btn Cancel cancel
-                    , btn Proceed proceed
-                    ]
-    in
-    div
-        [ style "height" "60px"
-        , style "line-height" "60px"
-        , style "text-align" "right"
-        , style "background-color" "rgb(50, 50, 50)"
-        ]
-        buttonNodes
+        Choose cancel proceed ->
+          [ btn Cancel cancel
+          , btn Proceed proceed
+          ]
+  in
+  div
+    [ style "height" "60px"
+    , style "line-height" "60px"
+    , style "text-align" "right"
+    , style "background-color" "rgb(50, 50, 50)"
+    ]
+    buttonNodes
 
 
 
