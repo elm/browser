@@ -25,7 +25,7 @@ import Html.Lazy exposing (lazy)
 import Json.Decode as Decode exposing (Decoder)
 import Json.Encode as Encode
 import Task exposing (Task)
-import VirtualDom
+import VirtualDom as V
 
 
 
@@ -744,15 +744,15 @@ viewHistoryButton label msg path =
 
 icon : String -> Html msg
 icon path =
-  VirtualDom.nodeNS "http://www.w3.org/2000/svg" "svg"
-    [ VirtualDom.attribute "viewBox" "0 0 16 16"
-    , VirtualDom.attribute "xmlns" "http://www.w3.org/2000/svg"
-    , VirtualDom.attribute "fill" "currentColor"
-    , VirtualDom.attribute "width" "16px"
-    , VirtualDom.attribute "height" "16px"
+  V.nodeNS "http://www.w3.org/2000/svg" "svg"
+    [ V.attribute "viewBox" "0 0 16 16"
+    , V.attribute "xmlns" "http://www.w3.org/2000/svg"
+    , V.attribute "fill" "currentColor"
+    , V.attribute "width" "16px"
+    , V.attribute "height" "16px"
     ]
-    [ VirtualDom.nodeNS "http://www.w3.org/2000/svg" "path"
-        [ VirtualDom.attribute "d" path ]
+    [ V.nodeNS "http://www.w3.org/2000/svg" "path"
+        [ V.attribute "d" path ]
         []
     ]
 
