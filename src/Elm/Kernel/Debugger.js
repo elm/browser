@@ -194,8 +194,8 @@ function _Debugger_openWindow(popout)
 	// handle arrow keys
 	doc.addEventListener('keydown', function(event) {
 		event.metaKey && event.which === 82 && window.location.reload();
-		event.key === 'Up'   && (popout.__sendToApp(__Main_Up  ), event.preventDefault());
-		event.key === 'Down' && (popout.__sendToApp(__Main_Down), event.preventDefault());
+		event.key === 'ArrowUp'   && (popout.__sendToApp(__Main_Up  ), event.preventDefault());
+		event.key === 'ArrowDown' && (popout.__sendToApp(__Main_Down), event.preventDefault());
 	});
 
 	// handle window close
