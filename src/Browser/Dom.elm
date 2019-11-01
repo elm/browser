@@ -1,18 +1,17 @@
 module Browser.Dom exposing
-  ( focus, blur, Error(..)
-  , getViewport, Viewport, getViewportOf
-  , setViewport, setViewportOf
-  , getElement, Element
-  )
-
+    ( focus, blur, Error(..)
+    , getViewport, Viewport, getViewportOf
+    , setViewport, setViewportOf
+    , getElement, Element
+    )
 
 {-| This module allows you to manipulate the DOM in various ways. It covers:
 
-- Focus and blur input elements.
-- Get the `width` and `height` of elements.
-- Get the `x` and `y` coordinates of elements.
-- Figure out the scroll position.
-- Change the scroll position!
+  - Focus and blur input elements.
+  - Get the `width` and `height` of elements.
+  - Get the `x` and `y` coordinates of elements.
+  - Figure out the scroll position.
+  - Change the scroll position!
 
 We use different terminology than JavaScript though...
 
@@ -49,21 +48,27 @@ Hockney explores the history of _perspective_ in art. Really interesting!
 [hang]: https://en.wikipedia.org/wiki/Hanging_scroll
 [doc]: https://www.imdb.com/title/tt0164525/
 
+
 # Focus
+
 @docs focus, blur, Error
 
+
 # Get Viewport
+
 @docs getViewport, Viewport, getViewportOf
 
+
 # Set Viewport
+
 @docs setViewport, setViewportOf
 
+
 # Position
+
 @docs getElement, Element
 
 -}
-
-
 
 import Elm.Kernel.Browser
 import Task exposing (Task)
@@ -79,19 +84,21 @@ like `<input type="text" id="search-box">` you could say:
     import Browser.Dom as Dom
     import Task
 
-    type Msg = NoOp
+    type Msg
+        = NoOp
 
     focusSearchBox : Cmd Msg
     focusSearchBox =
-      Task.attempt (\_ -> NoOp) (Dom.focus "search-box")
+        Task.attempt (\_ -> NoOp) (Dom.focus "search-box")
 
 Notice that this code ignores the possibility that `search-box` is not used
 as an `id` by any node, failing silently in that case. It would be better to
 log the failure with whatever error reporting system you use.
+
 -}
 focus : String -> Task Error ()
 focus =
-  Elm.Kernel.Browser.call "focus"
+    Elm.Kernel.Browser.call "focus"
 
 
 {-| Find a DOM node by `id` and make it lose focus. So if you wanted a node
@@ -100,19 +107,21 @@ like `<input type="text" id="search-box">` to lose focus you could say:
     import Browser.Dom as Dom
     import Task
 
-    type Msg = NoOp
+    type Msg
+        = NoOp
 
     unfocusSearchBox : Cmd Msg
     unfocusSearchBox =
-      Task.attempt (\_ -> NoOp) (Dom.blur "search-box")
+        Task.attempt (\_ -> NoOp) (Dom.blur "search-box")
 
 Notice that this code ignores the possibility that `search-box` is not used
 as an `id` by any node, failing silently in that case. It would be better to
 log the failure with whatever error reporting system you use.
+
 -}
 blur : String -> Task Error ()
 blur =
-  Elm.Kernel.Browser.call "blur"
+    Elm.Kernel.Browser.call "blur"
 
 
 
@@ -122,7 +131,8 @@ blur =
 {-| Many functions in this module look up DOM nodes up by their `id`. If you
 ask for an `id` that is not in the DOM, you will get this error.
 -}
-type Error = NotFound String
+type Error
+    = NotFound String
 
 
 
@@ -136,11 +146,11 @@ type Error = NotFound String
 If you want to move the viewport around (i.e. change the scroll position) you
 can use [`setViewport`](#setViewport) which change the `x` and `y` of the
 viewport.
+
 -}
 getViewport : Task x Viewport
 getViewport =
-  Elm.Kernel.Browser.withWindow Elm.Kernel.Browser.getViewport
-
+    Elm.Kernel.Browser.withWindow Elm.Kernel.Browser.getViewport
 
 
 {-| All the information about the current viewport.
@@ -149,17 +159,17 @@ getViewport =
 
 -}
 type alias Viewport =
-  { scene :
-      { width : Float
-      , height : Float
-      }
-  , viewport :
-      { x : Float
-      , y : Float
-      , width : Float
-      , height : Float
-      }
-  }
+    { scene :
+        { width : Float
+        , height : Float
+        }
+    , viewport :
+        { x : Float
+        , y : Float
+        , width : Float
+        , height : Float
+        }
+    }
 
 
 {-| Just like `getViewport`, but for any scrollable DOM node. Say we have an
@@ -176,17 +186,17 @@ viewport into a scene!
 This can be useful with [`setViewportOf`](#setViewportOf) to make sure new
 messages always appear on the bottom.
 
-The viewport size *does not* include the border or margins.
+The viewport size _does not_ include the border or margins.
 
 **Note:** This data is collected from specific fields in JavaScript, so it
 may be helpful to know that:
 
-- `scene.width` = [`scrollWidth`][sw]
-- `scene.height` = [`scrollHeight`][sh]
-- `viewport.x` = [`scrollLeft`][sl]
-- `viewport.y` = [`scrollTop`][st]
-- `viewport.width` = [`clientWidth`][cw]
-- `viewport.height` = [`clientHeight`][ch]
+  - `scene.width` = [`scrollWidth`][sw]
+  - `scene.height` = [`scrollHeight`][sh]
+  - `viewport.x` = [`scrollLeft`][sl]
+  - `viewport.y` = [`scrollTop`][st]
+  - `viewport.width` = [`clientWidth`][cw]
+  - `viewport.height` = [`clientHeight`][ch]
 
 Neither [`offsetWidth`][ow] nor [`offsetHeight`][oh] are available. The theory
 is that (1) the information can always be obtained by using `getElement` on a
@@ -202,12 +212,13 @@ API improvements!
 [sl]: https://developer.mozilla.org/en-US/docs/Web/API/Element/scrollLeft
 [cw]: https://developer.mozilla.org/en-US/docs/Web/API/Element/clientWidth
 [ch]: https://developer.mozilla.org/en-US/docs/Web/API/Element/clientHeight
-[ow]: https://developer.mozilla.org/en-US/docs/Web/API/Element/offsetWidth
-[oh]: https://developer.mozilla.org/en-US/docs/Web/API/Element/offsetHeight
+[ow]: https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/offsetWidth
+[oh]: https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/offsetHeight
+
 -}
 getViewportOf : String -> Task Error Viewport
 getViewportOf =
-  Elm.Kernel.Browser.getViewportOf
+    Elm.Kernel.Browser.getViewportOf
 
 
 
@@ -220,21 +231,23 @@ example, you could make a command to jump to the top of the page:
     import Browser.Dom as Dom
     import Task
 
-    type Msg = NoOp
+    type Msg
+        = NoOp
 
     resetViewport : Cmd Msg
     resetViewport =
-      Task.perform (\_ -> NoOp) (Dom.setViewport 0 0)
+        Task.perform (\_ -> NoOp) (Dom.setViewport 0 0)
 
 This sets the viewport offset to zero.
 
 This could be useful with `Browser.application` where you may want to reset
 the viewport when the URL changes. Maybe you go to a &ldquo;new page&rdquo;
 and want people to start at the top!
+
 -}
 setViewport : Float -> Float -> Task x ()
 setViewport =
-  Elm.Kernel.Browser.setViewport
+    Elm.Kernel.Browser.setViewport
 
 
 {-| Change the `x` and `y` offset of a DOM node&rsquo;s viewport by ID. This
@@ -245,13 +258,14 @@ way the latest message is always on screen! You could do this:
     import Browser.Dom as Dom
     import Task
 
-    type Msg = NoOp
+    type Msg
+        = NoOp
 
     jumpToBottom : String -> Cmd Msg
     jumpToBottom id =
-      Dom.getViewportOf id
-        |> Task.andThen (\info -> Dom.setViewportOf id 0 info.scene.height)
-        |> Task.perform (\_ -> NoOp)
+        Dom.getViewportOf id
+            |> Task.andThen (\info -> Dom.setViewportOf id 0 info.scene.height)
+            |> Task.attempt (\_ -> NoOp)
 
 So you could call `jumpToBottom "chat-box"` whenever you add a new message.
 
@@ -265,14 +279,15 @@ back in bounds.
 **Note 2:** The example ignores when the element ID is not found, but it would
 be great to log that information. It means there may be a bug or a dead link
 somewhere!
+
 -}
 setViewportOf : String -> Float -> Float -> Task Error ()
 setViewportOf =
-  Elm.Kernel.Browser.setViewportOf
+    Elm.Kernel.Browser.setViewportOf
 
 
 
-{-- SLIDE VIEWPORT
+{--SLIDE VIEWPORT
 
 
 {-| Change the `x` and `y` offset of the viewport with an animation. In JS,
@@ -309,9 +324,6 @@ slideViewportOf =
   Debug.todo "slideViewportOf"
 
 --}
-
-
-
 -- ELEMENT
 
 
@@ -323,14 +335,14 @@ slideViewportOf =
 
 This can be useful for:
 
-- **Scrolling** &mdash; Pair this information with `setViewport` to scroll
-specific elements into view. This gives you a lot of control over where exactly
-the element would be after the viewport moved.
+  - **Scrolling** &mdash; Pair this information with `setViewport` to scroll
+    specific elements into view. This gives you a lot of control over where exactly
+    the element would be after the viewport moved.
 
-- **Drag and Drop** &mdash; As of this writing, `touchmove` events do not tell
-you which element you are currently above. To figure out if you have dragged
-something over the target, you could see if the `pageX` and `pageY` of the
-touch are inside the `x`, `y`, `width`, and `height` of the target element.
+  - **Drag and Drop** &mdash; As of this writing, `touchmove` events do not tell
+    you which element you are currently above. To figure out if you have dragged
+    something over the target, you could see if the `pageX` and `pageY` of the
+    touch are inside the `x`, `y`, `width`, and `height` of the target element.
 
 **Note:** This corresponds to JavaScript&rsquo;s [`getBoundingClientRect`][gbcr],
 so **the element&rsquo;s margins are included in its `width` and `height`**.
@@ -339,10 +351,11 @@ probably do not, so some folks set the margins to zero and put the target
 element in a `<div>` that adds the spacing. Just something to be aware of!
 
 [gbcr]: https://developer.mozilla.org/en-US/docs/Web/API/Element/getBoundingClientRect
+
 -}
 getElement : String -> Task Error Element
 getElement =
-  Elm.Kernel.Browser.getElement
+    Elm.Kernel.Browser.getElement
 
 
 {-| A bunch of information about the position and size of an element relative
@@ -352,20 +365,20 @@ to the overall scene.
 
 -}
 type alias Element =
-  { scene :
-      { width : Float
-      , height : Float
-      }
-  , viewport :
-      { x : Float
-      , y : Float
-      , width : Float
-      , height : Float
-      }
-  , element :
-      { x : Float
-      , y : Float
-      , width : Float
-      , height : Float
-      }
-  }
+    { scene :
+        { width : Float
+        , height : Float
+        }
+    , viewport :
+        { x : Float
+        , y : Float
+        , width : Float
+        , height : Float
+        }
+    , element :
+        { x : Float
+        , y : Float
+        , width : Float
+        , height : Float
+        }
+    }

@@ -1,34 +1,40 @@
 effect module Browser.Events where { subscription = MySub } exposing
-  ( onAnimationFrame, onAnimationFrameDelta
-  , onKeyPress, onKeyDown, onKeyUp
-  , onClick, onMouseMove, onMouseDown, onMouseUp
-  , onResize, onVisibilityChange, Visibility(..)
-  )
-
+    ( onAnimationFrame, onAnimationFrameDelta
+    , onKeyPress, onKeyDown, onKeyUp
+    , onClick, onMouseMove, onMouseDown, onMouseUp
+    , onResize, onVisibilityChange, Visibility(..)
+    )
 
 {-| In JavaScript, information about the root of an HTML document is held in
 the `document` and `window` objects. This module lets you create event
 listeners on those objects for the following topics: [animation](#animation),
 [keyboard](#keyboard), [mouse](#mouse), and [window](#window).
 
-If there is something else you need, use [ports][] to do it in JavaScript!
+If there is something else you need, use [ports] to do it in JavaScript!
 
 [ports]: https://guide.elm-lang.org/interop/ports.html
 
+
 # Animation
+
 @docs onAnimationFrame, onAnimationFrameDelta
 
+
 # Keyboard
+
 @docs onKeyPress, onKeyDown, onKeyUp
 
+
 # Mouse
+
 @docs onClick, onMouseMove, onMouseDown, onMouseUp
 
+
 # Window
+
 @docs onResize, onVisibilityChange, Visibility
 
 -}
-
 
 import Browser.AnimationManager as AM
 import Dict
@@ -51,10 +57,11 @@ POSIX times.)
 possible. If you want smooth animations in your application, it is helpful to
 sync up with the browsers natural refresh rate. This hooks into JavaScript's
 `requestAnimationFrame` function.
+
 -}
 onAnimationFrame : (Time.Posix -> msg) -> Sub msg
 onAnimationFrame =
-  AM.onAnimationFrame
+    AM.onAnimationFrame
 
 
 {-| Just like `onAnimationFrame`, except message is the time in milliseconds
@@ -63,7 +70,7 @@ since the previous frame. So you should get a sequence of values all around
 -}
 onAnimationFrameDelta : (Float -> msg) -> Sub msg
 onAnimationFrameDelta =
-  AM.onAnimationFrameDelta
+    AM.onAnimationFrameDelta
 
 
 
@@ -77,10 +84,11 @@ not rely on this for arrow keys.
 It is more complicated than it should be.
 
 [note]: https://github.com/elm/browser/blob/1.0.0/notes/keyboard.md
+
 -}
 onKeyPress : Decode.Decoder msg -> Sub msg
 onKeyPress =
-  on Document "keypress"
+    on Document "keypress"
 
 
 {-| Subscribe to get codes whenever a key goes down. This can be useful for
@@ -92,10 +100,11 @@ It is more complicated than it should be.
 
 [note]: https://github.com/elm/browser/blob/1.0.0/notes/keyboard.md
 [example]: https://github.com/elm/browser/blob/1.0.0/examples/wasd.md
+
 -}
 onKeyDown : Decode.Decoder msg -> Sub msg
 onKeyDown =
-  on Document "keydown"
+    on Document "keydown"
 
 
 {-| Subscribe to get codes whenever a key goes up. Often used in combination
@@ -104,7 +113,7 @@ to down and never come back up.
 -}
 onKeyUp : Decode.Decoder msg -> Sub msg
 onKeyUp =
-  on Document "keyup"
+    on Document "keyup"
 
 
 
@@ -118,20 +127,22 @@ if someone clicked out of it:
     import Browser.Events as Events
     import Json.Decode as D
 
-    type Msg = ClickOut
+    type Msg
+        = ClickOut
 
     subscriptions : Model -> Sub Msg
     subscriptions model =
-      case model.dropDown of
-        Closed _ ->
-          Sub.none
+        case model.dropDown of
+            Closed _ ->
+                Sub.none
 
-        Open _ ->
-          Events.onClick (D.succeed ClickOut)
+            Open _ ->
+                Events.onClick (D.succeed ClickOut)
+
 -}
 onClick : Decode.Decoder msg -> Sub msg
 onClick =
-  on Document "click"
+    on Document "click"
 
 
 {-| Subscribe to mouse moves anywhere on screen. You could use this to implement
@@ -140,17 +151,18 @@ drag and drop.
 **Note:** Unsubscribe if you do not need these events! Running code on every
 single mouse movement can be very costly, and it is recommended to only
 subscribe when absolutely necessary.
+
 -}
 onMouseMove : Decode.Decoder msg -> Sub msg
 onMouseMove =
-  on Document "mousemove"
+    on Document "mousemove"
 
 
 {-| Subscribe to get mouse information whenever the mouse button goes down.
 -}
 onMouseDown : Decode.Decoder msg -> Sub msg
 onMouseDown =
-  on Document "mousedown"
+    on Document "mousedown"
 
 
 {-| Subscribe to get mouse information whenever the mouse button goes up.
@@ -159,7 +171,7 @@ to be sure keys do not appear to down and never come back up.
 -}
 onMouseUp : Decode.Decoder msg -> Sub msg
 onMouseUp =
-  on Document "mouseup"
+    on Document "mouseup"
 
 
 
@@ -174,22 +186,23 @@ this](TODO).
 **Note:** This is equivalent to getting events from [`window.onresize`][resize].
 
 [resize]: https://developer.mozilla.org/en-US/docs/Web/API/GlobalEventHandlers/onresize
+
 -}
 onResize : (Int -> Int -> msg) -> Sub msg
 onResize func =
-  on Window "resize" <|
-    Decode.field "target" <|
-      Decode.map2 func
-        (Decode.field "innerWidth" Decode.int)
-        (Decode.field "innerHeight" Decode.int)
+    on Window "resize" <|
+        Decode.field "target" <|
+            Decode.map2 func
+                (Decode.field "innerWidth" Decode.int)
+                (Decode.field "innerHeight" Decode.int)
 
 
 {-| Subscribe to any visibility changes, like if the user switches to a
 different tab or window. When the user looks away, you may want to:
 
-- Stop polling a server for new information.
-- Pause video or audio.
-- Pause an image carousel.
+  - Stop polling a server for new information.
+  - Pause video or audio.
+  - Pause an image carousel.
 
 This may also be useful with [`onKeyDown`](#onKeyDown). If you only listen for
 [`onKeyUp`](#onKeyUp) to end the key press, you can miss situations like using
@@ -197,26 +210,36 @@ a keyboard shortcut to switch tabs. Visibility changes will cover those tricky
 cases, like in [this example][example]!
 
 [example]: https://github.com/elm/browser/blob/1.0.0/examples/wasd.md
+
 -}
 onVisibilityChange : (Visibility -> msg) -> Sub msg
 onVisibilityChange func =
-  let
-    info = Elm.Kernel.Browser.visibilityInfo ()
-  in
-  on Document info.change <|
-    Decode.map (withHidden func) <|
-      Decode.field "target" <|
-        Decode.field info.hidden Decode.bool
+    let
+        info =
+            Elm.Kernel.Browser.visibilityInfo ()
+    in
+    on Document info.change <|
+        Decode.map (withHidden func) <|
+            Decode.field "target" <|
+                Decode.field info.hidden Decode.bool
 
 
 withHidden : (Visibility -> msg) -> Bool -> msg
 withHidden func isHidden =
-  func (if isHidden then Hidden else Visible)
+    func
+        (if isHidden then
+            Hidden
+
+         else
+            Visible
+        )
 
 
 {-| Value describing whether the page is hidden or visible.
 -}
-type Visibility = Visible | Hidden
+type Visibility
+    = Visible
+    | Hidden
 
 
 
@@ -224,22 +247,22 @@ type Visibility = Visible | Hidden
 
 
 type Node
-  = Document
-  | Window
+    = Document
+    | Window
 
 
 on : Node -> String -> Decode.Decoder msg -> Sub msg
 on node name decoder =
-  subscription (MySub node name decoder)
+    subscription (MySub node name decoder)
 
 
-type MySub msg =
-  MySub Node String (Decode.Decoder msg)
+type MySub msg
+    = MySub Node String (Decode.Decoder msg)
 
 
 subMap : (a -> b) -> MySub a -> MySub b
 subMap func (MySub node name decoder) =
-  MySub node name (Decode.map func decoder)
+    MySub node name (Decode.map func decoder)
 
 
 
@@ -247,59 +270,60 @@ subMap func (MySub node name decoder) =
 
 
 type alias State msg =
-  { subs : List (String, MySub msg)
-  , pids : Dict.Dict String Process.Id
-  }
+    { subs : List ( String, MySub msg )
+    , pids : Dict.Dict String Process.Id
+    }
 
 
 init : Task Never (State msg)
 init =
-  Task.succeed (State [] Dict.empty)
+    Task.succeed (State [] Dict.empty)
 
 
 type alias Event =
-  { key : String
-  , event : Decode.Value
-  }
+    { key : String
+    , event : Decode.Value
+    }
 
 
 onSelfMsg : Platform.Router msg Event -> Event -> State msg -> Task Never (State msg)
 onSelfMsg router { key, event } state =
-  let
-    toMessage (subKey, MySub node name decoder) =
-      if subKey == key then
-        Elm.Kernel.Browser.decodeEvent decoder event
-      else
-        Nothing
+    let
+        toMessage ( subKey, MySub node name decoder ) =
+            if subKey == key then
+                Elm.Kernel.Browser.decodeEvent decoder event
 
-    messages =
-      List.filterMap toMessage state.subs
-  in
-  Task.sequence (List.map (Platform.sendToApp router) messages)
-    |> Task.andThen (\_ -> Task.succeed state)
+            else
+                Nothing
+
+        messages =
+            List.filterMap toMessage state.subs
+    in
+    Task.sequence (List.map (Platform.sendToApp router) messages)
+        |> Task.andThen (\_ -> Task.succeed state)
 
 
 onEffects : Platform.Router msg Event -> List (MySub msg) -> State msg -> Task Never (State msg)
 onEffects router subs state =
-  let
-    newSubs =
-      List.map addKey subs
+    let
+        newSubs =
+            List.map addKey subs
 
-    stepLeft _ pid (deads, lives, news) =
-      ( pid :: deads, lives, news )
+        stepLeft _ pid ( deads, lives, news ) =
+            ( pid :: deads, lives, news )
 
-    stepBoth key pid _ (deads, lives, news) =
-      ( deads, Dict.insert key pid lives, news )
+        stepBoth key pid _ ( deads, lives, news ) =
+            ( deads, Dict.insert key pid lives, news )
 
-    stepRight key sub (deads, lives, news) =
-      ( deads, lives, spawn router key sub :: news )
+        stepRight key sub ( deads, lives, news ) =
+            ( deads, lives, spawn router key sub :: news )
 
-    (deadPids, livePids, makeNewPids) =
-      Dict.merge stepLeft stepBoth stepRight state.pids (Dict.fromList newSubs) ([], Dict.empty, [])
-  in
-  Task.sequence (List.map Process.kill deadPids)
-    |> Task.andThen (\_ -> Task.sequence makeNewPids)
-    |> Task.andThen (\pids -> Task.succeed (State newSubs (Dict.union livePids (Dict.fromList pids))))
+        ( deadPids, livePids, makeNewPids ) =
+            Dict.merge stepLeft stepBoth stepRight state.pids (Dict.fromList newSubs) ( [], Dict.empty, [] )
+    in
+    Task.sequence (List.map Process.kill deadPids)
+        |> Task.andThen (\_ -> Task.sequence makeNewPids)
+        |> Task.andThen (\pids -> Task.succeed (State newSubs (Dict.union livePids (Dict.fromList pids))))
 
 
 
@@ -307,35 +331,35 @@ onEffects router subs state =
 
 
 addKey : MySub msg -> ( String, MySub msg )
-addKey (MySub node name _ as sub) =
-  ( nodeToKey node ++ name, sub )
+addKey ((MySub node name _) as sub) =
+    ( nodeToKey node ++ name, sub )
 
 
 nodeToKey : Node -> String
 nodeToKey node =
-  case node of
-    Document ->
-      "d_"
+    case node of
+        Document ->
+            "d_"
 
-    Window ->
-      "w_"
+        Window ->
+            "w_"
 
 
 
 -- SPAWN
 
 
-spawn : Platform.Router msg Event -> String -> MySub msg -> Task Never (String, Process.Id)
+spawn : Platform.Router msg Event -> String -> MySub msg -> Task Never ( String, Process.Id )
 spawn router key (MySub node name _) =
-  let
-    actualNode =
-      case node of
-        Document ->
-          Elm.Kernel.Browser.doc
+    let
+        actualNode =
+            case node of
+                Document ->
+                    Elm.Kernel.Browser.doc
 
-        Window ->
-          Elm.Kernel.Browser.window
-  in
-  Task.map (\value -> (key,value)) <|
-    Elm.Kernel.Browser.on actualNode name <|
-      \event -> Platform.sendToSelf router (Event key event)
+                Window ->
+                    Elm.Kernel.Browser.window
+    in
+    Task.map (\value -> ( key, value )) <|
+        Elm.Kernel.Browser.on actualNode name <|
+            \event -> Platform.sendToSelf router (Event key event)
