@@ -3,7 +3,7 @@
     "name": "elm/browser",
     "summary": "Run Elm in browsers, with access to browser history for single-page apps (SPAs)",
     "license": "BSD-3-Clause",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "exposed-modules": [
         "Browser",
         "Browser.Dom",
