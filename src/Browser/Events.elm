@@ -83,7 +83,7 @@ not rely on this for arrow keys.
 **Note:** Check out [this advice][note] to learn more about decoding key codes.
 It is more complicated than it should be.
 
-[note]: https://github.com/elm/browser/blob/1.0.0/notes/keyboard.md
+[note]: https://github.com/elm/browser/blob/1.0.2/notes/keyboard.md
 
 -}
 onKeyPress : Decode.Decoder msg -> Sub msg
@@ -98,8 +98,8 @@ or `d` at any given time. Check out how that works in [this example][example].
 **Note:** Check out [this advice][note] to learn more about decoding key codes.
 It is more complicated than it should be.
 
-[note]: https://github.com/elm/browser/blob/1.0.0/notes/keyboard.md
-[example]: https://github.com/elm/browser/blob/1.0.0/examples/wasd.md
+[note]: https://github.com/elm/browser/blob/1.0.2/notes/keyboard.md
+[example]: https://github.com/elm/browser/blob/1.0.2/examples/wasd.md
 
 -}
 onKeyDown : Decode.Decoder msg -> Sub msg
@@ -209,7 +209,7 @@ This may also be useful with [`onKeyDown`](#onKeyDown). If you only listen for
 a keyboard shortcut to switch tabs. Visibility changes will cover those tricky
 cases, like in [this example][example]!
 
-[example]: https://github.com/elm/browser/blob/1.0.0/examples/wasd.md
+[example]: https://github.com/elm/browser/blob/1.0.2/examples/wasd.md
 
 -}
 onVisibilityChange : (Visibility -> msg) -> Sub msg

@@ -201,7 +201,7 @@ reading a calculus book from page 314, it might seem confusing. Same here!
 [bnp]: Browser-Navigation#pushUrl
 [bnl]: Browser-Navigation#load
 [url]: /packages/elm/url/latest/Url#Url
-[this]: https://github.com/elm/browser/blob/1.0.0/notes/navigation-in-elements.md
+[this]: https://github.com/elm/browser/blob/1.0.2/notes/navigation-in-elements.md
 
 -}
 application :
