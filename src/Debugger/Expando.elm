@@ -1,18 +1,19 @@
 module Debugger.Expando exposing
   ( Expando
+  , Msg
   , init
   , merge
-  , Msg, update
+  , update
   , view
   )
 
 
 import Dict exposing (Dict)
 import Elm.Kernel.Debugger
-import Json.Decode as Json
-import Html exposing (Html, text, div, span)
-import Html.Attributes exposing (style, class)
+import Html exposing (Html, div, span, text)
+import Html.Attributes exposing (class, style)
 import Html.Events exposing (onClick)
+import Json.Decode as Json
 
 
 
@@ -28,7 +29,10 @@ type Expando
   | Constructor (Maybe String) Bool (List Expando)
 
 
-type SeqType = ListSeq | SetSeq | ArraySeq
+type SeqType
+  = ListSeq
+  | SetSeq
+  | ArraySeq
 
 
 seqTypeToString : Int -> SeqType -> String
@@ -65,32 +69,40 @@ initHelp isOuter expando =
     Sequence seqType isClosed items ->
       if isOuter then
         Sequence seqType False (List.map (initHelp False) items)
+
       else if List.length items <= 8 then
         Sequence seqType False items
+
       else
         expando
 
     Dictionary isClosed keyValuePairs ->
       if isOuter then
-        Dictionary False (List.map (\(k,v) -> (k, initHelp False v)) keyValuePairs)
+        Dictionary False (List.map (\( k, v ) -> ( k, initHelp False v )) keyValuePairs)
+
       else if List.length keyValuePairs <= 8 then
         Dictionary False keyValuePairs
+
       else
         expando
 
     Record isClosed entries ->
       if isOuter then
         Record False (Dict.map (\_ v -> initHelp False v) entries)
+
       else if Dict.size entries <= 4 then
         Record False entries
+
       else
         expando
 
     Constructor maybeName isClosed args ->
       if isOuter then
         Constructor maybeName False (List.map (initHelp False) args)
+
       else if List.length args <= 4 then
         Constructor maybeName False args
+
       else
         expando
 
@@ -106,23 +118,23 @@ merge value expando =
 
 mergeHelp : Expando -> Expando -> Expando
 mergeHelp old new =
-  case ( old, new ) of
-    ( _, S _ ) ->
+  case (old, new) of
+    (_, S _) ->
       new
 
-    ( _, Primitive _ ) ->
+    (_, Primitive _) ->
       new
 
-    ( Sequence _ isClosed oldValues, Sequence seqType _ newValues ) ->
+    (Sequence _ isClosed oldValues, Sequence seqType _ newValues) ->
       Sequence seqType isClosed (mergeListHelp oldValues newValues)
 
-    ( Dictionary isClosed _, Dictionary _ keyValuePairs ) ->
+    (Dictionary isClosed _, Dictionary _ keyValuePairs) ->
       Dictionary isClosed keyValuePairs
 
-    ( Record isClosed oldDict, Record _ newDict ) ->
+    (Record isClosed oldDict, Record _ newDict) ->
       Record isClosed <| Dict.map (mergeDictHelp oldDict) newDict
 
-    ( Constructor _ isClosed oldValues, Constructor maybeName _ newValues ) ->
+    (Constructor _ isClosed oldValues, Constructor maybeName _ newValues) ->
       Constructor maybeName isClosed (mergeListHelp oldValues newValues)
 
     _ ->
@@ -132,13 +144,13 @@ mergeHelp old new =
 mergeListHelp : List Expando -> List Expando -> List Expando
 mergeListHelp olds news =
   case (olds, news) of
-    ( [], _ ) ->
+    ([], _) ->
       news
 
-    ( _, [] ) ->
+    (_, []) ->
       news
 
-    ( x :: xs, y :: ys ) ->
+    (x :: xs, y :: ys) ->
       mergeHelp x y :: mergeListHelp xs ys
 
 
@@ -162,17 +174,22 @@ type Msg
   | Field String Msg
 
 
-type Redirect = None | Key | Value
+type Redirect
+  = None
+  | Key
+  | Value
 
 
 update : Msg -> Expando -> Expando
 update msg value =
   case value of
     S _ ->
-      value -- Debug.crash "nothing changes a primitive"
+      -- Debug.crash "nothing changes a primitive"
+      value
 
     Primitive _ ->
-      value -- Debug.crash "nothing changes a primitive"
+      -- Debug.crash "nothing changes a primitive"
+      value
 
     Sequence seqType isClosed valueList ->
       case msg of
@@ -180,14 +197,15 @@ update msg value =
           Sequence seqType (not isClosed) valueList
 
         Index None index subMsg ->
-          Sequence seqType isClosed <|
-            updateIndex index (update subMsg) valueList
+          Sequence seqType isClosed <| updateIndex index (update subMsg) valueList
 
         Index _ _ _ ->
-          value -- Debug.crash "no redirected indexes on sequences"
+          -- Debug.crash "no redirected indexes on sequences"
+          value
 
         Field _ _ ->
-          value -- Debug.crash "no field on sequences"
+          -- Debug.crash "no field on sequences"
+          value
 
     Dictionary isClosed keyValuePairs ->
       case msg of
@@ -197,18 +215,20 @@ update msg value =
         Index redirect index subMsg ->
           case redirect of
             None ->
-              value -- Debug.crash "must have redirect for dictionaries"
+              -- Debug.crash "must have redirect for dictionaries"
+              value
 
             Key ->
               Dictionary isClosed <|
-                updateIndex index (\(k,v) -> (update subMsg k, v)) keyValuePairs
+                updateIndex index (\( k, v ) -> ( update subMsg k, v )) keyValuePairs
 
             Value ->
               Dictionary isClosed <|
-                updateIndex index (\(k,v) -> (k, update subMsg v)) keyValuePairs
+                updateIndex index (\( k, v ) -> ( k, update subMsg v )) keyValuePairs
 
         Field _ _ ->
-          value -- Debug.crash "no field for dictionaries"
+          -- Debug.crash "no field for dictionaries"
+          value
 
     Record isClosed valueDict ->
       case msg of
@@ -216,7 +236,8 @@ update msg value =
           Record (not isClosed) valueDict
 
         Index _ _ _ ->
-          value -- Debug.crash "no index for records"
+          -- Debug.crash "no index for records"
+          value
 
         Field field subMsg ->
           Record isClosed (Dict.update field (updateField subMsg) valueDict)
@@ -231,10 +252,12 @@ update msg value =
             updateIndex index (update subMsg) valueList
 
         Index _ _ _ ->
-          value -- Debug.crash "no redirected indexes on sequences"
+          -- Debug.crash "no redirected indexes on sequences"
+          value
 
         Field _ _ ->
-          value -- Debug.crash "no field for constructors"
+          -- Debug.crash "no field for constructors"
+          value
 
 
 updateIndex : Int -> (a -> a) -> List a -> List a
@@ -244,17 +267,17 @@ updateIndex n func list =
       []
 
     x :: xs ->
-      if n <= 0 then
-        func x :: xs
-      else
-        x :: updateIndex (n-1) func xs
+      if n <= 0
+      then func x :: xs
+      else x :: updateIndex (n - 1) func xs
 
 
 updateField : Msg -> Maybe Expando -> Maybe Expando
 updateField msg maybeExpando =
   case maybeExpando of
     Nothing ->
-      maybeExpando -- Debug.crash "key does not exist"
+      -- Debug.crash "key does not exist"
+      maybeExpando
 
     Just expando ->
       Just (update msg expando)
@@ -268,10 +291,10 @@ view : Maybe String -> Expando -> Html Msg
 view maybeKey expando =
   case expando of
     S stringRep ->
-      div (leftPad maybeKey) (lineStarter maybeKey Nothing [span [red] [text stringRep]])
+      div (leftPad maybeKey) (lineStarter maybeKey Nothing [ span [ red ] [ text stringRep ] ])
 
     Primitive stringRep ->
-      div (leftPad maybeKey) (lineStarter maybeKey Nothing [span [blue] [text stringRep]])
+      div (leftPad maybeKey) (lineStarter maybeKey Nothing [ span [ blue ] [ text stringRep ] ])
 
     Sequence seqType isClosed valueList ->
       viewSequence maybeKey seqType isClosed valueList
@@ -293,13 +316,12 @@ view maybeKey expando =
 viewSequence : Maybe String -> SeqType -> Bool -> List Expando -> Html Msg
 viewSequence maybeKey seqType isClosed valueList =
   let
-    starter =
-      seqTypeToString (List.length valueList) seqType
+    starter = seqTypeToString (List.length valueList) seqType
   in
-    div (leftPad maybeKey)
-      [ div [ onClick Toggle ] (lineStarter maybeKey (Just isClosed) [text starter])
-      , if isClosed then text "" else viewSequenceOpen valueList
-      ]
+  div (leftPad maybeKey)
+    [ div [ onClick Toggle ] (lineStarter maybeKey (Just isClosed) [ text starter ])
+    , if isClosed then text "" else viewSequenceOpen valueList
+    ]
 
 
 viewSequenceOpen : List Expando -> Html Msg
@@ -314,13 +336,12 @@ viewSequenceOpen values =
 viewDictionary : Maybe String -> Bool -> List (Expando, Expando) -> Html Msg
 viewDictionary maybeKey isClosed keyValuePairs =
   let
-    starter =
-      "Dict(" ++ String.fromInt (List.length keyValuePairs) ++ ")"
+    starter = "Dict(" ++ String.fromInt (List.length keyValuePairs) ++ ")"
   in
-    div (leftPad maybeKey)
-      [ div [ onClick Toggle ] (lineStarter maybeKey (Just isClosed) [text starter])
-      , if isClosed then text "" else viewDictionaryOpen keyValuePairs
-      ]
+  div (leftPad maybeKey)
+    [ div [ onClick Toggle ] (lineStarter maybeKey (Just isClosed) [ text starter ])
+    , if isClosed then text "" else viewDictionaryOpen keyValuePairs
+    ]
 
 
 viewDictionaryOpen : List (Expando, Expando) -> Html Msg
@@ -329,7 +350,7 @@ viewDictionaryOpen keyValuePairs =
 
 
 viewDictionaryEntry : Int -> (Expando, Expando) -> Html Msg
-viewDictionaryEntry index (key, value) =
+viewDictionaryEntry index ( key, value ) =
   case key of
     S stringRep ->
       Html.map (Index Value index) (view (Just stringRep) value)
@@ -338,10 +359,10 @@ viewDictionaryEntry index (key, value) =
       Html.map (Index Value index) (view (Just stringRep) value)
 
     _ ->
-        div []
-          [ Html.map (Index Key index) (view (Just "key") key)
-          , Html.map (Index Value index) (view (Just "value") value)
-          ]
+      div []
+        [ Html.map (Index Key index) (view (Just "key") key)
+        , Html.map (Index Value index) (view (Just "value") value)
+        ]
 
 
 
@@ -353,15 +374,15 @@ viewRecord maybeKey isClosed record =
   let
     (start, middle, end) =
       if isClosed then
-        ( Tuple.second (viewTinyRecord record), text "", text "" )
+        (Tuple.second (viewTinyRecord record), text "", text "")
       else
-        ( [ text "{" ], viewRecordOpen record, div (leftPad (Just ())) [text "}"] )
+        ([ text "{" ], viewRecordOpen record, div (leftPad (Just ())) [ text "}" ])
   in
-    div (leftPad maybeKey)
-      [ div [ onClick Toggle ] (lineStarter maybeKey (Just isClosed) start)
-      , middle
-      , end
-      ]
+  div (leftPad maybeKey)
+    [ div [ onClick Toggle ] (lineStarter maybeKey (Just isClosed) start)
+    , middle
+    , end
+    ]
 
 
 viewRecordOpen : Dict String Expando -> Html Msg
@@ -369,8 +390,8 @@ viewRecordOpen record =
   div [] (List.map viewRecordEntry (Dict.toList record))
 
 
-viewRecordEntry : (String, Expando) -> Html Msg
-viewRecordEntry (field, value) =
+viewRecordEntry : ( String, Expando ) -> Html Msg
+viewRecordEntry ( field, value ) =
   Html.map (Field field) (view (Just field) value)
 
 
@@ -381,69 +402,61 @@ viewRecordEntry (field, value) =
 viewConstructor : Maybe String -> Maybe String -> Bool -> List Expando -> Html Msg
 viewConstructor maybeKey maybeName isClosed valueList =
   let
-    tinyArgs =
-      List.map (Tuple.second << viewExtraTiny) valueList
+    tinyArgs = List.map (Tuple.second << viewExtraTiny) valueList
 
     description =
       case (maybeName, tinyArgs) of
-        (Nothing, []) ->
-          [ text "()" ]
-
-        (Nothing, x :: xs) ->
-          text "( "
-            :: span [] x
-            :: List.foldr (\args rest -> text ", " :: span [] args :: rest) [text " )"] xs
-
-        (Just name, []) ->
-          [ text name ]
-
-        (Just name, x :: xs) ->
-          text (name ++ " ")
-            :: span [] x
-            :: List.foldr (\args rest -> text " " :: span [] args :: rest) [] xs
+        (Nothing  , []     ) -> [ text "()" ]
+        (Nothing  , x :: xs) -> text "( " :: span [] x :: List.foldr (\args rest -> text ", " :: span [] args :: rest) [ text " )" ] xs
+        (Just name, []     ) -> [ text name ]
+        (Just name, x :: xs) -> text (name ++ " ") :: span [] x :: List.foldr (\args rest -> text " " :: span [] args :: rest) [] xs
 
     (maybeIsClosed, openHtml) =
-      case valueList of
-        [] ->
-          ( Nothing, div [] [] )
+        case valueList of
+          [] ->
+            (Nothing, div [] [])
 
-        [entry] ->
-          case entry of
-            S _ ->
-              ( Nothing, div [] [] )
+          [ entry ] ->
+            case entry of
+              S _ ->
+                (Nothing, div [] [])
 
-            Primitive _ ->
-              ( Nothing, div [] [] )
+              Primitive _ ->
+                (Nothing, div [] [])
 
-            Sequence _ _ subValueList ->
-              ( Just isClosed
-              , if isClosed then div [] [] else Html.map (Index None 0) (viewSequenceOpen subValueList)
-              )
+              Sequence _ _ subValueList ->
+                ( Just isClosed
+                , if isClosed then div [] [] else
+                    Html.map (Index None 0) (viewSequenceOpen subValueList)
+                )
 
-            Dictionary _ keyValuePairs ->
-              ( Just isClosed
-              , if isClosed then div [] [] else Html.map (Index None 0) (viewDictionaryOpen keyValuePairs)
-              )
+              Dictionary _ keyValuePairs ->
+                ( Just isClosed
+                , if isClosed then div [] [] else
+                    Html.map (Index None 0) (viewDictionaryOpen keyValuePairs)
+                )
 
-            Record _ record ->
-              ( Just isClosed
-              , if isClosed then div [] [] else Html.map (Index None 0) (viewRecordOpen record)
-              )
+              Record _ record ->
+                  ( Just isClosed
+                  , if isClosed then div [] [] else
+                      Html.map (Index None 0) (viewRecordOpen record)
+                  )
 
-            Constructor _ _ subValueList ->
-              ( Just isClosed
-              , if isClosed then div [] [] else Html.map (Index None 0) (viewConstructorOpen subValueList)
-              )
+              Constructor _ _ subValueList ->
+                  ( Just isClosed
+                  , if isClosed then div [] [] else
+                      Html.map (Index None 0) (viewConstructorOpen subValueList)
+                  )
 
-        _ ->
-          ( Just isClosed
-          , if isClosed then div [] [] else viewConstructorOpen valueList
-          )
+          _ ->
+            ( Just isClosed
+            , if isClosed then div [] [] else viewConstructorOpen valueList
+            )
   in
-    div (leftPad maybeKey)
-      [ div [ onClick Toggle ] (lineStarter maybeKey maybeIsClosed description)
-      , openHtml
-      ]
+  div (leftPad maybeKey)
+    [ div [ onClick Toggle ] (lineStarter maybeKey maybeIsClosed description)
+    , openHtml
+    ]
 
 
 viewConstructorOpen : List Expando -> Html Msg
@@ -465,55 +478,46 @@ viewTiny value =
   case value of
     S stringRep ->
       let
-        str =
-          elideMiddle stringRep
+        str = elideMiddle stringRep
       in
-        ( String.length str
-        , [ span [red] [text str] ]
-        )
+      ( String.length str
+      , [ span [ red ] [ text str ] ]
+      )
 
     Primitive stringRep ->
       ( String.length stringRep
-      , [ span [blue] [text stringRep] ]
+      , [ span [ blue ] [ text stringRep ] ]
       )
 
     Sequence seqType _ valueList ->
-      viewTinyHelp <|
-        seqTypeToString (List.length valueList) seqType
+      viewTinyHelp <| seqTypeToString (List.length valueList) seqType
 
     Dictionary _ keyValuePairs ->
-      viewTinyHelp <|
-        "Dict(" ++ String.fromInt (List.length keyValuePairs) ++ ")"
+      viewTinyHelp <| "Dict(" ++ String.fromInt (List.length keyValuePairs) ++ ")"
 
     Record _ record ->
       viewTinyRecord record
 
     Constructor maybeName _ [] ->
-      viewTinyHelp <|
-        Maybe.withDefault "Unit" maybeName
+      viewTinyHelp <| Maybe.withDefault "Unit" maybeName
 
     Constructor maybeName _ valueList ->
       viewTinyHelp <|
         case maybeName of
-          Nothing ->
-            "Tuple(" ++ String.fromInt (List.length valueList) ++ ")"
-
-          Just name ->
-            name ++ " …"
+          Nothing -> "Tuple(" ++ String.fromInt (List.length valueList) ++ ")"
+          Just name -> name ++ " …"
 
 
 viewTinyHelp : String -> ( Int, List (Html msg) )
 viewTinyHelp str =
-  ( String.length str, [text str] )
+  (String.length str, [ text str ])
 
 
 elideMiddle : String -> String
 elideMiddle str =
-  if String.length str <= 18 then
-    str
-
-  else
-    String.left 8 str ++ "..." ++ String.right 8 str
+  if String.length str <= 18
+  then str
+  else String.left 8 str ++ "..." ++ String.right 8 str
 
 
 
@@ -523,44 +527,36 @@ elideMiddle str =
 viewTinyRecord : Dict String Expando -> ( Int, List (Html msg) )
 viewTinyRecord record =
   if Dict.isEmpty record then
-    ( 2, [text "{}"] )
-
+    (2, [ text "{}" ])
   else
     viewTinyRecordHelp 0 "{ " (Dict.toList record)
 
 
-viewTinyRecordHelp : Int -> String -> List (String, Expando) -> ( Int, List (Html msg) )
+viewTinyRecordHelp : Int -> String -> List ( String, Expando ) -> ( Int, List (Html msg) )
 viewTinyRecordHelp length starter entries =
   case entries of
     [] ->
-      ( length + 2, [ text " }" ] )
+        (length + 2, [ text " }" ])
 
     (field, value) :: rest ->
       let
-        fieldLen =
-          String.length field
-
-        (valueLen, valueHtmls) =
-          viewExtraTiny value
-
-        newLength =
-          length + fieldLen + valueLen + 5
+        fieldLen = String.length field
+        (valueLen, valueHtmls) = viewExtraTiny value
+        newLength = length + fieldLen + valueLen + 5
       in
-        if newLength > 60 then
-          ( length + 4, [text ", … }"] )
-
-        else
-          let
-            ( finalLength, otherHtmls ) =
-              viewTinyRecordHelp newLength ", " rest
-          in
-            ( finalLength
-            , text starter
-              :: span [purple] [text field]
-              :: text " = "
-              :: span [] valueHtmls
-              :: otherHtmls
-            )
+      if newLength > 60 then
+        (length + 4, [ text ", … }" ])
+      else
+        let
+          (finalLength, otherHtmls) = viewTinyRecordHelp newLength ", " rest
+        in
+        ( finalLength
+        , text starter
+            :: span [ purple ] [ text field ]
+            :: text " = "
+            :: span [] valueHtmls
+            :: otherHtmls
+        )
 
 
 viewExtraTiny : Expando -> ( Int, List (Html msg) )
@@ -577,24 +573,22 @@ viewExtraTinyRecord : Int -> String -> List String -> ( Int, List (Html msg) )
 viewExtraTinyRecord length starter entries =
   case entries of
     [] ->
-      ( length + 1, [text "}"] )
+      (length + 1, [ text "}" ])
 
     field :: rest ->
       let
-        nextLength =
-          length + String.length field + 1
+        nextLength = length + String.length field + 1
       in
-        if nextLength > 18 then
-          ( length + 2, [text "…}"])
+      if nextLength > 18 then
+        (length + 2, [ text "…}" ])
 
-        else
-          let
-            (finalLength, otherHtmls) =
-              viewExtraTinyRecord nextLength "," rest
-          in
-            ( finalLength
-            , text starter :: span [purple] [text field] :: otherHtmls
-            )
+      else
+        let
+          (finalLength, otherHtmls) = viewExtraTinyRecord nextLength "," rest
+        in
+        ( finalLength
+        , text starter :: span [ purple ] [ text field ] :: otherHtmls
+        )
 
 
 
@@ -606,21 +600,16 @@ lineStarter maybeKey maybeIsClosed description =
   let
     arrow =
       case maybeIsClosed of
-        Nothing ->
-          makeArrow ""
-
-        Just True ->
-          makeArrow "▸"
-
-        Just False ->
-          makeArrow "▾"
+        Nothing    -> makeArrow ""
+        Just True  -> makeArrow "▸"
+        Just False -> makeArrow "▾"
   in
-    case maybeKey of
-      Nothing ->
-        arrow :: description
+  case maybeKey of
+    Nothing ->
+      arrow :: description
 
-      Just key ->
-        arrow :: span [purple] [text key] :: text " = " :: description
+    Just key ->
+      arrow :: span [ purple ] [ text key ] :: text " = " :: description
 
 
 makeArrow : String -> Html msg
@@ -637,11 +626,8 @@ makeArrow arrow =
 leftPad : Maybe a -> List (Html.Attribute msg)
 leftPad maybeKey =
   case maybeKey of
-    Nothing ->
-      []
-
-    Just _ ->
-      [ style "padding-left" "4ch" ]
+    Nothing -> []
+    Just _  -> [ style "padding-left" "4ch" ]
 
 
 red : Html.Attribute msg

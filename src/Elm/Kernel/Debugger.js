@@ -1,7 +1,7 @@
 /*
 
 import Debugger.Expando as Expando exposing (S, Primitive, Sequence, Dictionary, Record, Constructor, ListSeq, SetSeq, ArraySeq)
-import Debugger.Main as Main exposing (getUserModel, wrapInit, wrapUpdate, wrapSubs, cornerView, popoutView, NoOp, UserMsg, Up, Down, toBlockerType)
+import Debugger.Main as Main exposing (getUserModel, wrapInit, wrapUpdate, wrapSubs, cornerView, popoutView, NoOp, UserMsg, Up, Down, toBlockerType, initialWindowWidth, initialWindowHeight)
 import Debugger.Overlay as Overlay exposing (BlockNone, BlockMost)
 import Elm.Kernel.Browser exposing (makeAnimator)
 import Elm.Kernel.Debug exposing (crash)
@@ -73,12 +73,13 @@ var _Debugger_element = F4(function(impl, flagDecoder, debugMetadata, args)
 
 				// view corner
 
+				var cornerNext = __Main_cornerView(model);
+				var cornerPatches = __VirtualDom_diff(cornerCurr, cornerNext);
+				cornerNode = __VirtualDom_applyPatches(cornerNode, cornerCurr, cornerPatches, sendToApp);
+				cornerCurr = cornerNext;
+
 				if (!model.__$popout.__doc)
 				{
-					var cornerNext = __Main_cornerView(model);
-					var cornerPatches = __VirtualDom_diff(cornerCurr, cornerNext);
-					cornerNode = __VirtualDom_applyPatches(cornerNode, cornerCurr, cornerPatches, sendToApp);
-					cornerCurr = cornerNext;
 					currPopout = undefined;
 					return;
 				}
@@ -181,7 +182,11 @@ function _Debugger_open(popout)
 
 function _Debugger_openWindow(popout)
 {
-	var w = 900, h = 360, x = screen.width - w, y = screen.height - h;
+	var w = __Main_initialWindowWidth,
+		h = __Main_initialWindowHeight,
+	 	x = screen.width - w,
+		y = screen.height - h;
+
 	var debuggerWindow = window.open('', '', 'width=' + w + ',height=' + h + ',left=' + x + ',top=' + y);
 	var doc = debuggerWindow.document;
 	doc.title = 'Elm Debugger';
@@ -189,8 +194,8 @@ function _Debugger_openWindow(popout)
 	// handle arrow keys
 	doc.addEventListener('keydown', function(event) {
 		event.metaKey && event.which === 82 && window.location.reload();
-		event.which === 38 && (popout.__sendToApp(__Main_Up), event.preventDefault());
-		event.which === 40 && (popout.__sendToApp(__Main_Down), event.preventDefault());
+		event.key === 'ArrowUp'   && (popout.__sendToApp(__Main_Up  ), event.preventDefault());
+		event.key === 'ArrowDown' && (popout.__sendToApp(__Main_Down), event.preventDefault());
 	});
 
 	// handle window close
@@ -200,6 +205,7 @@ function _Debugger_openWindow(popout)
 		popout.__sendToApp(__Main_NoOp);
 		window.removeEventListener('unload', close);
 	});
+
 	function close() {
 		popout.__doc = undefined;
 		popout.__sendToApp(__Main_NoOp);
@@ -222,9 +228,9 @@ function _Debugger_scroll(popout)
 		if (popout.__doc)
 		{
 			var msgs = popout.__doc.getElementById('elm-debugger-sidebar');
-			if (msgs)
+			if (msgs && msgs.scrollTop !== 0)
 			{
-				msgs.scrollTop = msgs.scrollHeight;
+				msgs.scrollTop = 0;
 			}
 		}
 		callback(__Scheduler_succeed(__Utils_Tuple0));
@@ -232,15 +238,33 @@ function _Debugger_scroll(popout)
 }
 
 
+var _Debugger_scrollTo = F2(function(id, popout)
+{
+	return __Scheduler_binding(function(callback)
+	{
+		if (popout.__doc)
+		{
+			var msg = popout.__doc.getElementById(id);
+			if (msg)
+			{
+				msg.scrollIntoView(false);
+			}
+		}
+		callback(__Scheduler_succeed(__Utils_Tuple0));
+	});
+});
+
+
 
 // UPLOAD
 
 
-function _Debugger_upload()
+function _Debugger_upload(popout)
 {
 	return __Scheduler_binding(function(callback)
 	{
-		var element = document.createElement('input');
+		var doc = popout.__doc || document;
+		var element = doc.createElement('input');
 		element.setAttribute('type', 'file');
 		element.setAttribute('accept', 'text/json');
 		element.style.display = 'none';
@@ -252,9 +276,9 @@ function _Debugger_upload()
 				callback(__Scheduler_succeed(e.target.result));
 			};
 			fileReader.readAsText(event.target.files[0]);
-			document.body.removeChild(element);
+			doc.body.removeChild(element);
 		});
-		document.body.appendChild(element);
+		doc.body.appendChild(element);
 		element.click();
 	});
 }
@@ -540,4 +564,3 @@ var _Debugger_mostEvents = [
 ];
 
 var _Debugger_allEvents = _Debugger_mostEvents.concat('wheel', 'scroll');
-
