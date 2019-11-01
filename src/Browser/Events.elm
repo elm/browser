@@ -93,13 +93,12 @@ onKeyPress =
 
 {-| Subscribe to get codes whenever a key goes down. This can be useful for
 creating games. Maybe you want to know if people are pressing `w`, `a`, `s`,
-or `d` at any given time. Check out how that works in [this example][example].
+or `d` at any given time.
 
 **Note:** Check out [this advice][note] to learn more about decoding key codes.
 It is more complicated than it should be.
 
 [note]: https://github.com/elm/browser/blob/1.0.2/notes/keyboard.md
-[example]: https://github.com/elm/browser/blob/1.0.2/examples/wasd.md
 
 -}
 onKeyDown : Decode.Decoder msg -> Sub msg
@@ -200,16 +199,12 @@ onResize func =
 {-| Subscribe to any visibility changes, like if the user switches to a
 different tab or window. When the user looks away, you may want to:
 
-  - Stop polling a server for new information.
-  - Pause video or audio.
-  - Pause an image carousel.
-
-This may also be useful with [`onKeyDown`](#onKeyDown). If you only listen for
-[`onKeyUp`](#onKeyUp) to end the key press, you can miss situations like using
-a keyboard shortcut to switch tabs. Visibility changes will cover those tricky
-cases, like in [this example][example]!
-
-[example]: https://github.com/elm/browser/blob/1.0.2/examples/wasd.md
+- Pause a timer.
+- Pause an animation.
+- Pause video or audio.
+- Pause an image carousel.
+- Stop polling a server for new information.
+- Stop waiting for an [`onKeyUp`](#onKeyUp) event.
 
 -}
 onVisibilityChange : (Visibility -> msg) -> Sub msg
