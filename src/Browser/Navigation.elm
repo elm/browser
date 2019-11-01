@@ -100,6 +100,11 @@ the URL to match without adding a history entry for every single key stroke.
 Imagine how annoying it would be to click `back` thirty times and still be on
 the same page!
 
+**Note:** Browsers may rate-limit this function by throwing an exception. The
+discussion [here](https://bugs.webkit.org/show_bug.cgi?id=156115) suggests
+that the limit is 100 calls per 30 second interval in Safari in 2016. It also
+suggests techniques for people changing the URL based on scroll position.
+
 -}
 replaceUrl : Key -> String -> Cmd msg
 replaceUrl =
