@@ -144,8 +144,12 @@ onClick =
     on Document "click"
 
 
-{-| Subscribe to mouse moves anywhere on screen. You could use this to implement
-drag and drop.
+{-| Subscribe to mouse moves anywhere on screen.
+
+You could use this to implement resizable panels like in Elm's online code
+editor. Check out the example imprementation [here][drag].
+
+[drag]: https://github.com/elm/browser/blob/1.0.2/examples/src/Drag.elm
 
 **Note:** Unsubscribe if you do not need these events! Running code on every
 single mouse movement can be very costly, and it is recommended to only
