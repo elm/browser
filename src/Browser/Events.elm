@@ -183,8 +183,16 @@ onMouseUp =
 
 {-| Subscribe to any changes in window size.
 
-If you wanted to always track the current width, you could do something [like
-this](TODO).
+For example, you could track the current width by saying:
+
+    import Browser.Events as E
+
+    type Msg
+      = GotNewWidth Int
+
+    subscriptions : model -> Cmd Msg
+    subscriptions _ =
+      E.onResize (\w h -> GotNewWidth w)
 
 **Note:** This is equivalent to getting events from [`window.onresize`][resize].
 
