@@ -13,7 +13,6 @@ import Elm.Kernel.Debugger
 import Html exposing (Html, div, span, text)
 import Html.Attributes exposing (class, style)
 import Html.Events exposing (onClick)
-import Json.Decode as Json
 
 
 
@@ -126,7 +125,7 @@ mergeHelp old new =
       new
 
     (Sequence _ isClosed oldValues, Sequence seqType _ newValues) ->
-      Sequence seqType isClosed (mergeListHelp oldValues newValues)
+      Sequence seqType isClosed (mergeListHelp oldValues newValues [])
 
     (Dictionary isClosed _, Dictionary _ keyValuePairs) ->
       Dictionary isClosed keyValuePairs
@@ -135,23 +134,23 @@ mergeHelp old new =
       Record isClosed <| Dict.map (mergeDictHelp oldDict) newDict
 
     (Constructor _ isClosed oldValues, Constructor maybeName _ newValues) ->
-      Constructor maybeName isClosed (mergeListHelp oldValues newValues)
+      Constructor maybeName isClosed (mergeListHelp oldValues newValues [])
 
     _ ->
       new
 
 
-mergeListHelp : List Expando -> List Expando -> List Expando
-mergeListHelp olds news =
+mergeListHelp : List Expando -> List Expando -> List Expando -> List Expando
+mergeListHelp olds news accumulator =
   case (olds, news) of
     ([], _) ->
-      news
+      List.foldl (::) news accumulator
 
     (_, []) ->
-      news
+      List.foldl (::) news accumulator
 
     (x :: xs, y :: ys) ->
-      mergeHelp x y :: mergeListHelp xs ys
+      mergeListHelp xs ys (mergeHelp x y :: accumulator)
 
 
 mergeDictHelp : Dict String Expando -> String -> Expando -> Expando
