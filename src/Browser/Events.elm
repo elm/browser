@@ -147,7 +147,7 @@ onClick =
 {-| Subscribe to mouse moves anywhere on screen.
 
 You could use this to implement resizable panels like in Elm's online code
-editor. Check out the example imprementation [here][drag].
+editor. Check out the example implementation [here][drag].
 
 [drag]: https://github.com/elm/browser/blob/1.0.2/examples/src/Drag.elm
 
