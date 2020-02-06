@@ -172,8 +172,8 @@ type alias Viewport =
     }
 
 
-{-| Just like `getViewport`, but for any scrollable DOM node. Say we have an
-application with a chat box in the bottow right corner like this:
+{-| Just like `getViewport`, but for any scrollable DOM node by ID. Say we
+have an application with a chat box in the bottow right corner like this:
 
 ![chat](https://elm.github.io/browser/v1/chat.svg)
 
