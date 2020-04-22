@@ -190,7 +190,7 @@ For example, you could track the current width by saying:
     type Msg
       = GotNewWidth Int
 
-    subscriptions : model -> Cmd Msg
+    subscriptions : model -> Sub Msg
     subscriptions _ =
       E.onResize (\w h -> GotNewWidth w)
 
