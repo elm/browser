@@ -2,6 +2,7 @@ effect module Browser.Events where { subscription = MySub } exposing
   ( onAnimationFrame, onAnimationFrameDelta
   , onKeyPress, onKeyDown, onKeyUp
   , onClick, onMouseMove, onMouseDown, onMouseUp
+  , onTouchStart, onTouchEnd, onTouchCancel, onTouchMove
   , onResize, onVisibilityChange, Visibility(..)
   )
 
@@ -29,6 +30,10 @@ If there is something else you need, use [ports] to do it in JavaScript!
 
 @docs onClick, onMouseMove, onMouseDown, onMouseUp
 
+
+# Touchscreen
+
+@docs onTouchStart, onTouchEnd, onTouchCancel, onTouchMove
 
 # Window
 
@@ -175,6 +180,33 @@ to be sure keys do not appear to down and never come back up.
 onMouseUp : Decode.Decoder msg -> Sub msg
 onMouseUp =
   on Document "mouseup"
+
+-- TOUCHSCREEN
+
+{-| Subscribe to touch start events anywhere on screen.
+-}
+onTouchStart : Decode.Decoder msg -> Sub msg
+onTouchStart =
+  on Document "touchstart"
+
+
+{-| Subscribe to touch end events anywhere on screen.
+-}
+onTouchEnd : Decode.Decoder msg -> Sub msg
+onTouchEnd =
+  on Document "touchend"
+
+{-| Subscribe to touch cancel events anywhere on screen.
+-}
+onTouchCancel : Decode.Decoder msg -> Sub msg
+onTouchCancel =
+  on Document "touchcancel"
+
+{-| Subscribe to touch movement events anywhere on screen.
+-}
+onTouchMove : Decode.Decoder msg -> Sub msg
+onTouchMove =
+  on Document "touchmove"
 
 
 
