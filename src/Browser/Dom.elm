@@ -3,6 +3,7 @@ module Browser.Dom exposing
     , getViewport, Viewport, getViewportOf
     , setViewport, setViewportOf
     , getElement, Element
+    , getBbox, Bbox
     )
 
 {-| This module allows you to manipulate the DOM in various ways. It covers:
@@ -382,3 +383,28 @@ type alias Element =
         , height : Float
         }
     }
+
+{-
+The SVGGraphicsElement.getBBox() allows us to determine the coordinates of the smallest rectangle
+in which the object fits. The coordinates returned are with respect to the current svg space,
+i.e. after the application of all geometry attributes on all the elements contained in the target element.
+
+Note: getBBox must return the actual bounding box at the time the method was called,
+even in case the element has not yet been rendered.
+It also neglects any transformation applied on the element or its parents.
+-}
+
+getBbox : String -> Task Error Bbox
+getBbox =
+    Elm.Kernel.Browser.getBbox
+
+{-
+getBBox returns different values than getBoundingClientRect(),
+as the latter returns value relative to the viewport
+-}
+type alias Bbox =
+  { x : Float
+  , y : Float
+  , width : Float
+  , height : Float
+  }
