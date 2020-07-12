@@ -431,6 +431,26 @@ function _Browser_getElement(id)
 
 
 
+// BBOX
+
+
+
+function _Browser_getBbox(id)
+{
+	return _Browser_withNode(id, function(node)
+	{
+		var bbox = node.getBBox();
+		return {
+				__$x: bbox.x,
+				__$y: bbox.y,
+				__$width: bbox.width,
+				__$height: bbox.height
+		};
+	});
+}
+
+
+
 // LOAD and RELOAD
 
 
