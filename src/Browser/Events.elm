@@ -2,6 +2,7 @@ effect module Browser.Events where { subscription = MySub } exposing
   ( onAnimationFrame, onAnimationFrameDelta
   , onKeyPress, onKeyDown, onKeyUp
   , onClick, onMouseMove, onMouseDown, onMouseUp
+  , onPointerMove, onPointerDown, onPointerUp
   , onResize, onVisibilityChange, Visibility(..)
   )
 
@@ -28,6 +29,11 @@ If there is something else you need, use [ports] to do it in JavaScript!
 # Mouse
 
 @docs onClick, onMouseMove, onMouseDown, onMouseUp
+
+
+# Pointer
+
+@docs onPointerMove, onPointerDown, onPointerUp
 
 
 # Window
@@ -176,6 +182,38 @@ onMouseUp : Decode.Decoder msg -> Sub msg
 onMouseUp =
   on Document "mouseup"
 
+
+
+-- POINTER
+
+
+{-| Subscribe to pointer moves anywhere on screen. This could be of any 
+pointer type (including mouse and touch).
+
+**Note:** Unsubscribe if you do not need these events! Running code on every
+single pointer movement can be very costly, and it is recommended to only
+subscribe when absolutely necessary.
+
+-}
+onPointerMove : Decode.Decoder msg -> Sub msg
+onPointerMove =
+  on Document "pointermove"
+
+
+{-| Subscribe to get pointer information whenever the pointer goes down.
+-}
+onPointerDown : Decode.Decoder msg -> Sub msg
+onPointerDown =
+  on Document "pointerdown"
+
+
+{-| Subscribe to get pointer information whenever the pointer goes up.
+Often used in combination with [`onVisibilityChange`](#onVisibilityChange)
+to be sure keys do not appear to down and never come back up.
+-}
+onPointerUp : Decode.Decoder msg -> Sub msg
+onPointerUp =
+  on Document "pointerup"
 
 
 -- WINDOW
