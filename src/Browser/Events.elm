@@ -209,7 +209,7 @@ onResize func =
 
 
 {-| Subscribe to any visibility changes, like if the user switches to a
-different tab or window. When the user looks away, you may want to:
+different tab or minimizes the window. When the user looks away, you may want to:
 
 - Pause a timer.
 - Pause an animation.
@@ -217,6 +217,11 @@ different tab or window. When the user looks away, you may want to:
 - Pause an image carousel.
 - Stop polling a server for new information.
 - Stop waiting for an [`onKeyUp`](#onKeyUp) event.
+
+**Note:** Switching to a different window on a desktop browser will likely not fire the event,
+since browsers don’t know if the window is actually obscured or not. See the docs on the
+[Page Visibility API](https://developer.mozilla.org/en-US/docs/Web/API/Page_Visibility_API).
+
 
 -}
 onVisibilityChange : (Visibility -> msg) -> Sub msg
