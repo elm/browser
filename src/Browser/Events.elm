@@ -190,9 +190,9 @@ For example, you could track the current width by saying:
     type Msg
       = GotNewWidth Int
 
-    subscriptions : model -> Cmd Msg
+    subscriptions : model -> Sub Msg
     subscriptions _ =
-      E.onResize (\w h -> GotNewWidth w)
+      E.onResize (\w _ -> GotNewWidth w)
 
 **Note:** This is equivalent to getting events from [`window.onresize`][resize].
 
