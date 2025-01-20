@@ -786,6 +786,7 @@ viewExpando expandoMsg expandoModel layout =
     , style "-moz-user-select" block
     , style "-ms-user-select" block
     , style "user-select" block
+    , style "background-color" "red"
     ]
     [ div [ style "color" "#ccc", style "padding" "0 0 1em 0" ] [ text "-- MESSAGE" ]
     , Html.map TweakExpandoMsg <| Expando.view Nothing expandoMsg
