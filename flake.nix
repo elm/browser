@@ -20,9 +20,13 @@
           pkgs.elmPackages.elm
         ];
         text = ''
-          					  export ELM_HOME="$PWD"
+          					  export ELM_HOME="$PWD/.nix/elm"
+											echo "$ELM_HOME"
+											rm -rf elm-stuff
+											rm -rf examples/elm-stuff
           						cd examples
                       elm make --debug src/Count.elm
+											"$BROWSER" index.html
         '';
       };
 
