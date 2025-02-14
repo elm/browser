@@ -19,3 +19,13 @@ You can see the outline of that learning path in the `Browser` module. It lets y
 This order works well because important concepts and techniques are introduced at each stage. If you jump ahead, it is like building a house by starting with the roof! So again, **work through [guide.elm-lang.org][guide] to see examples and really *understand* how Elm works!**
 
 This order also works well because it mirrors how most people introduce Elm at work. Start small. Try using Elm in a single element in an existing JavaScript project. If that goes well, try doing a bit more. Etc.
+
+---
+
+## modifications
+
+The goal is to fix some accessibility issues with the Debugger. To use this version on the `examples/src/Count.elm` module run
+
+```sh
+nix run .#elmMake
+```
