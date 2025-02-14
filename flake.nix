@@ -24,6 +24,9 @@
 											echo "$ELM_HOME"
 											rm -rf elm-stuff
 											rm -rf examples/elm-stuff
+											rm -rf .nix/elm/0.19.1/packages/elm/browser/1.0.2
+											mkdir -p .nix/elm/0.19.1/packages/elm/browser/1.0.2/
+											cp -r elm.json src .nix/elm/0.19.1/packages/elm/browser/1.0.2/ 
           						cd examples
                       elm make --debug src/Count.elm
 											"$BROWSER" index.html
