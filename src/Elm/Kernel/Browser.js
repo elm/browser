@@ -75,7 +75,9 @@ var _Browser_document = __Debugger_document || F4(function(impl, flagDecoder, de
 			var view = impl.__$view;
 			var title = __VirtualDom_doc.title;
 			var bodyNode = __VirtualDom_doc.body;
+			__VirtualDom_divertHrefToApp = divertHrefToApp;
 			var currNode = _VirtualDom_virtualize(bodyNode);
+			__VirtualDom_divertHrefToApp = 0;
 			return _Browser_makeAnimator(initialModel, function(model)
 			{
 				__VirtualDom_divertHrefToApp = divertHrefToApp;

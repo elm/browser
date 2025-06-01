@@ -113,7 +113,9 @@ var _Debugger_document = F4(function(impl, flagDecoder, debugMetadata, args)
 			var view = impl.__$view;
 			var title = __VirtualDom_doc.title;
 			var bodyNode = __VirtualDom_doc.body;
+			__VirtualDom_divertHrefToApp = divertHrefToApp;
 			var currNode = __VirtualDom_virtualize(bodyNode);
+			__VirtualDom_divertHrefToApp = 0;
 			var currBlocker = __Main_toBlockerType(initialModel);
 			var currPopout;
 
