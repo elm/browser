@@ -46,7 +46,6 @@ var _Debugger_element = F4(function(impl, flagDecoder, debugMetadata, args)
 		function(sendToApp, initialModel)
 		{
 			var view = impl.__$view;
-			var title = __VirtualDom_doc.title;
 			var domNode = args && args['node'] ? args['node'] : __Debug_crash(0);
 			var currNode = __VirtualDom_virtualize(domNode);
 			var currBlocker = __Main_toBlockerType(initialModel);
@@ -87,7 +86,7 @@ var _Debugger_element = F4(function(impl, flagDecoder, debugMetadata, args)
 				// view popout
 
 				__VirtualDom_doc = model.__$popout.__doc; // SWITCH TO POPOUT DOC
-				currPopout || (currPopout = __VirtualDom_virtualize(model.__$popout.__doc));
+				currPopout || (currPopout = __VirtualDom_virtualize(model.__$popout.__doc.body));
 				var nextPopout = __Main_popoutView(model);
 				var popoutPatches = __VirtualDom_diff(currPopout, nextPopout);
 				__VirtualDom_applyPatches(model.__$popout.__doc.body, currPopout, popoutPatches, sendToApp);
@@ -146,7 +145,7 @@ var _Debugger_document = F4(function(impl, flagDecoder, debugMetadata, args)
 				if (!model.__$popout.__doc) { currPopout = undefined; return; }
 
 				__VirtualDom_doc = model.__$popout.__doc; // SWITCH TO POPOUT DOC
-				currPopout || (currPopout = __VirtualDom_virtualize(model.__$popout.__doc));
+				currPopout || (currPopout = __VirtualDom_virtualize(model.__$popout.__doc.body));
 				var nextPopout = __Main_popoutView(model);
 				var popoutPatches = __VirtualDom_diff(currPopout, nextPopout);
 				__VirtualDom_applyPatches(model.__$popout.__doc.body, currPopout, popoutPatches, sendToApp);
