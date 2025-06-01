@@ -506,6 +506,7 @@ popoutView model =
       , style "height" "100%"
       , style "font-family" "monospace"
       , style "display" "flex"
+      , style "background-color" "white"
       , style "flex-direction" (toFlexDirection model.layout)
       ]
     )
