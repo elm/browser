@@ -437,18 +437,18 @@ function _Debugger_init(value)
 		}
 
 		var char = tag.charCodeAt(0);
-		if (char === 35 || 65 <= char && char <= 90)
+		if (/* a */ 0x61 <= char && char <= 0x7A /* z */)
 		{
-			var list = __List_Nil;
-			for (var i in value)
-			{
-				if (i === '$') continue;
-				list = __List_Cons(_Debugger_init(value[i]), list);
-			}
-			return A3(__Expando_Constructor, char === 35 ? __Maybe_Nothing : __Maybe_Just(tag), true, __List_reverse(list));
+			return __Expando_Primitive('<internals>');
 		}
 
-		return __Expando_Primitive('<internals>');
+		var list = __List_Nil;
+		for (var i in value)
+		{
+			if (i === '$') continue;
+			list = __List_Cons(_Debugger_init(value[i]), list);
+		}
+		return A3(__Expando_Constructor, char === 35 ? __Maybe_Nothing : __Maybe_Just(tag), true, __List_reverse(list));
 	}
 
 	if (typeof value === 'object')
