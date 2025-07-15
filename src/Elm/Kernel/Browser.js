@@ -96,41 +96,112 @@ var _Browser_document = __Debugger_document || F4(function(impl, flagDecoder, de
 // ANIMATION
 
 
-var _Browser_cancelAnimationFrame =
-	typeof cancelAnimationFrame !== 'undefined'
-		? cancelAnimationFrame
-		: function(id) { clearTimeout(id); };
+var _Browser_requestAnimationFrame_queue = {};
+var _Browser_inAnimationFrame = false;
+var _Browser_pendingAnimationFrame = false;
+var _Browser_requestAnimationFrame_id = 0;
 
-var _Browser_requestAnimationFrame =
+function _Browser_cancelAnimationFrame(id)
+{
+	delete _Browser_requestAnimationFrame_queue[id];
+}
+
+function _Browser_requestAnimationFrame(callback)
+{
+	var id = _Browser_requestAnimationFrame_id;
+	_Browser_requestAnimationFrame_id++;
+	_Browser_requestAnimationFrame_queue[id] = callback;
+	if (!_Browser_pendingAnimationFrame)
+	{
+		_Browser_pendingAnimationFrame = true;
+		_Browser_requestAnimationFrame_raw(function() {
+			_Browser_pendingAnimationFrame = false;
+			_Browser_inAnimationFrame = true;
+			var maxId = _Browser_requestAnimationFrame_id;
+			for (var id2 in _Browser_requestAnimationFrame_queue)
+			{
+				if (id2 >= maxId)
+				{
+					break;
+				}
+				var callback = _Browser_requestAnimationFrame_queue[id2];
+				delete _Browser_requestAnimationFrame_queue[id2];
+				callback();
+			}
+			_Browser_inAnimationFrame = false;
+		});
+	}
+	return id;
+}
+
+var _Browser_requestAnimationFrame_raw =
 	typeof requestAnimationFrame !== 'undefined'
 		? requestAnimationFrame
 		: function(callback) { return setTimeout(callback, 1000 / 60); };
 
-
 function _Browser_makeAnimator(model, draw)
 {
-	draw(model);
+	// Whether `draw` is currently running. `draw` can cause side effects:
+	// If the user renders a custom element, they can dispatch an event in
+	// its `connectedCallback`, which happens synchronously. That causes
+	// `update` to run while we’re in the middle of drawing, which then
+	// causes another call to the returned function below. We can’t start
+	// another draw while before the first one is finished.
+	var drawing = false;
 
-	var state = __4_NO_REQUEST;
+	// Whether we have already requested an animation frame for drawing.
+	var pendingFrame = false;
+
+	// Whether we have already requested to draw right after the current draw has finished.
+	var pendingSync = false;
+
+	function drawHelp()
+	{
+		// If we’re already drawing, wait until that draw is done.
+		if (drawing)
+		{
+			pendingSync = true;
+			return;
+		}
+
+		pendingFrame = false;
+		pendingSync = false;
+		drawing = true;
+		draw(model);
+		drawing = false;
+
+		if (pendingSync)
+		{
+			drawHelp();
+		}
+	}
 
 	function updateIfNeeded()
 	{
-		state = state === __4_EXTRA_REQUEST
-			? __4_NO_REQUEST
-			: ( _Browser_requestAnimationFrame(updateIfNeeded), draw(model), __4_EXTRA_REQUEST );
+		if (pendingFrame)
+		{
+			drawHelp();
+		}
 	}
+
+	drawHelp();
 
 	return function(nextModel, isSync)
 	{
 		model = nextModel;
 
-		isSync
-			? ( draw(model),
-				state === __4_PENDING_REQUEST && (state = __4_EXTRA_REQUEST)
-				)
-			: ( state === __4_NO_REQUEST && _Browser_requestAnimationFrame(updateIfNeeded),
-				state = __4_PENDING_REQUEST
-				);
+		// When using `Browser.Events.onAnimationFrame` we already are
+		// in an animation frame, so draw straight away. Otherwise we’ll
+		// be drawing one frame late all the time.
+		if (isSync || _Browser_inAnimationFrame)
+		{
+			drawHelp();
+		}
+		else if (!pendingFrame)
+		{
+			pendingFrame = true;
+			_Browser_requestAnimationFrame(updateIfNeeded);
+		}
 	};
 }
 
