@@ -171,6 +171,7 @@ type Msg msg
     | UserMsg msg
     | TweakExpandoMsg Expando.Msg
     | TweakExpandoModel Expando.Msg
+    | Pause
     | Resume
     | Jump Int
     | SliderJump Int
@@ -233,6 +234,22 @@ wrapUpdate update msg model =
       ( { model | expandoModel = Expando.update eMsg model.expandoModel }
       , Cmd.none
       )
+
+    Pause ->
+      case model.state of
+          Running _ ->
+              let
+                size = History.size model.history
+              in
+              if size == 0 then
+                ( model, Cmd.none )
+              else
+                ( jumpUpdate update (size - 1) model
+                , Cmd.none
+                )
+
+          Paused _ _ _ _ _ ->
+              ( model, Cmd.none )
 
     Resume ->
         case model.state of
@@ -686,7 +703,7 @@ viewPlayButton playing =
     , style "cursor" "pointer"
     , style "width" "36px"
     , style "height" "36px"
-    , onClick Resume
+    , onClick (if playing then Pause else Resume)
     ]
     [ if playing
       then icon "M2 2h4v12h-4v-12z M10 2h4v12h-4v-12z"
