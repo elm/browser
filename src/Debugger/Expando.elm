@@ -14,19 +14,33 @@ import Html exposing (Html, div, span, text)
 import Html.Attributes exposing (class, style)
 import Html.Events exposing (onClick)
 import Json.Decode as Json
+import Set exposing (Set)
 
 
 
 -- MODEL
 
 
-type Expando
+type alias Expando =
+  { unexpanded : Unexpanded
+  , expanded : Set Path
+  , viewMore : Dict Path Int
+  }
+
+
+type alias Path = List String
+
+
+type Unexpanded = Unexpanded
+
+
+type Expanded
   = S String
   | Primitive String
-  | Sequence SeqType Bool (List Expando)
-  | Dictionary Bool (List (Expando, Expando))
-  | Record Bool (Dict String Expando)
-  | Constructor (Maybe String) Bool (List Expando)
+  | Sequence SeqType (List Unexpanded)
+  | Dictionary (List (Unexpanded, Unexpanded))
+  | Record (Dict String Unexpanded)
+  | Constructor (Maybe String) (List Unexpanded)
 
 
 type SeqType
@@ -48,63 +62,86 @@ seqTypeToString n seqType =
       "Array(" ++ String.fromInt n ++ ")"
 
 
+maximumItemsToView : Path -> Expando -> Int
+maximumItemsToView path expando =
+  -- Show 100 items at a time.
+  (Dict.get path expando.viewMore |> Maybe.withDefault 1) * 100
+
+
 
 -- INITIALIZE
 
 
 init : a -> Expando
 init value =
-  initHelp True (Elm.Kernel.Debugger.init value)
+  let
+    expando =
+      { unexpanded = Elm.Kernel.Debugger.toUnexpanded value
+      , expanded = Set.empty
+      , viewMore = Dict.empty
+      }
+  in
+  -- `[]` is the root path. Always start with the root expanded.
+  { expando | expanded = Set.fromList ([] :: initiallyExpandedChildren expando) }
 
 
-initHelp : Bool -> Expando -> Expando
-initHelp isOuter expando =
-  case expando of
+initiallyExpandedChildren : Expando -> List Path
+initiallyExpandedChildren expando =
+  let
+    ifSmall path child =
+      if isSmall child then Just path else Nothing
+
+    max = maximumItemsToView [] expando
+  in
+  case Elm.Kernel.Debugger.init expando.unexpanded of
     S _ ->
-      expando
+      []
 
     Primitive _ ->
-      expando
+      []
 
-    Sequence seqType isClosed items ->
-      if isOuter then
-        Sequence seqType False (List.map (initHelp False) items)
+    Sequence _ items ->
+      List.take max items
+        |> List.indexedMap (\index item -> ifSmall [ String.fromInt index ] item)
+        |> List.filterMap identity
 
-      else if List.length items <= 8 then
-        Sequence seqType False items
+    Dictionary keyValuePairs ->
+      List.take max keyValuePairs
+        |> List.indexedMap (\index ( key, value ) -> ifSmall (dictValuePath index key) value)
+        |> List.filterMap identity
 
-      else
-        expando
+    Record record ->
+      Dict.toList record
+        |> List.filterMap (\( field, value ) -> ifSmall [ field ] value)
 
-    Dictionary isClosed keyValuePairs ->
-      if isOuter then
-        Dictionary False (List.map (\( k, v ) -> ( k, initHelp False v )) keyValuePairs)
+    -- A single argument is shown inline, under the constructor’s own toggle.
+    Constructor _ [ _ ] ->
+      []
 
-      else if List.length keyValuePairs <= 8 then
-        Dictionary False keyValuePairs
+    Constructor _ args ->
+      args
+        |> List.indexedMap (\index arg -> ifSmall [ String.fromInt index, "0" ] arg)
+        |> List.filterMap identity
 
-      else
-        expando
 
-    Record isClosed entries ->
-      if isOuter then
-        Record False (Dict.map (\_ v -> initHelp False v) entries)
+-- Must match the paths used in `viewDictionaryEntry`.
+dictValuePath : Int -> Unexpanded -> Path
+dictValuePath index key =
+  case Elm.Kernel.Debugger.init key of
+    S stringRep -> [ stringRep ]
+    Primitive stringRep -> [ stringRep ]
+    _ -> [ "value", String.fromInt index ]
 
-      else if Dict.size entries <= 4 then
-        Record False entries
 
-      else
-        expando
-
-    Constructor maybeName isClosed args ->
-      if isOuter then
-        Constructor maybeName False (List.map (initHelp False) args)
-
-      else if List.length args <= 4 then
-        Constructor maybeName False args
-
-      else
-        expando
+isSmall : Unexpanded -> Bool
+isSmall unexpanded =
+  case Elm.Kernel.Debugger.init unexpanded of
+    S _ -> False
+    Primitive _ -> False
+    Sequence _ items -> List.isEmpty (List.drop 8 items)
+    Dictionary keyValuePairs -> List.isEmpty (List.drop 8 keyValuePairs)
+    Record record -> Dict.size record <= 4
+    Constructor _ args -> List.length args <= 4
 
 
 
@@ -113,55 +150,7 @@ initHelp isOuter expando =
 
 merge : a -> Expando -> Expando
 merge value expando =
-  mergeHelp expando (Elm.Kernel.Debugger.init value)
-
-
-mergeHelp : Expando -> Expando -> Expando
-mergeHelp old new =
-  case (old, new) of
-    (_, S _) ->
-      new
-
-    (_, Primitive _) ->
-      new
-
-    (Sequence _ isClosed oldValues, Sequence seqType _ newValues) ->
-      Sequence seqType isClosed (mergeListHelp oldValues newValues)
-
-    (Dictionary isClosed _, Dictionary _ keyValuePairs) ->
-      Dictionary isClosed keyValuePairs
-
-    (Record isClosed oldDict, Record _ newDict) ->
-      Record isClosed <| Dict.map (mergeDictHelp oldDict) newDict
-
-    (Constructor _ isClosed oldValues, Constructor maybeName _ newValues) ->
-      Constructor maybeName isClosed (mergeListHelp oldValues newValues)
-
-    _ ->
-      new
-
-
-mergeListHelp : List Expando -> List Expando -> List Expando
-mergeListHelp olds news =
-  case (olds, news) of
-    ([], _) ->
-      news
-
-    (_, []) ->
-      news
-
-    (x :: xs, y :: ys) ->
-      mergeHelp x y :: mergeListHelp xs ys
-
-
-mergeDictHelp : Dict String Expando -> String -> Expando -> Expando
-mergeDictHelp oldDict key value =
-  case Dict.get key oldDict of
-    Nothing ->
-      value
-
-    Just oldValue ->
-      mergeHelp oldValue value
+  { expando | unexpanded = Elm.Kernel.Debugger.toUnexpanded value }
 
 
 
@@ -169,199 +158,171 @@ mergeDictHelp oldDict key value =
 
 
 type Msg
-  = Toggle
-  | Index Redirect Int Msg
-  | Field String Msg
-
-
-type Redirect
-  = None
-  | Key
-  | Value
+  = Toggle Path
+  | ViewMore Path
 
 
 update : Msg -> Expando -> Expando
-update msg value =
-  case value of
-    S _ ->
-      -- Debug.crash "nothing changes a primitive"
-      value
+update msg expando =
+  case msg of
+    Toggle path ->
+      { expando
+        | expanded =
+          if Set.member path expando.expanded then
+            Set.remove path expando.expanded
 
-    Primitive _ ->
-      -- Debug.crash "nothing changes a primitive"
-      value
+          else
+            Set.insert path expando.expanded
+      }
 
-    Sequence seqType isClosed valueList ->
-      case msg of
-        Toggle ->
-          Sequence seqType (not isClosed) valueList
-
-        Index None index subMsg ->
-          Sequence seqType isClosed <| updateIndex index (update subMsg) valueList
-
-        Index _ _ _ ->
-          -- Debug.crash "no redirected indexes on sequences"
-          value
-
-        Field _ _ ->
-          -- Debug.crash "no field on sequences"
-          value
-
-    Dictionary isClosed keyValuePairs ->
-      case msg of
-        Toggle ->
-          Dictionary (not isClosed) keyValuePairs
-
-        Index redirect index subMsg ->
-          case redirect of
-            None ->
-              -- Debug.crash "must have redirect for dictionaries"
-              value
-
-            Key ->
-              Dictionary isClosed <|
-                updateIndex index (\( k, v ) -> ( update subMsg k, v )) keyValuePairs
-
-            Value ->
-              Dictionary isClosed <|
-                updateIndex index (\( k, v ) -> ( k, update subMsg v )) keyValuePairs
-
-        Field _ _ ->
-          -- Debug.crash "no field for dictionaries"
-          value
-
-    Record isClosed valueDict ->
-      case msg of
-        Toggle ->
-          Record (not isClosed) valueDict
-
-        Index _ _ _ ->
-          -- Debug.crash "no index for records"
-          value
-
-        Field field subMsg ->
-          Record isClosed (Dict.update field (updateField subMsg) valueDict)
-
-    Constructor maybeName isClosed valueList ->
-      case msg of
-        Toggle ->
-          Constructor maybeName (not isClosed) valueList
-
-        Index None index subMsg ->
-          Constructor maybeName isClosed <|
-            updateIndex index (update subMsg) valueList
-
-        Index _ _ _ ->
-          -- Debug.crash "no redirected indexes on sequences"
-          value
-
-        Field _ _ ->
-          -- Debug.crash "no field for constructors"
-          value
+    ViewMore path ->
+      { expando | viewMore = Dict.update path updateViewMoreCount expando.viewMore }
 
 
-updateIndex : Int -> (a -> a) -> List a -> List a
-updateIndex n func list =
-  case list of
-    [] ->
-      []
+updateViewMoreCount : Maybe Int -> Maybe Int
+updateViewMoreCount maybeCount =
+  case maybeCount of
+    Just count ->
+      Just (count + 1)
 
-    x :: xs ->
-      if n <= 0
-      then func x :: xs
-      else x :: updateIndex (n - 1) func xs
-
-
-updateField : Msg -> Maybe Expando -> Maybe Expando
-updateField msg maybeExpando =
-  case maybeExpando of
     Nothing ->
-      -- Debug.crash "key does not exist"
-      maybeExpando
-
-    Just expando ->
-      Just (update msg expando)
+      Just 2
 
 
 
 -- VIEW
 
 
-view : Maybe String -> Expando -> Html Msg
-view maybeKey expando =
-  case expando of
+view : Path -> Expando -> Html Msg
+view path expando =
+  let
+    maybeKey = List.head path
+  in
+  case Elm.Kernel.Debugger.init expando.unexpanded of
     S stringRep ->
       div (leftPad maybeKey) (lineStarter maybeKey Nothing [ span [ red ] [ text stringRep ] ])
 
     Primitive stringRep ->
       div (leftPad maybeKey) (lineStarter maybeKey Nothing [ span [ blue ] [ text stringRep ] ])
 
-    Sequence seqType isClosed valueList ->
-      viewSequence maybeKey seqType isClosed valueList
+    Sequence seqType valueList ->
+      viewSequence path seqType expando valueList
 
-    Dictionary isClosed keyValuePairs ->
-      viewDictionary maybeKey isClosed keyValuePairs
+    Dictionary keyValuePairs ->
+      viewDictionary path expando keyValuePairs
 
-    Record isClosed valueDict ->
-      viewRecord maybeKey isClosed valueDict
+    Record valueDict ->
+      viewRecord path expando valueDict
 
-    Constructor maybeName isClosed valueList ->
-      viewConstructor maybeKey maybeName isClosed valueList
+    Constructor maybeName valueList ->
+      viewConstructor path maybeName expando valueList
 
 
 
 -- VIEW SEQUENCE
 
 
-viewSequence : Maybe String -> SeqType -> Bool -> List Expando -> Html Msg
-viewSequence maybeKey seqType isClosed valueList =
+viewSequence : Path -> SeqType -> Expando -> List Unexpanded -> Html Msg
+viewSequence path seqType expando valueList =
   let
     starter = seqTypeToString (List.length valueList) seqType
+
+    maybeKey = List.head path
+
+    isClosed = not (Set.member path expando.expanded)
   in
   div (leftPad maybeKey)
-    [ div [ onClick Toggle ] (lineStarter maybeKey (Just isClosed) [ text starter ])
-    , if isClosed then text "" else viewSequenceOpen valueList
+    [ div [ onClick (Toggle path) ] (lineStarter maybeKey (Just isClosed) [ text starter ])
+    , if isClosed then text "" else viewSequenceOpen path expando valueList
     ]
 
 
-viewSequenceOpen : List Expando -> Html Msg
-viewSequenceOpen values =
-  div [] (List.indexedMap viewConstructorEntry values)
+viewSequenceOpen : Path -> Expando -> List Unexpanded -> Html Msg
+viewSequenceOpen path expando values =
+  let
+    max = maximumItemsToView path expando
+  in
+  div [] (viewSequenceOpenHelp path expando 0 max values [])
+
+
+viewSequenceOpenHelp : Path -> Expando -> Int -> Int -> List Unexpanded -> List (Html Msg) -> List (Html Msg)
+viewSequenceOpenHelp path expando index max values acc =
+  case values of
+    [] -> List.reverse acc
+
+    value :: rest ->
+      if index < max then
+        viewSequenceOpenHelp
+          path
+          expando
+          (index + 1)
+          max
+          rest
+          (viewConstructorEntry path expando index value :: acc)
+
+      else
+        List.reverse (viewMoreButton path :: acc)
 
 
 
 -- VIEW DICTIONARY
 
 
-viewDictionary : Maybe String -> Bool -> List (Expando, Expando) -> Html Msg
-viewDictionary maybeKey isClosed keyValuePairs =
+viewDictionary : Path -> Expando -> List (Unexpanded, Unexpanded) -> Html Msg
+viewDictionary path expando keyValuePairs =
   let
     starter = "Dict(" ++ String.fromInt (List.length keyValuePairs) ++ ")"
+
+    maybeKey = List.head path
+
+    isClosed = not (Set.member path expando.expanded)
   in
   div (leftPad maybeKey)
-    [ div [ onClick Toggle ] (lineStarter maybeKey (Just isClosed) [ text starter ])
-    , if isClosed then text "" else viewDictionaryOpen keyValuePairs
+    [ div [ onClick (Toggle path) ] (lineStarter maybeKey (Just isClosed) [ text starter ])
+    , if isClosed then text "" else viewDictionaryOpen path expando keyValuePairs
     ]
 
 
-viewDictionaryOpen : List (Expando, Expando) -> Html Msg
-viewDictionaryOpen keyValuePairs =
-  div [] (List.indexedMap viewDictionaryEntry keyValuePairs)
+viewDictionaryOpen : Path -> Expando -> List (Unexpanded, Unexpanded) -> Html Msg
+viewDictionaryOpen path expando keyValuePairs =
+  let
+    max = maximumItemsToView path expando
+  in
+  div [] (viewDictionaryOpenHelp path expando 0 max keyValuePairs [])
 
 
-viewDictionaryEntry : Int -> (Expando, Expando) -> Html Msg
-viewDictionaryEntry index ( key, value ) =
-  case key of
+viewDictionaryOpenHelp : Path -> Expando -> Int -> Int -> List (Unexpanded, Unexpanded) -> List (Html Msg) -> List (Html Msg)
+viewDictionaryOpenHelp path expando index max keyValuePairs acc =
+  case keyValuePairs of
+    [] -> List.reverse acc
+
+    keyValue :: rest ->
+      if index < max then
+        viewDictionaryOpenHelp
+          path
+          expando
+          (index + 1)
+          max
+          rest
+          (viewDictionaryEntry path index expando keyValue :: acc)
+
+      else
+        List.reverse (viewMoreButton path :: acc)
+
+
+viewDictionaryEntry : Path -> Int -> Expando -> (Unexpanded, Unexpanded) -> Html Msg
+viewDictionaryEntry path index expando ( key, value ) =
+  case Elm.Kernel.Debugger.init key of
     S stringRep ->
-      Html.map (Index Value index) (view (Just stringRep) value)
+      view (stringRep :: path) { expando | unexpanded = value }
 
     Primitive stringRep ->
-      Html.map (Index Value index) (view (Just stringRep) value)
+      view (stringRep :: path) { expando | unexpanded = value }
 
     _ ->
       div []
-        [ Html.map (Index Key index) (view (Just "key") key)
-        , Html.map (Index Value index) (view (Just "value") value)
+        [ view ("key" :: String.fromInt index :: path) { expando | unexpanded = key }
+        , view ("value" :: String.fromInt index :: path) { expando | unexpanded = value }
         ]
 
 
@@ -369,39 +330,47 @@ viewDictionaryEntry index ( key, value ) =
 -- VIEW RECORD
 
 
-viewRecord : Maybe String -> Bool -> Dict String Expando -> Html Msg
-viewRecord maybeKey isClosed record =
+viewRecord : Path -> Expando -> Dict String Unexpanded -> Html Msg
+viewRecord path expando record =
   let
+    maybeKey = List.head path
+
+    isClosed = not (Set.member path expando.expanded)
+
     (start, middle, end) =
       if isClosed then
         (Tuple.second (viewTinyRecord record), text "", text "")
       else
-        ([ text "{" ], viewRecordOpen record, div (leftPad (Just ())) [ text "}" ])
+        ([ text "{" ], viewRecordOpen path expando record, div (leftPad (Just ())) [ text "}" ])
   in
   div (leftPad maybeKey)
-    [ div [ onClick Toggle ] (lineStarter maybeKey (Just isClosed) start)
+    [ div [ onClick (Toggle path) ] (lineStarter maybeKey (Just isClosed) start)
     , middle
     , end
     ]
 
 
-viewRecordOpen : Dict String Expando -> Html Msg
-viewRecordOpen record =
-  div [] (List.map viewRecordEntry (Dict.toList record))
+viewRecordOpen : Path -> Expando -> Dict String Unexpanded -> Html Msg
+viewRecordOpen path expando record =
+  div [] (List.map (viewRecordEntry path expando) (Dict.toList record))
 
 
-viewRecordEntry : ( String, Expando ) -> Html Msg
-viewRecordEntry ( field, value ) =
-  Html.map (Field field) (view (Just field) value)
+viewRecordEntry : Path -> Expando -> ( String, Unexpanded ) -> Html Msg
+viewRecordEntry path expando ( field, value ) =
+  view (field :: path) { expando | unexpanded = value }
 
 
 
 -- VIEW CONSTRUCTOR
 
 
-viewConstructor : Maybe String -> Maybe String -> Bool -> List Expando -> Html Msg
-viewConstructor maybeKey maybeName isClosed valueList =
+viewConstructor : Path -> Maybe String -> Expando -> List Unexpanded -> Html Msg
+viewConstructor path maybeName expando valueList =
   let
+    maybeKey = List.head path
+
+    isClosed = not (Set.member path expando.expanded)
+
     tinyArgs = List.map (Tuple.second << viewExtraTiny) valueList
 
     description =
@@ -417,65 +386,65 @@ viewConstructor maybeKey maybeName isClosed valueList =
             (Nothing, div [] [])
 
           [ entry ] ->
-            case entry of
+            case Elm.Kernel.Debugger.init entry of
               S _ ->
                 (Nothing, div [] [])
 
               Primitive _ ->
                 (Nothing, div [] [])
 
-              Sequence _ _ subValueList ->
+              Sequence _ subValueList ->
                 ( Just isClosed
                 , if isClosed then div [] [] else
-                    Html.map (Index None 0) (viewSequenceOpen subValueList)
+                    viewSequenceOpen ("0" :: path) expando subValueList
                 )
 
-              Dictionary _ keyValuePairs ->
+              Dictionary keyValuePairs ->
                 ( Just isClosed
                 , if isClosed then div [] [] else
-                    Html.map (Index None 0) (viewDictionaryOpen keyValuePairs)
+                    viewDictionaryOpen ("0" :: path) expando keyValuePairs
                 )
 
-              Record _ record ->
+              Record record ->
                   ( Just isClosed
                   , if isClosed then div [] [] else
-                      Html.map (Index None 0) (viewRecordOpen record)
+                      viewRecordOpen ("0" :: path) expando record
                   )
 
-              Constructor _ _ subValueList ->
+              Constructor _ subValueList ->
                   ( Just isClosed
                   , if isClosed then div [] [] else
-                      Html.map (Index None 0) (viewConstructorOpen subValueList)
+                      viewConstructorOpen ("0" :: path) expando subValueList
                   )
 
           _ ->
             ( Just isClosed
-            , if isClosed then div [] [] else viewConstructorOpen valueList
+            , if isClosed then div [] [] else viewConstructorOpen ("0" :: path) expando valueList
             )
   in
   div (leftPad maybeKey)
-    [ div [ onClick Toggle ] (lineStarter maybeKey maybeIsClosed description)
+    [ div [ onClick (Toggle path) ] (lineStarter maybeKey maybeIsClosed description)
     , openHtml
     ]
 
 
-viewConstructorOpen : List Expando -> Html Msg
-viewConstructorOpen valueList =
-  div [] (List.indexedMap viewConstructorEntry valueList)
+viewConstructorOpen : Path -> Expando -> List Unexpanded -> Html Msg
+viewConstructorOpen path expando valueList =
+  div [] (List.indexedMap (viewConstructorEntry path expando) valueList)
 
 
-viewConstructorEntry : Int -> Expando -> Html Msg
-viewConstructorEntry index value =
-  Html.map (Index None index) (view (Just (String.fromInt index)) value)
+viewConstructorEntry : Path -> Expando -> Int -> Unexpanded -> Html Msg
+viewConstructorEntry path expando index value =
+  view (String.fromInt index :: path) { expando | unexpanded = value }
 
 
 
 -- VIEW TINY
 
 
-viewTiny : Expando -> ( Int, List (Html msg) )
+viewTiny : Unexpanded -> ( Int, List (Html msg) )
 viewTiny value =
-  case value of
+  case Elm.Kernel.Debugger.init value of
     S stringRep ->
       let
         str = elideMiddle stringRep
@@ -489,19 +458,19 @@ viewTiny value =
       , [ span [ blue ] [ text stringRep ] ]
       )
 
-    Sequence seqType _ valueList ->
+    Sequence seqType valueList ->
       viewTinyHelp <| seqTypeToString (List.length valueList) seqType
 
-    Dictionary _ keyValuePairs ->
+    Dictionary keyValuePairs ->
       viewTinyHelp <| "Dict(" ++ String.fromInt (List.length keyValuePairs) ++ ")"
 
-    Record _ record ->
+    Record record ->
       viewTinyRecord record
 
-    Constructor maybeName _ [] ->
+    Constructor maybeName [] ->
       viewTinyHelp <| Maybe.withDefault "Unit" maybeName
 
-    Constructor maybeName _ valueList ->
+    Constructor maybeName valueList ->
       viewTinyHelp <|
         case maybeName of
           Nothing -> "Tuple(" ++ String.fromInt (List.length valueList) ++ ")"
@@ -524,7 +493,7 @@ elideMiddle str =
 -- VIEW TINY RECORDS
 
 
-viewTinyRecord : Dict String Expando -> ( Int, List (Html msg) )
+viewTinyRecord : Dict String Unexpanded -> ( Int, List (Html msg) )
 viewTinyRecord record =
   if Dict.isEmpty record then
     (2, [ text "{}" ])
@@ -532,7 +501,7 @@ viewTinyRecord record =
     viewTinyRecordHelp 0 "{ " (Dict.toList record)
 
 
-viewTinyRecordHelp : Int -> String -> List ( String, Expando ) -> ( Int, List (Html msg) )
+viewTinyRecordHelp : Int -> String -> List ( String, Unexpanded ) -> ( Int, List (Html msg) )
 viewTinyRecordHelp length starter entries =
   case entries of
     [] ->
@@ -559,10 +528,10 @@ viewTinyRecordHelp length starter entries =
         )
 
 
-viewExtraTiny : Expando -> ( Int, List (Html msg) )
+viewExtraTiny : Unexpanded -> ( Int, List (Html msg) )
 viewExtraTiny value =
-  case value of
-    Record _ record ->
+  case Elm.Kernel.Debugger.init value of
+    Record record ->
       viewExtraTinyRecord 0 "{" (Dict.keys record)
 
     _ ->
@@ -593,6 +562,13 @@ viewExtraTinyRecord length starter entries =
 
 
 -- VIEW HELPERS
+
+
+viewMoreButton : Path -> Html Msg
+viewMoreButton path =
+  div (leftPad (List.head path))
+    [ div (onClick (ViewMore path) :: leftPad (Just ())) [text ("View more")]
+    ]
 
 
 lineStarter : Maybe String -> Maybe Bool -> List (Html msg) -> List (Html msg)

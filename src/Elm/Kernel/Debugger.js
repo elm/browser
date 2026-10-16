@@ -14,9 +14,9 @@ import Elm.Kernel.VirtualDom exposing (node, applyPatches, diff, doc, makeSteppe
 import Json.Decode as Json exposing (map)
 import List exposing (map, reverse)
 import Maybe exposing (Just, Nothing)
-import Set exposing (foldr)
-import Dict exposing (foldr, empty, insert)
-import Array exposing (foldr)
+import Set exposing (toList)
+import Dict exposing (toList, empty, insert)
+import Array exposing (toList)
 
 */
 
@@ -381,7 +381,7 @@ function _Debugger_init(value)
 {
 	if (typeof value === 'boolean')
 	{
-		return A3(__Expando_Constructor, __Maybe_Just(value ? 'True' : 'False'), true, __List_Nil);
+		return A2(__Expando_Constructor, __Maybe_Just(value ? 'True' : 'False'), __List_Nil);
 	}
 
 	if (typeof value === 'number')
@@ -405,30 +405,22 @@ function _Debugger_init(value)
 
 		if (tag === '::' || tag === '[]')
 		{
-			return A3(__Expando_Sequence, __Expando_ListSeq, true,
-				A2(__List_map, _Debugger_init, value)
-			);
+			return A2(__Expando_Sequence, __Expando_ListSeq, value);
 		}
 
 		if (tag === 'Set_elm_builtin')
 		{
-			return A3(__Expando_Sequence, __Expando_SetSeq, true,
-				A3(__Set_foldr, _Debugger_initCons, __List_Nil, value)
-			);
+			return A2(__Expando_Sequence, __Expando_SetSeq, __Set_toList(value));
 		}
 
 		if (tag === 'RBNode_elm_builtin' || tag == 'RBEmpty_elm_builtin')
 		{
-			return A2(__Expando_Dictionary, true,
-				A3(__Dict_foldr, _Debugger_initKeyValueCons, __List_Nil, value)
-			);
+			return __Expando_Dictionary(__Dict_toList(value));
 		}
 
 		if (tag === 'Array_elm_builtin')
 		{
-			return A3(__Expando_Sequence, __Expando_ArraySeq, true,
-				A3(__Array_foldr, _Debugger_initCons, __List_Nil, value)
-			);
+			return A2(__Expando_Sequence, __Expando_ArraySeq, __Array_toList(value));
 		}
 
 		if (typeof tag === 'number')
@@ -445,7 +437,7 @@ function _Debugger_init(value)
 				if (i === '$') continue;
 				list = __List_Cons(_Debugger_init(value[i]), list);
 			}
-			return A3(__Expando_Constructor, char === 35 ? __Maybe_Nothing : __Maybe_Just(tag), true, __List_reverse(list));
+			return A2(__Expando_Constructor, char === 35 ? __Maybe_Nothing : __Maybe_Just(tag), __List_reverse(list));
 		}
 
 		return __Expando_Primitive('<internals>');
@@ -456,26 +448,13 @@ function _Debugger_init(value)
 		var dict = __Dict_empty;
 		for (var i in value)
 		{
-			dict = A3(__Dict_insert, i, _Debugger_init(value[i]), dict);
+			dict = A3(__Dict_insert, i, value[i], dict);
 		}
-		return A2(__Expando_Record, true, dict);
+		return __Expando_Record(dict);
 	}
 
 	return __Expando_Primitive('<internals>');
 }
-
-var _Debugger_initCons = F2(function initConsHelp(value, list)
-{
-	return __List_Cons(_Debugger_init(value), list);
-});
-
-var _Debugger_initKeyValueCons = F3(function(key, value, list)
-{
-	return __List_Cons(
-		__Utils_Tuple2(_Debugger_init(key), _Debugger_init(value)),
-		list
-	);
-});
 
 function _Debugger_addSlashes(str, isChar)
 {
@@ -494,6 +473,11 @@ function _Debugger_addSlashes(str, isChar)
 	{
 		return s.replace(/\"/g, '\\"');
 	}
+}
+
+function _Debugger_toUnexpanded(value)
+{
+	return value;
 }
 
 

@@ -788,9 +788,9 @@ viewExpando expandoMsg expandoModel layout =
     , style "user-select" block
     ]
     [ div [ style "color" "#ccc", style "padding" "0 0 1em 0" ] [ text "-- MESSAGE" ]
-    , Html.map TweakExpandoMsg <| Expando.view Nothing expandoMsg
+    , Html.map TweakExpandoMsg <| Expando.view [] expandoMsg
     , div [ style "color" "#ccc", style "padding" "1em 0" ] [ text "-- MODEL" ]
-    , Html.map TweakExpandoModel <| Expando.view Nothing expandoModel
+    , Html.map TweakExpandoModel <| Expando.view [] expandoModel
     ]
 
 
