@@ -22,7 +22,7 @@ function _Browser_makeUnitTask() { return _Browser_unitTask; }
 function _Browser_makeNeverResolve() { return __Scheduler_binding(function(){}); }
 var _Browser_unitTask = __Scheduler_succeed(__Utils_Tuple0);
 var _Browser_go = _Browser_makeUnitTask;
-var _Browser_pushState = _Browser_makeNeverResolve
+var _Browser_pushState = _Browser_makeNeverResolve;
 var _Browser_replaceState = _Browser_makeNeverResolve;
 var _Browser_reload = _Browser_makeUnitTask;
 var _Browser_load = _Browser_makeUnitTask;
