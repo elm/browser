@@ -199,11 +199,11 @@ function _Debugger_openWindow(popout)
 	});
 
 	// handle window close
-	window.addEventListener('unload', close);
-	debuggerWindow.addEventListener('unload', function() {
+	window.addEventListener('pagehide', close);
+	debuggerWindow.addEventListener('pagehide', function() {
 		popout.__doc = undefined;
 		popout.__sendToApp(__Main_NoOp);
-		window.removeEventListener('unload', close);
+		window.removeEventListener('pagehide', close);
 	});
 
 	function close() {
